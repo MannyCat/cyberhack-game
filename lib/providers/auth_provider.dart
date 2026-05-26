@@ -71,6 +71,8 @@ class PlayerProfile {
   }
 }
 
+/// AuthProvider работает как ChangeNotifier + Listenable
+/// чтобы GoRouter мог использовать refreshListenable
 class AuthProvider extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
   AuthState _authState = AuthState.loading;
@@ -90,13 +92,13 @@ class AuthProvider extends ChangeNotifier {
   PlayerProfile? get profile => _profile;
   String? get errorMessage => _errorMessage;
   String? get userId => _user?.id;
-  String get displayName => _profile?.username ?? _user?.email ?? 'Unknown';
+  String get displayName => _profile?.username ?? _user?.email ?? 'Неизвестный';
   bool get isAuthenticated => _authState == AuthState.authenticated;
 
   // --- Initialization ---
 
   void _initAuth() {
-    // Check existing session
+    // Проверяем существующую сессию
     final session = _supabase.auth.currentSession;
     if (session != null) {
       _user = session.user;
@@ -106,7 +108,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
 
-    // Listen for auth state changes
+    // Слушаем изменения состояния авторизации
     _authSubscription = _supabase.auth.onAuthStateChange.listen((state) {
       _onAuthStateChange(state.event);
     });
@@ -153,8 +155,8 @@ class AuthProvider extends ChangeNotifier {
       _profile = PlayerProfile.fromJson(response);
       _errorMessage = null;
     } catch (e) {
-      debugPrint('Error loading profile: $e');
-      _errorMessage = 'Failed to load profile';
+      debugPrint('Ошибка загрузки профиля: $e');
+      _errorMessage = 'Не удалось загрузить профиль';
     }
     notifyListeners();
   }
@@ -178,7 +180,7 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
       );
-      // _onAuthStateChange will handle the state update
+      // _onAuthStateChange обработает обновление состояния
       return true;
     } on AuthException catch (e) {
       _errorMessage = _mapAuthError(e.message);
@@ -186,7 +188,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
+      _errorMessage = 'Произошла непредвиденная ошибка';
       _authState = AuthState.unauthenticated;
       notifyListeners();
       return false;
@@ -203,35 +205,47 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Sign up the user
+      // Регистрация пользователя
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
         data: {'username': username},
       );
 
-      // If email confirmation is not required, update profile directly
+      // Если подтверждение email не требуется, обновляем профиль
       if (response.user != null && response.session != null) {
-        // Profile should be auto-created via trigger, but update username
-        await _supabase.from('profiles').update({
-          'username': username,
-        }).eq('id', response.user!.id);
+        // Профиль должен быть создан автоматически через триггер,
+        // но обновляем username для надёжности
+        try {
+          await _supabase.from('profiles').update({
+            'username': username,
+          }).eq('id', response.user!.id);
+        } catch (e) {
+          debugPrint('Профиль создан через триггер, обновление не требуется: $e');
+        }
 
-        // _onAuthStateChange will handle the state update
+        // _onAuthStateChange обработает обновление состояния
         return true;
       }
 
-      // Email confirmation required
+      // Требуется подтверждение email
+      if (response.user != null) {
+        _authState = AuthState.unauthenticated;
+        _errorMessage = 'Проверьте вашу почту для подтверждения аккаунта';
+        notifyListeners();
+        return true;
+      }
+
       _authState = AuthState.unauthenticated;
       notifyListeners();
-      return true;
+      return false;
     } on AuthException catch (e) {
       _errorMessage = _mapAuthError(e.message);
       _authState = AuthState.unauthenticated;
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
+      _errorMessage = 'Произошла непредвиденная ошибка';
       _authState = AuthState.unauthenticated;
       notifyListeners();
       return false;
@@ -245,7 +259,7 @@ class AuthProvider extends ChangeNotifier {
       _user = null;
       _authState = AuthState.unauthenticated;
     } catch (e) {
-      debugPrint('Error logging out: $e');
+      debugPrint('Ошибка выхода: $e');
     }
     notifyListeners();
   }
@@ -260,20 +274,29 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = _mapAuthError(e.message);
       return false;
     } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
+      _errorMessage = 'Произошла непредвиденная ошибка';
       return false;
     }
   }
 
-  // --- Error Mapping ---
+  // --- Error Mapping (на русском) ---
 
   String _mapAuthError(String message) {
     final lower = message.toLowerCase();
-    if (lower.contains('invalid login')) return 'Invalid email or password';
-    if (lower.contains('email not confirmed')) return 'Please verify your email address';
-    if (lower.contains('user already registered')) return 'An account with this email already exists';
-    if (lower.contains('password')) return 'Password must be at least 6 characters';
-    if (lower.contains('network')) return 'Network error. Please check your connection';
+    if (lower.contains('invalid login') || lower.contains('invalid credentials'))
+      return 'Неверный email или пароль';
+    if (lower.contains('email not confirmed'))
+      return 'Подтвердите ваш адрес электронной почты';
+    if (lower.contains('user already registered') || lower.contains('already been registered'))
+      return 'Аккаунт с такой почтой уже существует';
+    if (lower.contains('password'))
+      return 'Пароль должен быть не менее 6 символов';
+    if (lower.contains('network') || lower.contains('fetch'))
+      return 'Ошибка сети. Проверьте подключение к интернету';
+    if (lower.contains('rate limit'))
+      return 'Слишком много попыток. Подождите немного';
+    if (lower.contains('to redirect'))
+      return 'Неверный URL перенаправления в настройках Supabase';
     return message;
   }
 

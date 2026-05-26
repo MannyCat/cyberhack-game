@@ -26,96 +26,116 @@ class CyberHackApp extends StatefulWidget {
 }
 
 class _CyberHackAppState extends State<CyberHackApp> {
-  final _router = GoRouter(
-    initialLocation: '/login',
-    redirect: (context, state) {
-      final session = Supabase.instance.client.auth.currentSession;
-      final isLoggedIn = session != null;
-      final isAuthRoute = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
+  late final GoRouter _router;
+  late final AuthProvider _authProvider;
 
-      if (!isLoggedIn && !isAuthRoute) return '/login';
-      if (isLoggedIn && isAuthRoute) return '/main_menu';
-      return null;
-    },
-    routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/register',
-        builder: (context, state) => const RegisterScreen(),
-      ),
-      GoRoute(
-        path: '/main_menu',
-        builder: (context, state) => const MainMenuScreen(),
-      ),
-      ShellRoute(
-        builder: (context, state, child) => GameShell(child: child),
-        routes: [
-          GoRoute(
-            path: '/game/map',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: GameMapScreen(),
-            ),
+  @override
+  void initState() {
+    super.initState();
+    _authProvider = AuthProvider();
+    _router = GoRouter(
+      initialLocation: '/login',
+      refreshListenable: _authProvider,
+      redirect: (context, state) {
+        final isLoggedIn = _authProvider.isAuthenticated;
+        final isAuthRoute = state.matchedLocation == '/login' ||
+            state.matchedLocation == '/register';
+
+        if (!isLoggedIn && !isAuthRoute) return '/login';
+        if (isLoggedIn && isAuthRoute) return '/main-menu';
+        return null;
+      },
+      routes: [
+        GoRoute(
+          path: '/login',
+          builder: (context, state) => ChangeNotifierProvider.value(
+            value: _authProvider,
+            child: const LoginScreen(),
           ),
-          GoRoute(
-            path: '/game/network',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: NetworkOverviewScreen(),
-            ),
-          ),
-          GoRoute(
-            path: '/game/attack',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: AttackScreen(),
-            ),
-          ),
-          GoRoute(
-            path: '/game/market',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: MarketScreen(),
-            ),
-          ),
-          GoRoute(
-            path: '/game/chat',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ChatScreen(),
-            ),
-          ),
-          GoRoute(
-            path: '/game/clan',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ClanScreen(),
-            ),
-          ),
-          GoRoute(
-            path: '/game/leaderboard',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: LeaderboardScreen(),
-            ),
-          ),
-        ],
-      ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => const SettingsScreen(),
-      ),
-      GoRoute(
-        path: '/profile',
-        builder: (context, state) => ProfileScreen(
-          profile: PlayerProfileData(id: '', handle: 'Unknown'),
         ),
-      ),
-    ],
-  );
+        GoRoute(
+          path: '/register',
+          builder: (context, state) => ChangeNotifierProvider.value(
+            value: _authProvider,
+            child: const RegisterScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/main-menu',
+          builder: (context, state) => const MainMenuScreen(),
+        ),
+        ShellRoute(
+          builder: (context, state, child) => GameShell(child: child),
+          routes: [
+            GoRoute(
+              path: '/game/map',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: GameMapScreen(),
+              ),
+            ),
+            GoRoute(
+              path: '/game/network',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: NetworkOverviewScreen(),
+              ),
+            ),
+            GoRoute(
+              path: '/game/attack',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: AttackScreen(),
+              ),
+            ),
+            GoRoute(
+              path: '/game/market',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: MarketScreen(),
+              ),
+            ),
+            GoRoute(
+              path: '/game/chat',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: ChatScreen(),
+              ),
+            ),
+            GoRoute(
+              path: '/game/clan',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: ClanScreen(),
+              ),
+            ),
+            GoRoute(
+              path: '/game/leaderboard',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: LeaderboardScreen(),
+              ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: '/profile',
+          builder: (context, state) => ProfileScreen(
+            profile: PlayerProfileData(id: '', handle: 'Unknown'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _authProvider.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: _authProvider),
         ChangeNotifierProvider(create: (_) => GameProvider()),
       ],
       child: MaterialApp.router(
