@@ -225,7 +225,7 @@ class _ClanScreenState extends State<ClanScreen> {
       _loadPublicClans();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Покинули клан'),,
+          content: Text('Покинули клан'),
           backgroundColor: Colors.orangeAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -233,7 +233,7 @@ class _ClanScreenState extends State<ClanScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Не удалось покинуть клан'),,
+          content: Text('Не удалось покинуть клан'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),

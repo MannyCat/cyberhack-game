@@ -648,8 +648,8 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                         const Padding(
                           padding: EdgeInsets.only(left: 4, bottom: 12),
                           child: Text(
-                            '// МЕНЮ МАЙНФРЕЙМА'
-                            style: TextStyle(
+                            '// МЕНЮ МАЙНФРЕЙМА',
+                            style: const TextStyle(
                               color: Color(0xFF4a5568),
                               fontSize: 11,
                               letterSpacing: 2,

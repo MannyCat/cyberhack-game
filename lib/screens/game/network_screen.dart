@@ -235,9 +235,11 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: _Theme.accentCyan, width: 1),
         ),
-        title: const Text('Улучшить Узел'), style: TextStyle(color: _Theme.accentCyan, fontSize: 18)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+        title: const Text('Улучшить Узел'),
+        titleTextStyle: const TextStyle(color: _Theme.accentCyan, fontSize: 18),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Узел: ${node.name}', style: const TextStyle(color: _Theme.textPrimary)),
@@ -248,6 +250,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
             Text('Стоимость: ${node.upgradeCost}₿', style: const TextStyle(color: _Theme.warningRed)),
             Text('+${50 + node.level * 20} Макс. здоровье', style: const TextStyle(color: _Theme.accentGreen)),
           ],
+        ),
         ),
         actions: [
           TextButton(
@@ -691,9 +694,10 @@ class _BuildNodeDialog extends StatelessWidget {
           const SizedBox(height: 16),
 
           // ── Title ──
-          const Text('Развернуть Новый Узел'), style: TextStyle(color: _Theme.accentCyan, fontSize: 20, fontWeight: FontWeight.bold)),
+          Text('Развернуть Новый Узел', style: const TextStyle(color: _Theme.accentCyan, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           Text('Доступные Кредиты: $playerCredits₿', style: const TextStyle(color: _Theme.accentGreen, fontSize: 14)),
+          const SizedBox(height: 0),
           const Divider(color: _Theme.border, height: 24),
 
           // ── Node Types ──
