@@ -80,7 +80,7 @@ class AttackTarget {
   factory AttackTarget.fromJson(Map<String, dynamic> json) {
     return AttackTarget(
       id: json['id'] as String,
-      username: json['username'] as String? ?? 'Unknown',
+      username: json['username'] as String? ?? 'Неизвестный',
       level: (json['level'] as num?)?.toInt() ?? 1,
       networkStrength: (json['network_strength'] as num?)?.toInt() ?? 0,
       clanTag: json['clan_tag'] as String? ?? '',
@@ -209,7 +209,7 @@ class GameProvider extends ChangeNotifier {
       await _loadAvailableTargets(userId);
     } catch (e) {
       debugPrint('Error loading game data: $e');
-      _errorMessage = 'Failed to load game data';
+      _errorMessage = 'Не удалось загрузить данные игры';
     }
 
     _isLoading = false;
@@ -282,7 +282,7 @@ class GameProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('Error deploying node: $e');
-      _errorMessage = 'Failed to deploy node';
+      _errorMessage = 'Не удалось развернуть узел';
       notifyListeners();
       return false;
     }
@@ -301,7 +301,7 @@ class GameProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('Error upgrading node: $e');
-      _errorMessage = 'Failed to upgrade node';
+      _errorMessage = 'Не удалось улучшить узел';
       notifyListeners();
       return false;
     }
@@ -456,7 +456,7 @@ class GameProvider extends ChangeNotifier {
 
       final currentCredits = (profile['credits'] as num).toInt();
       if (currentCredits < price) {
-        _errorMessage = 'Not enough credits';
+        _errorMessage = 'Недостаточно кредитов';
         notifyListeners();
         return false;
       }
@@ -500,7 +500,7 @@ class GameProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('Error purchasing item: $e');
-      _errorMessage = 'Failed to purchase item';
+      _errorMessage = 'Не удалось купить товар';
       notifyListeners();
       return false;
     }

@@ -118,7 +118,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
         GoRoute(
           path: '/profile',
           builder: (context, state) => ProfileScreen(
-            profile: PlayerProfileData(id: '', handle: 'Unknown'),
+            profile: PlayerProfileData(id: '', handle: 'Неизвестный'),
           ),
         ),
       ],
