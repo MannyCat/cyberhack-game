@@ -15,6 +15,22 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
   String _selectedCategory = 'Все';
   final List<String> _categories = const ['Все', 'Оборудование', 'Софт', 'Эксплойты', 'Инструменты'];
 
+  // Маппинг русских названий к английским категориям в БД
+  static const Map<String, String> _categoryMap = {
+    'Оборудование': 'hardware',
+    'Софт': 'software',
+    'Эксплойты': 'exploits',
+    'Инструменты': 'tools',
+  };
+
+  // Обратный маппинг для отображения категорий на русском
+  static const Map<String, String> _categoryDisplayNames = {
+    'hardware': 'ОБОРУДОВАНИЕ',
+    'software': 'СОФТ',
+    'exploits': 'ЭКСПЛОЙТЫ',
+    'tools': 'ИНСТРУМЕНТЫ',
+  };
+
   List<Map<String, dynamic>> _marketItems = [];
   List<Map<String, dynamic>> _inventory = [];
   bool _isLoadingItems = false;
@@ -55,7 +71,7 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
       _errorMessage = null;
     });
     final game = context.read<GameProvider>();
-    final category = _selectedCategory == 'Все' ? null : _selectedCategory.toLowerCase();
+    final category = _selectedCategory == 'Все' ? null : (_categoryMap[_selectedCategory] ?? _selectedCategory.toLowerCase());
     final items = await game.getMarketItems(category: category);
     if (!mounted) return;
     setState(() {
@@ -364,7 +380,7 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
                               ),
                             ),
                             child: Text(
-                              (marketItem?['category'] as String?)?.toUpperCase() ?? 'N/A',
+                              (_categoryDisplayNames[marketItem?['category'] as String?] ?? marketItem?['category'] as String?)?.toUpperCase() ?? 'Н/Д',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _categoryColor(marketItem?['category'] as String?),
                                 fontWeight: FontWeight.bold,
