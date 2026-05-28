@@ -41,15 +41,24 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee analyze_output.txt || true
           echo 'Analyzer step completed (non-fatal)'
 
-      - name: Upload analyzer output
+      - name: Upload build logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: analyzer-output
-          path: analyze_output.txt
+          name: build-logs
+          path: |
+            analyze_output.txt
+            build_output.txt
 
       - name: Build APK (release)
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release 2>&1 | tee build_output.txt || {
+            echo "## Build Failed" >> $GITHUB_STEP_SUMMARY
+            echo '\`\`\`' >> $GITHUB_STEP_SUMMARY
+            cat build_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '\`\`\`' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
 
       - name: Rename APK
         run: |
