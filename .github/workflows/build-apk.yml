@@ -44,16 +44,14 @@ jobs:
       - name: Build APK (release)
         id: build
         run: |
-          flutter build apk --release 2>&1 | tee build_output.txt || true
-
-      - name: Check APK and prepare release
-        run: |
+          flutter build apk --release 2>&1 | tee build_output.txt
+          EXIT_CODE=$?
+          echo "=== Build exit code: $EXIT_CODE ==="
           echo "=== Searching for APK ==="
           find . -name '*.apk' -type f 2>/dev/null
-          echo "=== build/app/outputs contents ==="
-          ls -laR build/app/outputs/ 2>/dev/null || echo "build/app/outputs not found"
-          echo "=== build_output.txt tail ==="
-          tail -50 build_output.txt 2>/dev/null || echo "(empty)"
+          echo "=== build/app/outputs tree ==="
+          find build/app/outputs -type f 2>/dev/null || echo "(no outputs dir)"
+          exit $EXIT_CODE
 
       - name: Upload all logs
         if: always()
@@ -68,19 +66,23 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CyberHack-APK
-          path: build/app/outputs/**/*.apk
-          if-no-files-found: warn
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: CyberHack v1.0.${{ github.run_number }}
+          tag_name: v1.1.${{ github.run_number }}
+          name: CyberHack v1.1.${{ github.run_number }}
           body: |
             ## CyberHack — Многопользовательская онлайн-стратегия о хакерстве
 
-            ### Что нового:
+            ### Что нового (v1.1.0):
+            - Исправлен краш при запуске приложения (ProGuard правила для Supabase)
+            - Авто-создание профиля при первой авторизации
+            - Защита от пустых данных (никней, ID узлов)
+            - Улучшена обработка ошибок подключения к Supabase
             - Реальная карта мира с 18 городами (flutter_map + CartoDB Dark Matter)
             - Чат с Supabase Realtime (глобальный + клан-канал)
             - Система кланов: создание, вступление, управление
@@ -90,7 +92,7 @@ jobs:
             - Полностью русский интерфейс
 
             Автоматическая сборка из коммита `${{ github.sha }}`
-          files: build/app/outputs/**/*.apk
+          files: build/app/outputs/flutter-apk/app-release.apk
           draft: false
           prerelease: false
         env:

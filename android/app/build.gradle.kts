@@ -15,7 +15,7 @@ android {
 
     defaultConfig {
         applicationId = "com.mannycat.cyberhack"
-        minSdk = 21  // Android 5.0 - minimum for Supabase + flutter_map
+        minSdk = 21  // Android 5.0 — minimum for Supabase + flutter_map
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -25,8 +25,7 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
-            isMinificationEnabled = true
-            isShrinkResources = false
+            // ProGuard rules for Supabase — Flutter handles minification
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
