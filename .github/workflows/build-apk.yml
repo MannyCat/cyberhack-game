@@ -60,31 +60,19 @@ jobs:
             exit 1
           }
 
-      - name: Find and prepare APK
-        id: apk
+      - name: Prepare APK for release
         run: |
-          # Find the built APK
-          APK_PATH=$(find build/app/outputs -name '*.apk' 2>/dev/null | head -1)
-          if [ -z "$APK_PATH" ]; then
-            echo "ERROR: APK not found!"
-            echo "Listing build outputs:"
-            find build/ -type f 2>/dev/null || true
-            exit 1
-          fi
-          echo "Found APK at: $APK_PATH"
-          ls -lh "$APK_PATH"
-
-          # Copy to known location with fixed name
-          mkdir -p /tmp/apk-release
-          cp "$APK_PATH" "/tmp/apk-release/CyberHack.apk"
-          echo "apk_path=/tmp/apk-release/CyberHack.apk" >> "$GITHUB_OUTPUT"
-          echo "APK ready for release"
+          mkdir -p release
+          cp build/app/outputs/flutter-apk/app-release.apk release/CyberHack.apk 2>/dev/null || \
+          cp build/app/outputs/apk/release/app-release.apk release/CyberHack.apk 2>/dev/null || \
+          { echo "APK NOT FOUND. Contents:"; find build/ -name '*.apk' -type f 2>/dev/null; ls -laR build/app/outputs/ 2>/dev/null; exit 1; }
+          ls -lh release/CyberHack.apk
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
           name: CyberHack-APK
-          path: /tmp/apk-release/CyberHack.apk
+          path: release/CyberHack.apk
           if-no-files-found: error
 
       - name: Create GitHub Release
@@ -106,7 +94,7 @@ jobs:
             - Полностью русский интерфейс
 
             Автоматическая сборка из коммита `${{ github.sha }}`
-          files: /tmp/apk-release/CyberHack.apk
+          files: release/CyberHack.apk
           draft: false
           prerelease: false
         env:
