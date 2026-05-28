@@ -566,7 +566,6 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
               TileLayer(
                 urlTemplate: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                 userAgentPackageName: 'com.cyberhack.game',
-                tileProvider: NetworkTileProvider(),
                 maxZoom: 19,
               ),
 
@@ -729,8 +728,6 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
           points: [node.position, other.position],
           color: color,
           strokeWidth: isSel ? 3.0 : 1.5,
-          borderColor: color.withValues(alpha: 0.3),
-          borderStrokeWidth: isSel ? 6.0 : 3.0,
         ));
       }
     }
