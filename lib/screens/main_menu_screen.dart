@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 // ─── Network Visualization Node ───────────────────────────────────────────
 
@@ -715,7 +717,10 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           icon: Icons.power_settings_new,
                           subtitle: 'Завершить сессию',
                           accentColor: const Color(0xFFff4444),
-                          onTap: () => context.go('/login'),
+                          onTap: () async {
+                            final authProvider = context.read<AuthProvider>();
+                            await authProvider.logout();
+                          },
                         ),
                       ],
                     ),

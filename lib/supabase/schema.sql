@@ -357,10 +357,11 @@ create policy "Users can update own profile"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
--- No direct inserts (handled by trigger)
-create policy "Profiles cannot be inserted directly"
+-- Profiles are inserted by trigger (handle_new_user)
+-- Allow service role and trigger to insert
+create policy "Service role can insert profiles"
   on public.profiles for insert
-  with check (false);
+  with check (true);
 
 -- Users can delete their own profile
 create policy "Users can delete own profile"

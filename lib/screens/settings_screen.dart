@@ -18,7 +18,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushAttackAlerts = true;
   bool _pushClanMessages = true;
   bool _pushUpdates = false;
-  String _language = 'Английский';
+  String _language = 'Русский';
 
   // Change password
   final _currentPassCtrl = TextEditingController();

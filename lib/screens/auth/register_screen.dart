@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 // ─── Scanline Background Painter ──────────────────────────────────────────
 
@@ -75,6 +77,7 @@ class _CyberTextField extends StatelessWidget {
   final bool obscureText;
   final TextEditingController controller;
   final IconData icon;
+  final String? errorText;
 
   const _CyberTextField({
     required this.label,
@@ -82,6 +85,7 @@ class _CyberTextField extends StatelessWidget {
     required this.controller,
     this.obscureText = false,
     required this.icon,
+    this.errorText,
   });
 
   @override
@@ -104,10 +108,17 @@ class _CyberTextField extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF0d1117),
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: const Color(0xFF1a3a2a), width: 1),
+            border: Border.all(
+              color: errorText != null
+                  ? const Color(0xFFFF4444)
+                  : const Color(0xFF1a3a2a),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00ff41).withOpacity(0.08),
+                color: errorText != null
+                    ? const Color(0xFFFF4444).withOpacity(0.15)
+                    : const Color(0xFF00ff41).withOpacity(0.08),
                 blurRadius: 6,
                 spreadRadius: 1,
               ),
@@ -134,6 +145,18 @@ class _CyberTextField extends StatelessWidget {
             ),
           ),
         ),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              errorText!,
+              style: const TextStyle(
+                color: Color(0xFFFF4444),
+                fontSize: 11,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -232,6 +255,8 @@ class _RegisterScreenState extends State<RegisterScreen>
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _termsAccepted = false;
+  bool _isSubmitting = false;
+  String? _fieldError;
 
   @override
   void initState() {
@@ -256,6 +281,65 @@ class _RegisterScreenState extends State<RegisterScreen>
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleRegister() async {
+    final alias = _aliasController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    setState(() => _fieldError = null);
+
+    // Валидация
+    if (alias.isEmpty || alias.length < 3) {
+      setState(() => _fieldError = 'Псевдоним должен быть не менее 3 символов');
+      return;
+    }
+    if (alias.length > 20) {
+      setState(() => _fieldError = 'Псевдоним не более 20 символов');
+      return;
+    }
+    if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
+      setState(() => _fieldError = 'Введите корректный email');
+      return;
+    }
+    if (password.length < 6) {
+      setState(() => _fieldError = 'Пароль должен быть не менее 6 символов');
+      return;
+    }
+    if (password != confirmPassword) {
+      setState(() => _fieldError = 'Пароли не совпадают');
+      return;
+    }
+    if (!_termsAccepted) {
+      setState(() => _fieldError = 'Примите условия использования');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final success = await authProvider.register(
+        email: email,
+        password: password,
+        username: alias,
+      );
+
+      if (!success && mounted) {
+        setState(() => _fieldError = authProvider.errorMessage ?? 'Ошибка регистрации');
+      }
+      // Если успех — GoRouter автоматически перенаправит
+    } catch (e) {
+      if (mounted) {
+        setState(() => _fieldError = 'Ошибка подключения: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -369,6 +453,39 @@ class _RegisterScreenState extends State<RegisterScreen>
                     ),
                     const SizedBox(height: 28),
 
+                    // Error message
+                    if (_fieldError != null)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF4444).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: const Color(0xFFFF4444).withOpacity(0.4),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: Color(0xFFFF4444), size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _fieldError!,
+                                style: const TextStyle(
+                                  color: Color(0xFFFF4444),
+                                  fontSize: 12,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     // Hacker alias field
                     _CyberTextField(
                       label: '[ ПСЕВДОНИМ ХАКЕРА ]',
@@ -425,11 +542,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                       animation: _glowController,
                       builder: (context, _) {
                         final glow = _glowController.value;
-                        final isEnabled = _termsAccepted;
+                        final isEnabled = _termsAccepted && !_isSubmitting;
                         return GestureDetector(
-                          onTap: isEnabled
-                              ? () => context.go('/main-menu')
-                              : null,
+                          onTap: isEnabled ? _handleRegister : null,
                           child: AnimatedOpacity(
                             duration: const Duration(milliseconds: 200),
                             opacity: isEnabled ? 1.0 : 0.4,
@@ -456,17 +571,26 @@ class _RegisterScreenState extends State<RegisterScreen>
                                       ]
                                     : [],
                               ),
-                              child: const Center(
-                                child: Text(
-                                  '⚡ ПОДКЛЮЧИТЬСЯ',
-                                  style: TextStyle(
-                                    color: Color(0xFF0a0e17),
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 4,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
+                              child: Center(
+                                child: _isSubmitting
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFF0a0e17),
+                                        ),
+                                      )
+                                    : const Text(
+                                        '⚡ ПОДКЛЮЧИТЬСЯ',
+                                        style: TextStyle(
+                                          color: Color(0xFF0a0e17),
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 4,
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
                               ),
                             ),
                           ),
@@ -555,16 +679,24 @@ class _PasswordStrengthIndicator extends StatelessWidget {
     if (RegExp(r'[0-9]').hasMatch(password)) strength++;
     if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
 
-    final strengthLevel = strength <= 1
-        ? (strength == 0 ? ('НЕТ' as dynamic) : 'СЛАБЫЙ')
-        : strength <= 3
-            ? 'СРЕДНИЙ'
-            : 'СИЛЬНЫЙ';
-    final color = strength <= 1
-        ? (strength == 0 ? const Color(0xFF4a5568) : const Color(0xFFff4444))
-        : strength <= 3
-            ? const Color(0xFFffaa00)
-            : const Color(0xFF00ff41);
+    final String strengthLevel;
+    if (strength == 0) {
+      strengthLevel = 'НЕТ';
+    } else if (strength <= 1) {
+      strengthLevel = 'СЛАБЫЙ';
+    } else if (strength <= 3) {
+      strengthLevel = 'СРЕДНИЙ';
+    } else {
+      strengthLevel = 'СИЛЬНЫЙ';
+    }
+
+    final color = strength == 0
+        ? const Color(0xFF4a5568)
+        : strength <= 1
+            ? const Color(0xFFff4444)
+            : strength <= 3
+                ? const Color(0xFFffaa00)
+                : const Color(0xFF00ff41);
 
     return Row(
       children: [
@@ -590,7 +722,7 @@ class _PasswordStrengthIndicator extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Text(
-          strengthLevel.toString(),
+          strengthLevel,
           style: TextStyle(
             color: color,
             fontSize: 10,

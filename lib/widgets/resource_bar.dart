@@ -127,7 +127,7 @@ class _ResourceBarState extends State<ResourceBar>
   Widget build(BuildContext context) {
     final resources = [
       ResourceEntry(
-        label: 'CRD',
+        label: 'КРЕД',
         value: widget.credits,
         maxValue: widget.maxCredits,
         icon: Icons.monetization_on,
@@ -143,7 +143,7 @@ class _ResourceBarState extends State<ResourceBar>
         dimColor: const Color(0xFF0A2A30),
       ),
       ResourceEntry(
-        label: 'NET',
+        label: 'СЕТЬ',
         value: widget.bandwidth,
         maxValue: widget.maxBandwidth,
         icon: Icons.wifi,

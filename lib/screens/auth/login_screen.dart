@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 // ─── Matrix Rain Background ────────────────────────────────────────────────
 
@@ -163,19 +165,22 @@ class _GlitchTextState extends State<GlitchText> with TickerProviderStateMixin {
 
 // ─── Cyberpunk Text Field ─────────────────────────────────────────────────
 
-class _CyberTextField extends StatelessWidget {
+class CyberTextField extends StatelessWidget {
   final String label;
   final String hintText;
   final bool obscureText;
   final TextEditingController controller;
   final IconData icon;
+  final String? errorText;
 
-  const _CyberTextField({
+  const CyberTextField({
+    super.key,
     required this.label,
     required this.hintText,
     required this.controller,
     this.obscureText = false,
     required this.icon,
+    this.errorText,
   });
 
   @override
@@ -198,10 +203,17 @@ class _CyberTextField extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF0d1117),
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: const Color(0xFF1a3a2a), width: 1),
+            border: Border.all(
+              color: errorText != null
+                  ? const Color(0xFFFF4444)
+                  : const Color(0xFF1a3a2a),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00ff41).withOpacity(0.1),
+                color: errorText != null
+                    ? const Color(0xFFFF4444).withOpacity(0.15)
+                    : const Color(0xFF00ff41).withOpacity(0.1),
                 blurRadius: 8,
                 spreadRadius: 1,
               ),
@@ -225,9 +237,22 @@ class _CyberTextField extends StatelessWidget {
               border: InputBorder.none,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              errorText: null,
             ),
           ),
         ),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              errorText!,
+              style: const TextStyle(
+                color: Color(0xFFFF4444),
+                fontSize: 11,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -249,6 +274,8 @@ class _LoginScreenState extends State<LoginScreen>
   late AnimationController _glowController;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -286,6 +313,65 @@ class _LoginScreenState extends State<LoginScreen>
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // Валидация
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Введите адрес электронной почты')),
+      );
+      return;
+    }
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Введите пароль')),
+      );
+      return;
+    }
+    if (!email.contains('@') || !email.contains('.')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Неверный формат электронной почты')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final success = await authProvider.login(
+        email: email,
+        password: password,
+      );
+
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ?? 'Ошибка входа'),
+            backgroundColor: const Color(0xFFFF4444),
+          ),
+        );
+      }
+      // Если успех — GoRouter автоматически перенаправит на /main-menu
+      // через refreshListenable + redirect
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка подключения: $e'),
+            backgroundColor: const Color(0xFFFF4444),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -387,7 +473,7 @@ class _LoginScreenState extends State<LoginScreen>
                     const GlitchText(text: 'CYBERHACK', fontSize: 36),
                     const SizedBox(height: 4),
                     const Text(
-                      '// NEURAL INTERFACE v2.0.77',
+                      '// НЕЙРО-ИНТЕРФЕЙС v2.0.77',
                       style: TextStyle(
                         color: Color(0xFF00e5ff),
                         fontSize: 11,
@@ -398,7 +484,7 @@ class _LoginScreenState extends State<LoginScreen>
                     const SizedBox(height: 32),
 
                     // Email field
-                    _CyberTextField(
+                    CyberTextField(
                       label: '[ ЭЛ. ПОЧТА ]',
                       hintText: 'operator@darknet.io',
                       controller: _emailController,
@@ -407,7 +493,7 @@ class _LoginScreenState extends State<LoginScreen>
                     const SizedBox(height: 20),
 
                     // Password field
-                    _CyberTextField(
+                    CyberTextField(
                       label: '[ ПАРОЛЬ ]',
                       hintText: '••••••••••••••••',
                       controller: _passwordController,
@@ -420,7 +506,31 @@ class _LoginScreenState extends State<LoginScreen>
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {},
+                        onPressed: () async {
+                          final email = _emailController.text.trim();
+                          if (email.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Введите email для сброса пароля'),
+                              ),
+                            );
+                            return;
+                          }
+                          final auth = context.read<AuthProvider>();
+                          final ok = await auth.resetPassword(email: email);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(ok
+                                    ? 'Инструкции отправлены на $email'
+                                    : auth.errorMessage ?? 'Ошибка сброса пароля'),
+                                backgroundColor: ok
+                                    ? const Color(0xFF00ff41)
+                                    : const Color(0xFFFF4444),
+                              ),
+                            );
+                          }
+                        },
                         child: const Text(
                           'ЗАБЫЛ ПАРОЛЬ?',
                           style: TextStyle(
@@ -440,8 +550,7 @@ class _LoginScreenState extends State<LoginScreen>
                       builder: (context, _) {
                         final glow = _glowController.value;
                         return GestureDetector(
-                          onTap: () => context.go('/main-menu'),
-
+                          onTap: _isSubmitting ? null : _handleLogin,
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -462,17 +571,26 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ],
                             ),
-                            child: const Center(
-                              child: Text(
-                                '▶ ПОДКЛЮЧИТЬСЯ К СЕТИ',
-                                style: TextStyle(
-                                  color: Color(0xFF0a0e17),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 3,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
+                            child: Center(
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Color(0xFF0a0e17),
+                                      ),
+                                    )
+                                  : const Text(
+                                      '▶ ПОДКЛЮЧИТЬСЯ К СЕТИ',
+                                      style: TextStyle(
+                                        color: Color(0xFF0a0e17),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 3,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
                             ),
                           ),
                         );

@@ -213,7 +213,7 @@ class GameProvider extends ChangeNotifier {
       await _loadAvailableTargets(userId);
     } catch (e) {
       debugPrint('Error loading game data: $e');
-      _errorMessage = 'Не удалось загрузить игровые данные';
+      _errorMessage = 'Не удалось загрузить данные игры';
     }
 
     _isLoading = false;
