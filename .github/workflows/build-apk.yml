@@ -76,7 +76,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CyberHack-APK
-          path: build/app/outputs/**/*.apk
+          path: build/app/outputs/flutter-apk/
           if-no-files-found: warn
 
       - name: Create GitHub Release
@@ -89,7 +89,7 @@ jobs:
             ## CyberHack — Многопользовательская онлайн-стратегия о хакерстве
 
             ### Что нового (v1.1.0):
-            - Исправлен краш при запуске приложения (ProGuard правила для Supabase)
+            - Исправлен краш при запуске приложения
             - Авто-создание профиля при первой авторизации
             - Защита от пустых данных (никней, ID узлов)
             - Улучшена обработка ошибок подключения к Supabase
@@ -102,7 +102,7 @@ jobs:
             - Полностью русский интерфейс
 
             Автоматическая сборка из коммита `${{ github.sha }}`
-          files: build/app/outputs/**/*.apk
+          files: build/app/outputs/flutter-apk/app-release.apk
           draft: false
           prerelease: false
         env:
