@@ -15,11 +15,10 @@ android {
 
     defaultConfig {
         applicationId = "com.mannycat.cyberhack"
-        minSdk = 21  // Android 5.0 — minimum for Supabase + flutter_map
-        targetSdk = 36
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        multiDexEnabled = true
     }
 
     buildTypes {
