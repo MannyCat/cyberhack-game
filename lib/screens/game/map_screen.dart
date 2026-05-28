@@ -453,7 +453,6 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
   @override
   void dispose() {
     _mapAnimController.dispose();
-    _mapController.dispose();
     super.dispose();
   }
 

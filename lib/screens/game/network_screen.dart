@@ -113,13 +113,36 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
   }
 
   int _upgradeCost(NetworkNode node) {
-    final baseCost = BuildingConfig.stats[node.nodeType.toLowerCase()]?.buildCostCredits ?? 500;
-    final multiplier = BuildingConfig.stats[node.nodeType.toLowerCase()]?.upgradeCostMultiplier ?? 1.8;
+    const keyMap = {
+      'server': 'server',
+      'firewall': 'firewall',
+      'proxy': 'proxy_node',
+      'router': 'router',
+      'miner': 'mining_rig',
+      'scanner': 'database',
+      'database': 'database',
+      'terminal': 'server',
+    };
+    final configKey = keyMap[node.nodeType.toLowerCase()] ?? node.nodeType.toLowerCase();
+    final baseCost = BuildingConfig.stats[configKey]?.buildCostCredits ?? 500;
+    final multiplier = BuildingConfig.stats[configKey]?.upgradeCostMultiplier ?? 1.8;
     return (baseCost * multiplier * node.nodeLevel).round();
   }
 
   int _buildCost(String nodeType) {
-    return BuildingConfig.stats[nodeType.toLowerCase()]?.buildCostCredits ?? 1000;
+    // Map UI type names to config keys
+    const keyMap = {
+      'server': 'server',
+      'firewall': 'firewall',
+      'proxy': 'proxy_node',
+      'router': 'router',
+      'miner': 'mining_rig',
+      'scanner': 'database',
+      'database': 'database',
+      'terminal': 'server',
+    };
+    final configKey = keyMap[nodeType.toLowerCase()] ?? nodeType.toLowerCase();
+    return BuildingConfig.stats[configKey]?.buildCostCredits ?? 1000;
   }
 
   // ─── Build ───────────────────────────────────────────────────────────────
