@@ -117,20 +117,20 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
 
   Color _categoryColor(String? category) {
     return switch (category?.toLowerCase()) {
-      'hardware' => Colors.orangeAccent,
-      'software' => Colors.blueAccent,
-      'exploits' => Colors.redAccent,
-      'tools' => Colors.greenAccent,
+      'оборудование' || 'hardware' => Colors.orangeAccent,
+      'софт' || 'software' => Colors.blueAccent,
+      'эксплойты' || 'exploits' => Colors.redAccent,
+      'инструменты' || 'tools' => Colors.greenAccent,
       _ => Colors.grey,
     };
   }
 
   IconData _categoryIcon(String? category) {
     return switch (category?.toLowerCase()) {
-      'hardware' => Icons.memory,
-      'software' => Icons.apps,
-      'exploits' => Icons.bug_report,
-      'tools' => Icons.build,
+      'оборудование' || 'hardware' => Icons.memory,
+      'софт' || 'software' => Icons.apps,
+      'эксплойты' || 'exploits' => Icons.bug_report,
+      'инструменты' || 'tools' => Icons.build,
       _ => Icons.category,
     };
   }
@@ -364,7 +364,7 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
                               ),
                             ),
                             child: Text(
-                              (marketItem?['category'] as String?)?.toUpperCase() ?? 'N/A',
+                              (marketItem?['category'] as String?)?.toUpperCase() ?? 'Н/Д',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: _categoryColor(marketItem?['category'] as String?),
                                 fontWeight: FontWeight.bold,

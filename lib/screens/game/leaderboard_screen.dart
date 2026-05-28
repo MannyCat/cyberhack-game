@@ -25,11 +25,28 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   String _currentSortColumn = 'successful_attacks';
   int _myRank = -1;
 
+  Future<List<Map<String, dynamic>>>? _leaderboardFuture;
+  String? _lastSortColumn;
+
+  void _refreshLeaderboard() {
+    final game = context.read<GameProvider>();
+    setState(() {
+      _myRank = -1;
+      _lastSortColumn = _currentSortColumn;
+      _leaderboardFuture = game.getLeaderboard(
+        limit: 50,
+        offset: 0,
+        sortColumn: _currentSortColumn,
+      );
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_onTabChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshLeaderboard());
   }
 
   @override
@@ -41,10 +58,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
-    setState(() {
-      _currentSortColumn = _sortColumns[_tabController.index] ?? 'successful_attacks';
-      _myRank = -1;
-    });
+    _currentSortColumn = _sortColumns[_tabController.index] ?? 'successful_attacks';
+    _refreshLeaderboard();
   }
 
   @override
@@ -62,7 +77,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             Tab(text: 'ЛУЧШИЕ ХАКЕРЫ'),
             Tab(text: 'ЛУЧШИЕ БАНДЫ'),
             Tab(text: 'БОГАЧЕЙШИЕ'),
-            Tab(text: 'САМЫЕ РАЗРУШИТЕЛЬНЫЕ'),
+            Tab(text: 'НАИБОЛЕЕ РАЗРУШИТЕЛЬНЫЕ'),
           ],
           labelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
@@ -83,9 +98,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           // ── Leaderboard List ──
           Expanded(
             child: FutureBuilder(
-              future: context
-                  .read<GameProvider>()
-                  .getLeaderboard(limit: 50, offset: 0),
+              future: _leaderboardFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -101,6 +114,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                         const SizedBox(height: 12),
                         Text('Не удалось загрузить рейтинг',
                             style: theme.textTheme.bodyMedium),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _refreshLeaderboard,
+                          child: const Text('ПОВТОРИТЬ'),
+                        ),
                       ],
                     ),
                   );
@@ -546,7 +564,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              'ТОП ${(_myRank + 1)}%',
+              '#${(_myRank + 1)}',
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.bold,

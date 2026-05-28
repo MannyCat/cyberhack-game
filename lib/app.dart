@@ -26,6 +26,8 @@ class CyberHackApp extends StatefulWidget {
 }
 
 class _CyberHackAppState extends State<CyberHackApp> {
+  late final ThemeData _theme = _buildCyberpunkTheme();
+
   final _router = GoRouter(
     initialLocation: '/login',
     redirect: (context, state) {
@@ -35,7 +37,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
           state.matchedLocation == '/register';
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
-      if (isLoggedIn && isAuthRoute) return '/main_menu';
+      if (isLoggedIn && isAuthRoute) return '/main-menu';
       return null;
     },
     routes: [
@@ -48,7 +50,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
         builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
-        path: '/main_menu',
+        path: '/main-menu',
         builder: (context, state) => const MainMenuScreen(),
       ),
       ShellRoute(
@@ -105,7 +107,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
       GoRoute(
         path: '/profile',
         builder: (context, state) => ProfileScreen(
-          profile: PlayerProfileData(id: '', handle: 'Unknown'),
+          profile: PlayerProfileData(id: '', handle: 'Неизвестный'),
         ),
       ),
     ],
@@ -122,8 +124,8 @@ class _CyberHackAppState extends State<CyberHackApp> {
         title: 'CyberHack',
         debugShowCheckedModeBanner: false,
         routerConfig: _router,
-        theme: _buildCyberpunkTheme(),
-        darkTheme: _buildCyberpunkTheme(),
+        theme: _theme,
+        darkTheme: _theme,
         themeMode: ThemeMode.dark,
       ),
     );

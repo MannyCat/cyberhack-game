@@ -426,6 +426,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
             variant: CyberButtonVariant.secondary,
             height: 36,
             onPressed: () {
+              final current = _currentPassCtrl.text.trim();
+              final newPass = _newPassCtrl.text.trim();
+              final confirm = _confirmPassCtrl.text.trim();
+
+              if (current.isEmpty || newPass.isEmpty || confirm.isEmpty) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Все поля обязательны для заполнения.'),
+                    backgroundColor: Color(0xFFFF0040),
+                  ),
+                );
+                return;
+              }
+
+              if (newPass.length < 8) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Новый пароль должен быть не менее 8 символов.'),
+                    backgroundColor: Color(0xFFFF0040),
+                  ),
+                );
+                return;
+              }
+
+              if (newPass != confirm) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Пароли не совпадают.'),
+                    backgroundColor: Color(0xFFFF0040),
+                  ),
+                );
+                return;
+              }
+
               Navigator.pop(context);
               _currentPassCtrl.clear();
               _newPassCtrl.clear();
@@ -444,42 +481,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showDeleteAccountDialog() {
+    const userHandle = 'player'; // Replace with actual handle from auth provider
+
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1F2E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFFFF0040)),
-        ),
-        title: const Text('Удалить аккаунт?',
-            style: TextStyle(color: Color(0xFFFF0040))),
-        content: const Text(
-          'Это действие необратимо. Весь прогресс, кредиты и членство в клане будут навсегда утрачены.',
-          style: TextStyle(color: Colors.white70, fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child:
-                const Text('ОТМЕНА', style: TextStyle(color: Colors.white54)),
-          ),
-          CyberButton(
-            label: 'УДАЛИТЬ',
-            variant: CyberButtonVariant.danger,
-            height: 36,
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Запрос на удаление аккаунта отправлен.'),
-                  backgroundColor: Color(0xFFFF0040),
+      builder: (ctx) {
+        final confirmCtrl = TextEditingController();
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            backgroundColor: const Color(0xFF1A1F2E),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFFFF0040)),
+            ),
+            title: const Text('Удалить аккаунт?',
+                style: TextStyle(color: Color(0xFFFF0040))),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Это действие необратимо. Весь прогресс, кредиты и членство в клане будут навсегда утрачены.',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
-              );
-            },
+                const SizedBox(height: 16),
+                Text(
+                  'Введите "$userHandle" для подтверждения:',
+                  style: const TextStyle(
+                    color: Color(0xFFFF0040),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: confirmCtrl,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: const Color(0xFF12162A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xFFFF0040)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xFF2A2F45)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xFFFF0040)),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                  ),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  confirmCtrl.dispose();
+                  Navigator.pop(ctx);
+                },
+                child: const Text('ОТМЕНА',
+                    style: TextStyle(color: Colors.white54)),
+              ),
+              CyberButton(
+                label: 'УДАЛИТЬ',
+                variant: CyberButtonVariant.danger,
+                height: 36,
+                onPressed: confirmCtrl.text.trim() == userHandle
+                    ? () {
+                        confirmCtrl.dispose();
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('Запрос на удаление аккаунта отправлен.'),
+                            backgroundColor: Color(0xFFFF0040),
+                          ),
+                        );
+                      }
+                    : null,
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

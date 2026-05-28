@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -41,6 +42,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   int _onlineCount = 247;
   bool _isTyping = false;
   final _random = Random();
+  Timer? _onlineCountTimer;
 
   // Simulated users for demo messages
   static const _botNames = [
@@ -124,10 +126,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
     // Auto-scroll to bottom after build
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    // Periodically fluctuate online count
+    _onlineCountTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      setState(() {
+        _onlineCount += _random.nextInt(11) - 5; // -5 to +5
+        if (_onlineCount < 100) _onlineCount = 100;
+      });
+    });
   }
 
   @override
   void dispose() {
+    _onlineCountTimer?.cancel();
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _textController.dispose();
@@ -186,8 +198,19 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   void _simulateBotReply() {
-    final delay = Duration(seconds: 1 + _random.nextInt(3));
-    Future.delayed(delay, () {
+    // Capture the current tab index so the reply routes to the correct channel
+    final targetTab = _tabController.index;
+
+    // Show typing indicator after a short delay (300-800ms)
+    final typingDelay = Duration(milliseconds: 300 + _random.nextInt(501));
+    Future.delayed(typingDelay, () {
+      if (!mounted) return;
+      setState(() => _isTyping = true);
+    });
+
+    // Then after 1-3 more seconds, hide typing and add the bot reply
+    final replyDelay = Duration(seconds: 1 + _random.nextInt(3));
+    Future.delayed(replyDelay, () {
       if (!mounted) return;
       final (name, tag) = _botNames[_random.nextInt(_botNames.length)];
       final reply = _ChatMessage(
@@ -199,7 +222,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         senderClanTag: tag,
       );
       setState(() {
-        if (_tabController.index == 0) {
+        _isTyping = false;
+        if (targetTab == 0) {
           _globalMessages.add(reply);
         } else {
           _clanMessages.add(reply);

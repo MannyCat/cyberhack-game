@@ -662,7 +662,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           icon: Icons.language,
                           subtitle: 'Игровая карта и операции',
                           accentColor: const Color(0xFF00ff41),
-                          onTap: () => context.go('/game-map'),
+                          onTap: () => context.go('/game/map'),
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
@@ -670,7 +670,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           icon: Icons.terminal,
                           subtitle: 'Зашифрованные коммуникации',
                           accentColor: const Color(0xFF00e5ff),
-                          onTap: () {},
+                          onTap: () => context.go('/game/chat'),
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
@@ -678,7 +678,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           icon: Icons.groups,
                           subtitle: 'Ваша хакерская группировка',
                           accentColor: const Color(0xFFa855f7),
-                          onTap: () {},
+                          onTap: () => context.go('/game/clan'),
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
@@ -686,7 +686,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           icon: Icons.storefront,
                           subtitle: 'Покупка инструментов и эксплойтов',
                           accentColor: const Color(0xFFff9800),
-                          onTap: () {},
+                          onTap: () => context.go('/game/market'),
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
@@ -694,7 +694,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           icon: Icons.leaderboard,
                           subtitle: 'Мировой рейтинг',
                           accentColor: const Color(0xFFe91e63),
-                          onTap: () {},
+                          onTap: () => context.go('/game/leaderboard'),
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
@@ -702,7 +702,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           icon: Icons.settings_outlined,
                           subtitle: 'Конфигурация системы',
                           accentColor: const Color(0xFF78909c),
-                          onTap: () {},
+                          onTap: () => context.go('/settings'),
                         ),
                         const SizedBox(height: 12),
                         const Divider(

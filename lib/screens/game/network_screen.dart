@@ -10,7 +10,7 @@ enum NodeType {
   proxy('Прокси', Icons.vpn_lock, 'Скрывает вашу личность'),
   router('Роутер', Icons.router, 'Соединяет и направляет трафик'),
   miner('Майнер', Icons.currency_bitcoin, 'Генерирует пассивный доход'),
-  scanner('Сканер', Icons.radar, 'Обнаруживает ближайшие сети');
+  scanner('Сканер', Icons.sensors, 'Обнаруживает ближайшие сети');
 
   const NodeType(this.label, this.icon, this.description);
   final String label;
@@ -109,7 +109,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
       NetworkNode(
         id: 'n1',
         type: NodeType.server,
-        name: 'Alpha Server',
+        name: 'Альфа-Сервер',
         level: 3,
         health: 450,
         maxHealth: 500,
@@ -120,7 +120,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
       NetworkNode(
         id: 'n2',
         type: NodeType.firewall,
-        name: 'Cerberus Wall',
+        name: 'Цербер-Стена',
         level: 2,
         health: 300,
         maxHealth: 350,
@@ -131,7 +131,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
       NetworkNode(
         id: 'n3',
         type: NodeType.proxy,
-        name: 'Ghost Proxy',
+        name: 'Призрачный Прокси',
         level: 1,
         health: 80,
         maxHealth: 150,
@@ -142,7 +142,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
       NetworkNode(
         id: 'n4',
         type: NodeType.router,
-        name: 'Nexus Router',
+        name: 'Нексус-Роутер',
         level: 4,
         health: 600,
         maxHealth: 600,
@@ -153,7 +153,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
       NetworkNode(
         id: 'n5',
         type: NodeType.miner,
-        name: 'Crypto Miner',
+        name: 'Крипто-Майнер',
         level: 2,
         health: 0,
         maxHealth: 250,
@@ -259,11 +259,13 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
           ),
           ElevatedButton(
             onPressed: () {
+              final cost = node.upgradeCost; // Capture cost BEFORE level change
+              final healthIncrease = 50 + node.level * 20; // Calculate BEFORE level change
               setState(() {
                 node.level += 1;
-                node.maxHealth += 50 + node.level * 20;
+                node.maxHealth += healthIncrease;
                 node.health = node.maxHealth.toDouble();
-                _playerCredits -= node.upgradeCost;
+                _playerCredits -= cost; // Use captured cost
                 _recalcStats();
               });
               Navigator.pop(context);
@@ -518,7 +520,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('Lv.${node.level}', style: const TextStyle(color: _Theme.accentGreen, fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('УР ${node.level}', style: const TextStyle(color: _Theme.accentGreen, fontSize: 18, FontWeight: FontWeight.bold)),
                         Text(node.type.label, style: const TextStyle(color: _Theme.textSecondary, fontSize: 11)),
                       ],
                     ),

@@ -40,15 +40,37 @@ class _GameShellState extends State<GameShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: widget.child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTap,
-        items: _screens
-            .map((s) => BottomNavigationBarItem(
-                  icon: Icon(s.icon),
-                  label: s.label,
-                ))
-            .toList(),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: Color(0xFF00F0FF),
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: _onTap,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: const Color(0xFF1a1f2e),
+          selectedItemColor: const Color(0xFF00ff41),
+          unselectedItemColor: const Color(0xFF4a5568),
+          selectedFontSize: 11,
+          unselectedFontSize: 10,
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
+          unselectedLabelStyle: const TextStyle(letterSpacing: 0.5),
+          elevation: 0,
+          items: _screens
+              .map((s) => BottomNavigationBarItem(
+                    icon: Icon(s.icon, size: 22),
+                    label: s.label,
+                  ))
+              .toList(),
+        ),
       ),
     );
   }

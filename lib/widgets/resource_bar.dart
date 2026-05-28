@@ -287,7 +287,7 @@ class _ResourceBarState extends State<ResourceBar>
                         ),
                       ),
                       Text(
-                        '${_formatNumber(r.maxValue.toDouble())} max',
+                        '${_formatNumber(r.maxValue.toDouble())} макс',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.35),
                           fontSize: 11,

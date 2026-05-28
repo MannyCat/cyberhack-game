@@ -690,6 +690,9 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
+                  record.status == 'success' ? 'УСПЕХ' :
+                  record.status == 'failed' ? 'ПРОВАЛ' :
+                  record.status == 'pending' ? 'В ПРОЦЕССЕ' :
                   record.status.toUpperCase(),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: statusColor,
@@ -711,7 +714,8 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
     if (diff.inMinutes < 1) return 'Только что';
     if (diff.inHours < 1) return '${diff.inMinutes}м назад';
     if (diff.inDays < 1) return '${diff.inHours}ч назад';
-    return '${dt.month}/${dt.day}';
+    if (diff.inDays < 7) return '${diff.inDays}д назад';
+    return '${dt.day}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
   }
 }
 

@@ -80,7 +80,7 @@ class AttackTarget {
   factory AttackTarget.fromJson(Map<String, dynamic> json) {
     return AttackTarget(
       id: json['id'] as String,
-      username: json['username'] as String? ?? 'Unknown',
+      username: json['username'] as String? ?? 'Неизвестный',
       level: (json['level'] as num?)?.toInt() ?? 1,
       networkStrength: (json['network_strength'] as num?)?.toInt() ?? 0,
       clanTag: json['clan_tag'] as String? ?? '',
@@ -176,10 +176,10 @@ class GameProvider extends ChangeNotifier {
   // --- Getters ---
 
   PlayerResources? get resources => _resources;
-  List<NetworkNode> get networkNodes => _networkNodes;
+  List<NetworkNode> get networkNodes => List.unmodifiable(_networkNodes);
   NetworkNode? get selectedNode => _selectedNode;
-  List<AttackTarget> get availableTargets => _availableTargets;
-  List<AttackRecord> get attackHistory => _attackHistory;
+  List<AttackTarget> get availableTargets => List.unmodifiable(_availableTargets);
+  List<AttackRecord> get attackHistory => List.unmodifiable(_attackHistory);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   int get credits => _resources?.credits ?? 0;
@@ -190,7 +190,11 @@ class GameProvider extends ChangeNotifier {
 
   // --- Initialization ---
 
+  bool _isInitialized = false;
+
   void init(String userId) {
+    if (_isInitialized) return;
+    _isInitialized = true;
     _loadAllData(userId);
     _subscribeToRealtimeUpdates(userId);
   }
@@ -209,7 +213,7 @@ class GameProvider extends ChangeNotifier {
       await _loadAvailableTargets(userId);
     } catch (e) {
       debugPrint('Error loading game data: $e');
-      _errorMessage = 'Failed to load game data';
+      _errorMessage = 'Не удалось загрузить игровые данные';
     }
 
     _isLoading = false;
@@ -282,7 +286,7 @@ class GameProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('Error deploying node: $e');
-      _errorMessage = 'Failed to deploy node';
+      _errorMessage = 'Не удалось развернуть узел';
       notifyListeners();
       return false;
     }
@@ -290,6 +294,7 @@ class GameProvider extends ChangeNotifier {
 
   Future<bool> upgradeNode({
     required String nodeId,
+    required String userId,
     required int cost,
   }) async {
     try {
@@ -298,10 +303,12 @@ class GameProvider extends ChangeNotifier {
         'p_cost': cost,
       });
 
+      await _loadResources(userId);
+      notifyListeners();
       return true;
     } catch (e) {
       debugPrint('Error upgrading node: $e');
-      _errorMessage = 'Failed to upgrade node';
+      _errorMessage = 'Не удалось улучшить узел';
       notifyListeners();
       return false;
     }
@@ -318,42 +325,23 @@ class GameProvider extends ChangeNotifier {
     try {
       final response = await _supabase
           .from('profiles')
-          .select('id, username, level, clan_id')
+          .select('id, username, level, clan_id, clan:clans(tag), network_nodes(count)')
           .neq('id', userId)
           .order('level', ascending: false)
           .limit(20);
 
-      final targets = <AttackTarget>[];
-      for (final row in response as List) {
-        final clanId = row['clan_id'] as String?;
-        String? clanTag;
-
-        if (clanId != null) {
-          final clanResponse = await _supabase
-              .from('clans')
-              .select('tag')
-              .eq('id', clanId)
-              .maybeSingle();
-          clanTag = clanResponse?['tag'] as String?;
-        }
-
-        // Calculate approximate network strength from nodes
-        final nodeCount = await _supabase
-            .from('network_nodes')
-            .select()
-            .eq('player_id', row['id'])
-            .count();
-
-        targets.add(AttackTarget(
+      _availableTargets = (response as List).map((row) {
+        final clan = row['clan'] as Map?;
+        final nodes = row['network_nodes'] as List?;
+        final nodeCount = nodes?.length ?? 0;
+        return AttackTarget(
           id: row['id'] as String,
-          username: row['username'] as String? ?? 'Unknown',
+          username: row['username'] as String? ?? 'Неизвестный',
           level: (row['level'] as num?)?.toInt() ?? 1,
-          networkStrength: (nodeCount as int) * 50,
-          clanTag: clanTag ?? '',
-        ));
-      }
-
-      _availableTargets = targets;
+          networkStrength: nodeCount * 50,
+          clanTag: clan?['tag'] as String? ?? '',
+        );
+      }).toList();
     } catch (e) {
       debugPrint('Error loading targets: $e');
     }
@@ -389,7 +377,7 @@ class GameProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('Error launching attack: $e');
-      _errorMessage = 'Failed to launch attack';
+      _errorMessage = 'Не удалось запустить атаку';
       notifyListeners();
       return false;
     }
@@ -434,7 +422,7 @@ class GameProvider extends ChangeNotifier {
       }
 
       final response = await query.order('price');
-      return (response as List).cast<Map<String, dynamic>>();
+      return (response as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
     } catch (e) {
       debugPrint('Error loading market items: $e');
       return [];
@@ -447,60 +435,24 @@ class GameProvider extends ChangeNotifier {
     required int price,
   }) async {
     try {
-      // Check if player has enough credits
-      final profile = await _supabase
-          .from('profiles')
-          .select('credits')
-          .eq('id', playerId)
-          .single();
+      final result = await _supabase.rpc('purchase_item', params: {
+        'p_player_id': playerId,
+        'p_item_id': itemId,
+        'p_price': price,
+      });
 
-      final currentCredits = (profile['credits'] as num).toInt();
-      if (currentCredits < price) {
-        _errorMessage = 'Not enough credits';
+      if (result == true) {
+        await _loadResources(playerId);
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = 'Недостаточно кредитов';
         notifyListeners();
         return false;
       }
-
-      // Deduct credits
-      await _supabase.from('profiles').update({
-        'credits': currentCredits - price,
-      }).eq('id', playerId);
-
-      // Add to inventory or increment quantity
-      final existing = await _supabase
-          .from('player_inventory')
-          .select()
-          .eq('player_id', playerId)
-          .eq('item_id', itemId)
-          .maybeSingle();
-
-      if (existing != null) {
-        await _supabase
-            .from('player_inventory')
-            .update({
-          'quantity': (existing['quantity'] as int) + 1,
-        }).eq('id', existing['id']);
-      } else {
-        await _supabase.from('player_inventory').insert({
-          'player_id': playerId,
-          'item_id': itemId,
-          'quantity': 1,
-        });
-      }
-
-      // Decrement stock
-      await _supabase
-          .from('market_items')
-          .update({'stock': _supabase.rpc('decrement_stock', params: {'item_id': itemId})})
-          .eq('id', itemId);
-
-      // Refresh resources
-      await _loadResources(playerId);
-      notifyListeners();
-      return true;
     } catch (e) {
       debugPrint('Error purchasing item: $e');
-      _errorMessage = 'Failed to purchase item';
+      _errorMessage = 'Не удалось купить товар';
       notifyListeners();
       return false;
     }
@@ -513,7 +465,7 @@ class GameProvider extends ChangeNotifier {
           .select('*, market_items(name, description, category, effect_json)')
           .eq('player_id', playerId);
 
-      return (response as List).cast<Map<String, dynamic>>();
+      return (response as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
     } catch (e) {
       debugPrint('Error loading inventory: $e');
       return [];
@@ -553,6 +505,26 @@ class GameProvider extends ChangeNotifier {
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
             column: 'attacker_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            final record = AttackRecord.fromJson(payload.newRecord as Map<String, dynamic>);
+            _attackHistory.insert(0, record);
+            notifyListeners();
+          },
+        )
+        .subscribe();
+
+    // Also subscribe to incoming attacks
+    _supabase
+        .channel('incoming_attacks_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'attacks',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'defender_id',
             value: userId,
           ),
           callback: (payload) {
@@ -636,15 +608,19 @@ class GameProvider extends ChangeNotifier {
   Future<List<Map<String, dynamic>>> getLeaderboard({
     int limit = 50,
     int offset = 0,
+    String sortColumn = 'successful_attacks',
   }) async {
     try {
+      final validColumns = ['successful_attacks', 'clan_score', 'credits_earned', 'total_damage'];
+      final column = validColumns.contains(sortColumn) ? sortColumn : 'successful_attacks';
+
       final response = await _supabase
           .from('player_stats')
           .select('*, profiles(username, level, clan_id)')
-          .order('successful_attacks', ascending: false)
+          .order(column, ascending: false)
           .range(offset, offset + limit - 1);
 
-      return (response as List).cast<Map<String, dynamic>>();
+      return (response as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
     } catch (e) {
       debugPrint('Error loading leaderboard: $e');
       return [];

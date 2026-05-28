@@ -441,6 +441,7 @@ class _LoginScreenState extends State<LoginScreen>
                         final glow = _glowController.value;
                         return GestureDetector(
                           onTap: () => context.go('/main-menu'),
+
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(vertical: 16),

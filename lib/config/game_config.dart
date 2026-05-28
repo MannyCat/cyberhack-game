@@ -5,6 +5,8 @@
 /// should be reviewed with extreme prejudice.
 library;
 
+import 'dart:math' as math;
+
 // ─── Resource identifiers ──────────────────────────────────────────────────
 class Resources {
   Resources._();
@@ -243,15 +245,7 @@ class ProgressionConfig {
   /// Formula: XP needed for [level] = baseXp * multiplier^(level-1)
   static int xpRequiredForLevel(int level) {
     if (level <= 1) return baseXpToLevel;
-    return (baseXpToLevel * _pow(xpMultiplier, level - 1)).round();
-  }
-
-  static double _pow(double base, int exp) {
-    double result = 1;
-    for (int i = 0; i < exp; i++) {
-      result *= base;
-    }
-    return result;
+    return (baseXpToLevel * math.pow(xpMultiplier, level - 1)).round();
   }
 }
 

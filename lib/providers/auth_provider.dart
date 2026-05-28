@@ -90,7 +90,7 @@ class AuthProvider extends ChangeNotifier {
   PlayerProfile? get profile => _profile;
   String? get errorMessage => _errorMessage;
   String? get userId => _user?.id;
-  String get displayName => _profile?.username ?? _user?.email ?? 'Unknown';
+  String get displayName => _profile?.username ?? _user?.email ?? 'Неизвестный';
   bool get isAuthenticated => _authState == AuthState.authenticated;
 
   // --- Initialization ---
@@ -154,7 +154,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
     } catch (e) {
       debugPrint('Error loading profile: $e');
-      _errorMessage = 'Failed to load profile';
+      _errorMessage = 'Не удалось загрузить профиль';
     }
     notifyListeners();
   }
@@ -186,7 +186,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
+      _errorMessage = 'Произошла непредвиденная ошибка';
       _authState = AuthState.unauthenticated;
       notifyListeners();
       return false;
@@ -231,7 +231,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
+      _errorMessage = 'Произошла непредвиденная ошибка';
       _authState = AuthState.unauthenticated;
       notifyListeners();
       return false;
@@ -260,7 +260,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = _mapAuthError(e.message);
       return false;
     } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
+      _errorMessage = 'Произошла непредвиденная ошибка';
       return false;
     }
   }
@@ -269,12 +269,12 @@ class AuthProvider extends ChangeNotifier {
 
   String _mapAuthError(String message) {
     final lower = message.toLowerCase();
-    if (lower.contains('invalid login')) return 'Invalid email or password';
-    if (lower.contains('email not confirmed')) return 'Please verify your email address';
-    if (lower.contains('user already registered')) return 'An account with this email already exists';
-    if (lower.contains('password')) return 'Password must be at least 6 characters';
-    if (lower.contains('network')) return 'Network error. Please check your connection';
-    return message;
+    if (lower.contains('invalid login')) return 'Неверный email или пароль';
+    if (lower.contains('email not confirmed')) return 'Подтвердите ваш email';
+    if (lower.contains('user already registered')) return 'Аккаунт с этим email уже существует';
+    if (lower.contains('password')) return 'Пароль должен содержать минимум 6 символов';
+    if (lower.contains('network')) return 'Ошибка сети. Проверьте подключение';
+    return 'Ошибка авторизации. Попробуйте позже.';
   }
 
   void clearError() {

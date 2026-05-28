@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../widgets/cyber_button.dart';
 
 // ── Data models ────────────────────────────────────────────────
@@ -150,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             leading: IconButton(
               icon: const Icon(Icons.arrow_back,
                   color: Color(0xFF00FF41)),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.pop(),
             ),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
@@ -184,9 +185,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                           radius: 44,
                           backgroundColor: const Color(0xFF1A1F2E),
                           child: Text(
-                            widget.profile.handle
-                                .substring(0, 2)
-                                .toUpperCase(),
+                            widget.profile.handle.length >= 2
+                                ? widget.profile.handle.substring(0, 2).toUpperCase()
+                                : widget.profile.handle.toUpperCase(),
                             style: const TextStyle(
                               color: Color(0xFF00FF41),
                               fontSize: 24,
