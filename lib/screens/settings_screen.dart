@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../widgets/cyber_button.dart';
+import '../../providers/auth_provider.dart';
 
 // ── Screen ─────────────────────────────────────────────────────
 
@@ -570,7 +572,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showDeleteAccountDialog() {
-    final userHandle = Supabase.instance.client.auth.currentUser?.email ?? 'player';
+    final auth = context.read<AuthProvider>();
+    final userHandle = auth.displayName.isNotEmpty
+        ? auth.displayName
+        : Supabase.instance.client.auth.currentUser?.email ?? 'player';
 
     showDialog(
       context: context,
@@ -642,16 +647,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 variant: CyberButtonVariant.danger,
                 height: 36,
                 onPressed: confirmCtrl.text.trim() == userHandle
-                    ? () {
+                    ? () async {
                         confirmCtrl.dispose();
                         Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('Запрос на удаление аккаунта отправлен.'),
-                            backgroundColor: Color(0xFFFF0040),
-                          ),
-                        );
+                        try {
+                          await Supabase.instance.client.auth.admin
+                              .deleteUser(Supabase.instance.client.auth.currentUser!.id);
+                          await auth.signOut();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Аккаунт удалён.'),
+                                backgroundColor: Color(0xFFFF0040),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Ошибка удаления: ${e.toString()}'),
+                                backgroundColor: const Color(0xFFFF0040),
+                              ),
+                            );
+                          }
+                        }
                       }
                     : null,
               ),

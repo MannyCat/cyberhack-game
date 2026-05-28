@@ -18,7 +18,9 @@ class _GameShellState extends State<GameShell> {
     _GameTab(label: 'Сеть', icon: Icons.account_tree, path: '/game/network'),
     _GameTab(label: 'Атака', icon: Icons.gps_fixed, path: '/game/attack'),
     _GameTab(label: 'Рынок', icon: Icons.storefront, path: '/game/market'),
+    _GameTab(label: 'Клан', icon: Icons.groups, path: '/game/clan'),
     _GameTab(label: 'Связь', icon: Icons.chat_bubble, path: '/game/chat'),
+    _GameTab(label: 'Топ', icon: Icons.leaderboard, path: '/game/leaderboard'),
   ];
 
   @override

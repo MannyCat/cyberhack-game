@@ -193,7 +193,15 @@ class GameProvider extends ChangeNotifier {
 
   bool _isInitialized = false;
 
+  String? _currentUserId;
+
   void init(String userId) {
+    if (_currentUserId == userId && _isInitialized) return;
+    // Clean up old subscriptions if re-initing with different user
+    _profileChannel?.unsubscribe();
+    _attacksChannel?.unsubscribe();
+    _incomingAttacksChannel?.unsubscribe();
+    _currentUserId = userId;
     _isInitialized = true;
     _loadAllData(userId);
     _subscribeToRealtimeUpdates(userId);
@@ -358,8 +366,10 @@ class GameProvider extends ChangeNotifier {
 
       _availableTargets = (response as List).map((row) {
         final clan = row['clan'] as Map?;
-        final nodes = row['network_nodes'] as List?;
-        final nodeCount = nodes?.length ?? 0;
+        final nodes = row['network_nodes'];
+        final nodeCount = nodes is Map
+            ? (nodes['count'] as num?)?.toInt() ?? 0
+            : (nodes is List ? nodes.length : 0);
         return AttackTarget(
           id: row['id'] as String,
           username: row['username'] as String? ?? 'Неизвестный',

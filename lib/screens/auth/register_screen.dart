@@ -304,8 +304,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       setState(() => _fieldError = 'Введите корректный email');
       return;
     }
-    if (password.length < 6) {
-      setState(() => _fieldError = 'Пароль должен быть не менее 6 символов');
+    if (password.length < 8) {
+      setState(() => _fieldError = 'Пароль должен быть не менее 8 символов');
       return;
     }
     if (password != confirmPassword) {

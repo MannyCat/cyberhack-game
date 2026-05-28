@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/game_provider.dart';
 import '../../widgets/cyber_button.dart';
+import '../../config/game_config.dart';
 
 // ── Screen ─────────────────────────────────────────────────────
 
@@ -46,7 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       // Обновляем анимацию XP
       final level = game.level;
       final xp = game.xp;
-      final xpNeeded = level * 1000;
+      final xpNeeded = ProgressionConfig.xpRequiredForLevel(level);
       final target = xpNeeded > 0 ? (xp / xpNeeded).clamp(0.0, 1.0) : 0.0;
       if (mounted) {
         setState(() {
@@ -79,7 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             : 'Хакер');
     final level = widget.profile?.level ?? game.level;
     final xp = widget.profile?.currentXp ?? game.xp;
-    final xpNeeded = widget.profile?.xpToNextLevel ?? level * 1000;
+    final xpNeeded = widget.profile?.xpToNextLevel ?? ProgressionConfig.xpRequiredForLevel(level);
     final ranking = widget.profile?.ranking ?? 0;
 
     return Scaffold(
@@ -473,8 +474,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             onPressed: () async {
               final newName = ctrl.text.trim();
               if (newName.isEmpty) return;
-              ctrl.dispose();
               Navigator.pop(ctx);
+              ctrl.dispose();
               try {
                 await Supabase.instance.client
                     .from('profiles')

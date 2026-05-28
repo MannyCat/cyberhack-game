@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../config/game_config.dart';
@@ -120,9 +121,9 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
       'proxy': 'proxy_node',
       'router': 'router',
       'miner': 'mining_rig',
-      'scanner': 'proxy_node',
+      'scanner': 'scanner',
       'database': 'database',
-      'terminal': 'server',
+      'terminal': 'terminal',
     };
     final configKey = keyMap[node.nodeType.toLowerCase()] ?? node.nodeType.toLowerCase();
     final baseCost = BuildingConfig.stats[configKey]?.buildCostCredits ?? 500;
@@ -138,9 +139,9 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
       'proxy': 'proxy_node',
       'router': 'router',
       'miner': 'mining_rig',
-      'scanner': 'proxy_node',
+      'scanner': 'scanner',
       'database': 'database',
-      'terminal': 'server',
+      'terminal': 'terminal',
     };
     final configKey = keyMap[nodeType.toLowerCase()] ?? nodeType.toLowerCase();
     return BuildingConfig.stats[configKey]?.buildCostCredits ?? 1000;
@@ -485,8 +486,22 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
   }
 
   Future<void> _rebootNode(NetworkNode node, GameProvider game, AuthProvider auth) async {
-    _showSnackBar('Перезагрузка узла...', _Theme.accentGreen);
-    // В реальной версии — RPC вызов для перезагрузки
+    if (auth.userId == null || game.credits < 200) return;
+    try {
+      await Supabase.instance.client
+          .from('network_nodes')
+          .update({'is_online': true, 'health': node.maxHealth})
+          .eq('id', node.id);
+      await game.refreshNetworkNodes(auth.userId!);
+      await game.refreshResources(auth.userId!);
+      if (mounted) {
+        _showSnackBar('Узел перезагружен!', _Theme.accentGreen);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Ошибка перезагрузки: $e', _Theme.warningRed);
+      }
+    }
   }
 
   Future<void> _deployNode(String nodeType, GameProvider game, AuthProvider auth) async {
