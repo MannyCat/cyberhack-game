@@ -1,8 +1,8 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../config/game_config.dart';
 
 // ─── Theme Constants ──────────────────────────────────────────────────────────
 
@@ -112,7 +112,15 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
     return total;
   }
 
-  int _upgradeCost(NetworkNode node) => node.nodeLevel * 500;
+  int _upgradeCost(NetworkNode node) {
+    final baseCost = BuildingConfig.stats[node.nodeType.toLowerCase()]?.buildCostCredits ?? 500;
+    final multiplier = BuildingConfig.stats[node.nodeType.toLowerCase()]?.upgradeCostMultiplier ?? 1.8;
+    return (baseCost * multiplier * node.nodeLevel).round();
+  }
+
+  int _buildCost(String nodeType) {
+    return BuildingConfig.stats[nodeType.toLowerCase()]?.buildCostCredits ?? 1000;
+  }
 
   // ─── Build ───────────────────────────────────────────────────────────────
 
@@ -475,7 +483,6 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
 
   void _showBuildDialog(GameProvider game, AuthProvider auth) {
     final types = ['server', 'firewall', 'proxy', 'router', 'miner', 'scanner'];
-    final cost = 1000;
 
     showModalBottomSheet(
       context: context,
@@ -505,7 +512,8 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final type = types[index];
-                  final canAfford = game.credits >= cost;
+                  final itemCost = _buildCost(type);
+                  final canAfford = game.credits >= itemCost;
                   return InkWell(
                     onTap: canAfford ? () {
                       Navigator.pop(context);
@@ -542,7 +550,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text('$cost\u20BF', style: TextStyle(color: canAfford ? _Theme.accentGreen : _Theme.warningRed, fontSize: 16, fontWeight: FontWeight.bold)),
+                              Text('$itemCost\u20BF', style: TextStyle(color: canAfford ? _Theme.accentGreen : _Theme.warningRed, fontSize: 16, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 4),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

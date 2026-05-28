@@ -52,7 +52,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _pushClanMessages = prefs.getBool('push_clan_messages') ?? true;
       _pushUpdates = prefs.getBool('push_updates') ?? false;
       _language = prefs.getString('language') ?? 'Русский';
-      _isLoaded = true;
     });
   }
 
@@ -237,7 +236,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionHeader('О ПРИЛОЖЕНИИ'),
           _sectionCard([
             _infoRow('Игра', 'CyberHack'),
-            _infoRow('Версия', '1.0.7'),
+            _infoRow('Версия', '1.0.8'),
             _infoRow('Сборка', '2025.05.28'),
             const _Divider(),
             Padding(

@@ -39,7 +39,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
     ),
     _AttackType(
       name: 'Phishing',
-      icon: Icons.phishing,
+      icon: Icons.link_off,
       damage: 25,
       creditCost: 300,
       cpuCost: 10,
