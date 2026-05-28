@@ -368,61 +368,73 @@ exception when others then null;
 end $$;
 
 -- ---------------------------------------------------------------------------
--- profiles RLS
+-- profiles RLS  (DROP + CREATE — compatible with PostgreSQL 14+)
 -- ---------------------------------------------------------------------------
-create or replace policy "Profiles are viewable by everyone"
+drop policy if exists "Profiles are viewable by everyone" on public.profiles;
+create policy "Profiles are viewable by everyone"
   on public.profiles for select
   using (true);
 
-create or replace policy "Users can update own profile"
+drop policy if exists "Users can update own profile" on public.profiles;
+create policy "Users can update own profile"
   on public.profiles for update
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
-create or replace policy "Service role can insert profiles"
+drop policy if exists "Service role can insert profiles" on public.profiles;
+create policy "Service role can insert profiles"
   on public.profiles for insert
   with check (true);
 
-create or replace policy "Users can delete own profile"
+drop policy if exists "Users can delete own profile" on public.profiles;
+create policy "Users can delete own profile"
   on public.profiles for delete
   using (auth.uid() = id);
 
 -- ---------------------------------------------------------------------------
 -- clans RLS
 -- ---------------------------------------------------------------------------
-create or replace policy "Clans are viewable by everyone"
+drop policy if exists "Clans are viewable by everyone" on public.clans;
+create policy "Clans are viewable by everyone"
   on public.clans for select
   using (true);
 
-create or replace policy "Authenticated users can create clans"
+drop policy if exists "Authenticated users can create clans" on public.clans;
+create policy "Authenticated users can create clans"
   on public.clans for insert
   with check (auth.uid() = leader_id);
 
-create or replace policy "Leaders can update own clan"
+drop policy if exists "Leaders can update own clan" on public.clans;
+create policy "Leaders can update own clan"
   on public.clans for update
   using (auth.uid() = leader_id)
   with check (auth.uid() = leader_id);
 
-create or replace policy "Leaders can delete own clan"
+drop policy if exists "Leaders can delete own clan" on public.clans;
+create policy "Leaders can delete own clan"
   on public.clans for delete
   using (auth.uid() = leader_id);
 
 -- ---------------------------------------------------------------------------
 -- clan_members RLS
 -- ---------------------------------------------------------------------------
-create or replace policy "Clan members are viewable by everyone"
+drop policy if exists "Clan members are viewable by everyone" on public.clan_members;
+create policy "Clan members are viewable by everyone"
   on public.clan_members for select
   using (true);
 
-create or replace policy "Users can join clans"
+drop policy if exists "Users can join clans" on public.clan_members;
+create policy "Users can join clans"
   on public.clan_members for insert
   with check (auth.uid() = player_id);
 
-create or replace policy "Users can leave clans"
+drop policy if exists "Users can leave clans" on public.clan_members;
+create policy "Users can leave clans"
   on public.clan_members for delete
   using (auth.uid() = player_id);
 
-create or replace policy "Officers can update clan members"
+drop policy if exists "Officers can update clan members" on public.clan_members;
+create policy "Officers can update clan members"
   on public.clan_members for update
   using (
     exists (
@@ -444,35 +456,42 @@ create or replace policy "Officers can update clan members"
 -- ---------------------------------------------------------------------------
 -- network_nodes RLS
 -- ---------------------------------------------------------------------------
-create or replace policy "Network nodes are viewable by everyone"
+drop policy if exists "Network nodes are viewable by everyone" on public.network_nodes;
+create policy "Network nodes are viewable by everyone"
   on public.network_nodes for select
   using (true);
 
-create or replace policy "Users can create own nodes"
+drop policy if exists "Users can create own nodes" on public.network_nodes;
+create policy "Users can create own nodes"
   on public.network_nodes for insert
   with check (auth.uid() = player_id);
 
-create or replace policy "Users can update their own nodes"
+drop policy if exists "Users can update their own nodes" on public.network_nodes;
+create policy "Users can update their own nodes"
   on public.network_nodes for update
   using (auth.uid() = player_id)
   with check (auth.uid() = player_id);
 
-create or replace policy "Users can delete their own nodes"
+drop policy if exists "Users can delete their own nodes" on public.network_nodes;
+create policy "Users can delete their own nodes"
   on public.network_nodes for delete
   using (auth.uid() = player_id);
 
 -- ---------------------------------------------------------------------------
 -- attacks RLS
 -- ---------------------------------------------------------------------------
-create or replace policy "Users can view own attacks"
+drop policy if exists "Users can view own attacks" on public.attacks;
+create policy "Users can view own attacks"
   on public.attacks for select
   using (auth.uid() = attacker_id or auth.uid() = defender_id);
 
-create or replace policy "Users can create attacks"
+drop policy if exists "Users can create attacks" on public.attacks;
+create policy "Users can create attacks"
   on public.attacks for insert
   with check (auth.uid() = attacker_id);
 
-create or replace policy "Attackers can update own attacks"
+drop policy if exists "Attackers can update own attacks" on public.attacks;
+create policy "Attackers can update own attacks"
   on public.attacks for update
   using (auth.uid() = attacker_id)
   with check (auth.uid() = attacker_id);
@@ -480,7 +499,8 @@ create or replace policy "Attackers can update own attacks"
 -- ---------------------------------------------------------------------------
 -- chat_messages RLS
 -- ---------------------------------------------------------------------------
-create or replace policy "Global chat is viewable by everyone"
+drop policy if exists "Global chat is viewable by everyone" on public.chat_messages;
+create policy "Global chat is viewable by everyone"
   on public.chat_messages for select
   using (clan_id is null or
     exists (
@@ -490,7 +510,8 @@ create or replace policy "Global chat is viewable by everyone"
     )
   );
 
-create or replace policy "Authenticated users can send messages"
+drop policy if exists "Authenticated users can send messages" on public.chat_messages;
+create policy "Authenticated users can send messages"
   on public.chat_messages for insert
   with check (
     auth.uid() = sender_id
@@ -507,34 +528,41 @@ create or replace policy "Authenticated users can send messages"
 -- ---------------------------------------------------------------------------
 -- market_items RLS
 -- ---------------------------------------------------------------------------
-create or replace policy "Market items are viewable by everyone"
+drop policy if exists "Market items are viewable by everyone" on public.market_items;
+create policy "Market items are viewable by everyone"
   on public.market_items for select
   using (true);
 
-create or replace policy "No anonymous market item inserts"
+drop policy if exists "No anonymous market item inserts" on public.market_items;
+create policy "No anonymous market item inserts"
   on public.market_items for insert
   with check (false);
 
-create or replace policy "No anonymous market item updates"
+drop policy if exists "No anonymous market item updates" on public.market_items;
+create policy "No anonymous market item updates"
   on public.market_items for update
   using (false);
 
-create or replace policy "No anonymous market item deletes"
+drop policy if exists "No anonymous market item deletes" on public.market_items;
+create policy "No anonymous market item deletes"
   on public.market_items for delete
   using (false);
 
 -- ---------------------------------------------------------------------------
 -- player_inventory RLS
 -- ---------------------------------------------------------------------------
-create or replace policy "Users can view own inventory"
+drop policy if exists "Users can view own inventory" on public.player_inventory;
+create policy "Users can view own inventory"
   on public.player_inventory for select
   using (auth.uid() = player_id);
 
-create or replace policy "Users can add to own inventory"
+drop policy if exists "Users can add to own inventory" on public.player_inventory;
+create policy "Users can add to own inventory"
   on public.player_inventory for insert
   with check (auth.uid() = player_id);
 
-create or replace policy "Users can update their own inventory"
+drop policy if exists "Users can update their own inventory" on public.player_inventory;
+create policy "Users can update their own inventory"
   on public.player_inventory for update
   using (auth.uid() = player_id)
   with check (auth.uid() = player_id);
@@ -542,15 +570,18 @@ create or replace policy "Users can update their own inventory"
 -- ---------------------------------------------------------------------------
 -- player_stats RLS
 -- ---------------------------------------------------------------------------
-create or replace policy "Player stats are viewable by everyone"
+drop policy if exists "Player stats are viewable by everyone" on public.player_stats;
+create policy "Player stats are viewable by everyone"
   on public.player_stats for select
   using (true);
 
-create or replace policy "Stats cannot be inserted directly"
+drop policy if exists "Stats cannot be inserted directly" on public.player_stats;
+create policy "Stats cannot be inserted directly"
   on public.player_stats for insert
   with check (false);
 
-create or replace policy "Stats cannot be updated directly"
+drop policy if exists "Stats cannot be updated directly" on public.player_stats;
+create policy "Stats cannot be updated directly"
   on public.player_stats for update
   using (false);
 
