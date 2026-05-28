@@ -62,14 +62,20 @@ jobs:
 
       - name: Rename APK
         run: |
-          mv build/app/outputs/flutter-apk/app-release.apk \
-             build/app/outputs/flutter-apk/CyberHack-v${{ github.run_number }}.apk
+          APK_PATH=$(find build/app/outputs/flutter-apk/ -name '*.apk' | head -1)
+          if [ -n "$APK_PATH" ]; then
+            cp "$APK_PATH" "build/app/outputs/flutter-apk/CyberHack-v${{ github.run_number }}.apk"
+          else
+            echo "Warning: APK not found in expected location"
+            ls -laR build/app/outputs/ || true
+          fi
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
           name: CyberHack-APK
-          path: build/app/outputs/flutter-apk/CyberHack-v${{ github.run_number }}.apk
+          path: build/app/outputs/flutter-apk/CyberHack-v*.apk
+          if-no-files-found: warn
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -81,7 +87,7 @@ jobs:
             ## CyberHack — Многопользовательская онлайн-стратегия о хакерстве
 
             Автоматическая сборка из коммита `${{ github.sha }}`
-          files: build/app/outputs/flutter-apk/CyberHack-v${{ github.run_number }}.apk
+          files: build/app/outputs/flutter-apk/CyberHack-v*.apk
           draft: false
           prerelease: false
         env:
