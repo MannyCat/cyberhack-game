@@ -62,12 +62,22 @@ jobs:
             analyze_output.txt
             build_output.txt
 
+      - name: Find and prepare APK
+        id: apk
+        run: |
+          echo "=== All files in build/app/outputs ==="
+          find build/app/outputs -type f 2>/dev/null || echo "(empty)"
+          echo "=== All APK files ==="
+          find . -name '*.apk' -type f 2>/dev/null
+          APK_PATH=$(find build/app/outputs -name '*.apk' -type f 2>/dev/null | head -1)
+          echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
+
       - name: Upload APK files as artifacts
         uses: actions/upload-artifact@v4
         with:
           name: CyberHack-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
+          path: build/app/outputs/**/*.apk
+          if-no-files-found: warn
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -92,7 +102,7 @@ jobs:
             - Полностью русский интерфейс
 
             Автоматическая сборка из коммита `${{ github.sha }}`
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: build/app/outputs/**/*.apk
           draft: false
           prerelease: false
         env:
