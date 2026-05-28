@@ -73,7 +73,8 @@ create table public.network_nodes (
   node_type     text        not null
                             check (node_type in (
                               'server', 'firewall', 'router',
-                              'database', 'mining_rig', 'proxy'
+                              'database', 'mining_rig', 'proxy',
+                              'scanner', 'terminal'
                             )),
   node_level    integer     not null default 1 check (node_level >= 1),
   health        integer     not null default 100 check (health >= 0),
@@ -148,6 +149,8 @@ create table public.player_stats (
   successful_attacks  integer     not null default 0 check (successful_attacks >= 0),
   credits_earned      integer     not null default 0 check (credits_earned >= 0),
   networks_destroyed  integer     not null default 0 check (networks_destroyed >= 0),
+  total_damage         integer     not null default 0 check (total_damage >= 0),
+  clan_score           integer     not null default 0 check (clan_score >= 0),
   highest_rank        integer     not null default 999 check (highest_rank > 0),
 
   constraint player_stats_unique unique (player_id)

@@ -119,7 +119,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
       'proxy': 'proxy_node',
       'router': 'router',
       'miner': 'mining_rig',
-      'scanner': 'database',
+      'scanner': 'proxy_node',
       'database': 'database',
       'terminal': 'server',
     };
@@ -137,7 +137,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
       'proxy': 'proxy_node',
       'router': 'router',
       'miner': 'mining_rig',
-      'scanner': 'database',
+      'scanner': 'proxy_node',
       'database': 'database',
       'terminal': 'server',
     };

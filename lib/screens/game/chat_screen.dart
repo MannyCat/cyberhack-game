@@ -200,19 +200,19 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   // ─── Realtime Subscriptions ──────────────────────────────────────────────
 
   void _subscribeToChannels() {
-    // Global chat channel
+    // Global chat channel — listen to all inserts, filter client-side
     _globalChannel = _supabase
         .channel('public:chat_messages:global')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'chat_messages',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'clan_id',
-            value: 'null',
-          ),
-          callback: _onGlobalMessage,
+          callback: (payload) {
+            final row = payload.newRecord as Map<String, dynamic>;
+            final clanId = row['clan_id'];
+            if (clanId != null) return; // Ignore clan messages in global channel
+            _onGlobalMessage(payload);
+          },
         )
         .subscribe();
 

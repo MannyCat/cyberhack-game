@@ -327,7 +327,10 @@ class GameProvider extends ChangeNotifier {
         'p_cost': cost,
       });
 
-      await _loadResources(userId);
+      await Future.wait([
+        _loadResources(userId),
+        _loadNetworkNodes(userId),
+      ]);
       notifyListeners();
       return true;
     } catch (e) {

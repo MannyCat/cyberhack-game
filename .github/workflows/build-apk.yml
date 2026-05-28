@@ -83,23 +83,18 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.1.${{ github.run_number }}
-          name: CyberHack v1.1.${{ github.run_number }}
+          tag_name: v1.2.${{ github.run_number }}
+          name: CyberHack v1.2.${{ github.run_number }}
           body: |
             ## CyberHack — Многопользовательская онлайн-стратегия о хакерстве
 
-            ### Что нового (v1.1.0):
-            - Исправлен краш при запуске приложения
-            - Авто-создание профиля при первой авторизации
-            - Защита от пустых данных (никней, ID узлов)
-            - Улучшена обработка ошибок подключения к Supabase
-            - Реальная карта мира с 18 городами (flutter_map + CartoDB Dark Matter)
-            - Чат с Supabase Realtime (глобальный + клан-канал)
-            - Система кланов: создание, вступление, управление
-            - Чёрный рынок: магазин + инвентарь
-            - 6 типов атак: DDoS, Malware, Phishing, Brute Force, SQL Injection, Zero Day
-            - Рейтинг с 4 категориями и подиумом ТОП-3
-            - Полностью русский интерфейс
+            ### Что нового (v1.2.0):
+            - Исправлен краш таблицы лидеров (добавлены столбцы total_damage, clan_score)
+            - Исправлено обновление узлов сети (теперь обновляет список узлов)
+            - Исправлен фильтр глобального чата (клиентская фильтрация вместо строкового 'null')
+            - Добавлены типы узлов 'scanner' и 'terminal' в схему БД
+            - Исправлена стоимость сканера (теперь привязан к proxy_node, а не database)
+            - Миграция для существующих баз данных (migration_002)
 
             Автоматическая сборка из коммита `${{ github.sha }}`
           files: build/app/outputs/flutter-apk/app-release.apk
