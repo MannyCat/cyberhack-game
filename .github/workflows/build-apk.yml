@@ -54,28 +54,38 @@ jobs:
         run: |
           flutter build apk --release 2>&1 | tee build_output.txt || {
             echo "## Build Failed" >> $GITHUB_STEP_SUMMARY
-            echo '\`\`\`' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
             cat build_output.txt >> $GITHUB_STEP_SUMMARY
-            echo '\`\`\`' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
             exit 1
           }
 
-      - name: Rename APK
+      - name: Find and prepare APK
+        id: apk
         run: |
-          APK_PATH=$(find build/app/outputs/flutter-apk/ -name '*.apk' | head -1)
-          if [ -n "$APK_PATH" ]; then
-            cp "$APK_PATH" "build/app/outputs/flutter-apk/CyberHack-v${{ github.run_number }}.apk"
-          else
-            echo "Warning: APK not found in expected location"
-            ls -laR build/app/outputs/ || true
+          # Find the built APK
+          APK_PATH=$(find build/app/outputs -name '*.apk' 2>/dev/null | head -1)
+          if [ -z "$APK_PATH" ]; then
+            echo "ERROR: APK not found!"
+            echo "Listing build outputs:"
+            find build/ -type f 2>/dev/null || true
+            exit 1
           fi
+          echo "Found APK at: $APK_PATH"
+          ls -lh "$APK_PATH"
+
+          # Copy to known location with fixed name
+          mkdir -p /tmp/apk-release
+          cp "$APK_PATH" "/tmp/apk-release/CyberHack.apk"
+          echo "apk_path=/tmp/apk-release/CyberHack.apk" >> "$GITHUB_OUTPUT"
+          echo "APK ready for release"
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
           name: CyberHack-APK
-          path: build/app/outputs/flutter-apk/CyberHack-v*.apk
-          if-no-files-found: warn
+          path: /tmp/apk-release/CyberHack.apk
+          if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -86,8 +96,17 @@ jobs:
           body: |
             ## CyberHack — Многопользовательская онлайн-стратегия о хакерстве
 
+            ### Что нового:
+            - Реальная карта мира с 18 городами (flutter_map + CartoDB Dark Matter)
+            - Чат с Supabase Realtime (глобальный + клан-канал)
+            - Система кланов: создание, вступление, управление
+            - Чёрный рынок: магазин + инвентарь
+            - 6 типов атак: DDoS, Malware, Phishing, Brute Force, SQL Injection, Zero Day
+            - Рейтинг с 4 категориями и подиумом ТОП-3
+            - Полностью русский интерфейс
+
             Автоматическая сборка из коммита `${{ github.sha }}`
-          files: build/app/outputs/flutter-apk/CyberHack-v*.apk
+          files: /tmp/apk-release/CyberHack.apk
           draft: false
           prerelease: false
         env:
