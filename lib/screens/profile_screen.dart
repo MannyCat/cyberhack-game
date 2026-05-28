@@ -394,7 +394,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '${node.nodeType} #${node.id.length >= 6 ? node.id.substring(0, 6) : node.id}',
+                        '${_nodeTypeLabel(node.nodeType)} #${node.id.length >= 6 ? node.id.substring(0, 6) : node.id}',
                         style: TextStyle(color: node.isOnline ? Colors.white : const Color(0xFF4a5568), fontSize: 12),
                       ),
                     ),
@@ -413,6 +413,20 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   // ── Helpers ─────────────────────────────────────────────────
+  String _nodeTypeLabel(String nodeType) {
+    return switch (nodeType.toLowerCase()) {
+      'server' => 'Сервер',
+      'firewall' => 'Файрвол',
+      'proxy' => 'Прокси',
+      'router' => 'Роутер',
+      'miner' => 'Майнер',
+      'scanner' => 'Сканер',
+      'database' => 'База данных',
+      'terminal' => 'Терминал',
+      _ => nodeType,
+    };
+  }
+
   String _formatNum(int n) {
     if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';

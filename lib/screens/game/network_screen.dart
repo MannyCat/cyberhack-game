@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../config/game_config.dart';
@@ -179,7 +180,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: _Theme.accentCyan),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.go('/main-menu'),
         ),
         title: Row(
           children: [
