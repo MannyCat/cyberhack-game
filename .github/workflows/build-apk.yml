@@ -41,7 +41,21 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee analyze_output.txt || true
           echo 'Analyzer step completed (non-fatal)'
 
-      - name: Upload build logs
+      - name: Build APK (release)
+        id: build
+        run: |
+          flutter build apk --release 2>&1 | tee build_output.txt || true
+
+      - name: Check APK and prepare release
+        run: |
+          echo "=== Searching for APK ==="
+          find . -name '*.apk' -type f 2>/dev/null
+          echo "=== build/app/outputs contents ==="
+          ls -laR build/app/outputs/ 2>/dev/null || echo "build/app/outputs not found"
+          echo "=== build_output.txt tail ==="
+          tail -50 build_output.txt 2>/dev/null || echo "(empty)"
+
+      - name: Upload all logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -49,24 +63,6 @@ jobs:
           path: |
             analyze_output.txt
             build_output.txt
-
-      - name: Build APK (release)
-        run: |
-          set -o pipefail
-          flutter build apk --release 2>&1 | tee build_output.txt
-          echo "## Build Result" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -20 build_output.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-      - name: Find and list APK
-        run: |
-          echo "=== Searching for APK files ==="
-          find build/ -name '*.apk' -type f || echo "No APK found via find"
-          echo "=== Listing build/app/outputs ==="
-          ls -laR build/app/outputs/ 2>/dev/null || echo "Directory not found"
-          echo "=== Listing build/ ==="
-          ls -la build/ 2>/dev/null || echo "build/ not found"
 
       - name: Upload APK files as artifacts
         uses: actions/upload-artifact@v4
