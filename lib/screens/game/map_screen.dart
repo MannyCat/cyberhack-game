@@ -291,7 +291,7 @@ class _WorldMapPainter extends CustomPainter {
     // Vignette
     final vignette = Paint()
       ..shader = RadialGradient(
-        center: Offset(size.width / 2, size.height / 2),
+        center: Alignment.center,
         radius: size.width * 0.7,
         colors: [
           Colors.transparent,
@@ -754,18 +754,6 @@ class _ActionBtnState extends State<_ActionBtn> {
   }
 }
 
-// ─── Animated Builder ────────────────────────────────────────────────────
-
-class AnimatedBuilder extends AnimatedWidget {
-  final Widget Function(BuildContext context, Widget? child) builder;
-  final Widget? child;
-
-  const AnimatedBuilder({super.key, required super.listenable, required this.builder, this.child});
-
-  @override
-  Widget build(BuildContext context) => builder(context, child);
-}
-
 // ─── Game Map Screen ─────────────────────────────────────────────────────
 
 class GameMapScreen extends StatefulWidget {
@@ -810,7 +798,7 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
 
   void _initNodes() {
     _nodes = [];
-    final String idPrefix = (idx) => 'n$idx';
+    String idPrefix(int idx) => 'n$idx';
 
     for (int i = 0; i < _worldCities.length; i++) {
       final city = _worldCities[i];
@@ -821,7 +809,7 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
         position: Offset.zero, // Will be computed in build based on size
         type: city.nodeType,
         isPlayerOwned: city.isPlayerOwned,
-        health: city.isPlayerOwned ? 100 : 60 + _random.nextInt(40),
+        health: (city.isPlayerOwned ? 100.0 : 60.0 + _random.nextInt(40)),
         maxHealth: 100,
         firewallStrength: city.firewallStrength,
         attackPower: 3 + _random.nextInt(10),

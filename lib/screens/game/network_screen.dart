@@ -453,7 +453,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
     };
 
     return AnimatedBuilder(
-      listenable: _pulseController,
+      animation: _pulseController,
       builder: (context, child) {
         final pulse = node.status == NodeStatus.underAttack
             ? 1.0 + _pulseController.value * 0.02
@@ -520,7 +520,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('УР ${node.level}', style: const TextStyle(color: _Theme.accentGreen, fontSize: 18, FontWeight: FontWeight.bold)),
+                        Text('УР ${node.level}', style: const TextStyle(color: _Theme.accentGreen, fontSize: 18, fontWeight: FontWeight.bold)),
                         Text(node.type.label, style: const TextStyle(color: _Theme.textSecondary, fontSize: 11)),
                       ],
                     ),
@@ -774,24 +774,5 @@ class _BuildNodeDialog extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// Helper widget that builds based on an [Animation] (used for the pulse effect).
-/// This wraps [AnimatedBuilder] since Flutter's built-in is [AnimatedBuilder].
-class AnimatedBuilder extends AnimatedWidget {
-  final Widget Function(BuildContext context, Widget? child) builder;
-  final Widget? child;
-
-  const AnimatedBuilder({
-    super.key,
-    required super.listenable,
-    required this.builder,
-    this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return builder(context, child);
   }
 }

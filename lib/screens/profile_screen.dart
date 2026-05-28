@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/cyber_button.dart';
@@ -185,9 +186,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                           radius: 44,
                           backgroundColor: const Color(0xFF1A1F2E),
                           child: Text(
-                            widget.profile.handle.length >= 2
-                                ? widget.profile.handle.substring(0, 2).toUpperCase()
-                                : widget.profile.handle.toUpperCase(),
+                            widget.profile.handle.isNotEmpty
+                                ? widget.profile.handle.substring(0, min(2, widget.profile.handle.length)).toUpperCase()
+                                : '??',
                             style: const TextStyle(
                               color: Color(0xFF00FF41),
                               fontSize: 24,
