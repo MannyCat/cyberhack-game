@@ -123,7 +123,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       final response = await _supabase
           .from('chat_messages')
           .select('*, profiles!inner(username, clan:clans(tag))')
-          .isFilter('clan_id', 'null')
+          .isFilter('clan_id', null)
           .order('created_at', ascending: false)
           .limit(_pageSize);
 

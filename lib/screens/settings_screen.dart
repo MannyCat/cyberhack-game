@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show AuthUserAttributes;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../widgets/cyber_button.dart';
 
@@ -542,7 +542,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Real password update via Supabase
               try {
                 await Supabase.instance.client.auth.updateUser(
-                  attributes: AuthUserAttributes(password: newPass),
+                  UserAttributes(password: newPass),
                 );
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
