@@ -150,13 +150,67 @@ class AuthProvider extends ChangeNotifier {
           .from('profiles')
           .select()
           .eq('id', _user!.id)
-          .single();
+          .maybeSingle();
 
-      _profile = PlayerProfile.fromJson(response);
-      _errorMessage = null;
+      if (response != null) {
+        _profile = PlayerProfile.fromJson(response);
+        _errorMessage = null;
+      } else {
+        // Profile doesn't exist yet — create it
+        try {
+          final username = _user!.userMetadata?['username'] ??
+              _user!.email?.split('@')[0] ?? 'Хакер';
+          await _supabase.from('profiles').insert({
+            'id': _user!.id,
+            'username': username,
+            'credits': 1000,
+            'cpu': 200,
+            'bandwidth': 200,
+            'level': 1,
+            'experience': 0,
+          });
+          _profile = PlayerProfile(
+            id: _user!.id,
+            username: username,
+            credits: 1000,
+            cpu: 200,
+            bandwidth: 200,
+            level: 1,
+            experience: 0,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+          _errorMessage = null;
+        } catch (createErr) {
+          debugPrint('Ошибка создания профиля: $createErr');
+          // Don't block auth — user can still navigate
+          _profile = PlayerProfile(
+            id: _user!.id,
+            username: _user!.email?.split('@')[0] ?? 'Хакер',
+            credits: 1000,
+            cpu: 200,
+            bandwidth: 200,
+            level: 1,
+            experience: 0,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+        }
+      }
     } catch (e) {
       debugPrint('Ошибка загрузки профиля: $e');
-      _errorMessage = 'Не удалось загрузить профиль';
+      // Set default profile instead of blocking
+      _profile = PlayerProfile(
+        id: _user!.id,
+        username: _user!.email?.split('@')[0] ?? 'Хакер',
+        credits: 1000,
+        cpu: 200,
+        bandwidth: 200,
+        level: 1,
+        experience: 0,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
     }
     notifyListeners();
   }

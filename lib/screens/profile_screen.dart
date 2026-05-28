@@ -72,7 +72,11 @@ class _ProfileScreenState extends State<ProfileScreen>
     final game = context.watch<GameProvider>();
     final theme = Theme.of(context);
 
-    final username = widget.profile?.handle ?? auth.displayName;
+    final username = (widget.profile?.handle.isNotEmpty == true
+        ? widget.profile!.handle
+        : auth.displayName.isNotEmpty
+            ? auth.displayName
+            : 'Хакер');
     final level = widget.profile?.level ?? game.level;
     final xp = widget.profile?.currentXp ?? game.xp;
     final xpNeeded = widget.profile?.xpToNextLevel ?? level * 1000;
@@ -125,7 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           child: Text(
                             username.isNotEmpty
                                 ? username.substring(0, min(2, username.length)).toUpperCase()
-                                : '??',
+                                : '?',
                             style: const TextStyle(
                               color: Color(0xFF00FF41),
                               fontSize: 24,
@@ -390,7 +394,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '${node.nodeType} #${node.id.substring(0, 6)}',
+                        '${node.nodeType} #${node.id.length >= 6 ? node.id.substring(0, 6) : node.id}',
                         style: TextStyle(color: node.isOnline ? Colors.white : const Color(0xFF4a5568), fontSize: 12),
                       ),
                     ),

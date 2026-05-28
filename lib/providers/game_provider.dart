@@ -229,12 +229,35 @@ class GameProvider extends ChangeNotifier {
           .from('profiles')
           .select()
           .eq('id', userId)
-          .single();
+          .maybeSingle();
+
+      if (response == null) {
+        // Profile doesn't exist yet — create it
+        try {
+          final auth = Supabase.instance.client.auth.currentUser;
+          final username = auth?.userMetadata?['username'] ?? auth?.email?.split('@')[0] ?? 'Хакер';
+          await _supabase.from('profiles').insert({
+            'id': userId,
+            'username': username,
+            'credits': 1000,
+            'cpu': 200,
+            'bandwidth': 200,
+            'level': 1,
+            'experience': 0,
+          });
+          _resources = const PlayerResources(credits: 1000, cpu: 200, bandwidth: 200, level: 1, experience: 0);
+        } catch (insertErr) {
+          debugPrint('Error creating profile: $insertErr');
+          _resources = const PlayerResources(credits: 1000, cpu: 200, bandwidth: 200, level: 1, experience: 0);
+        }
+        return;
+      }
 
       final profile = PlayerProfile.fromJson(response);
       _resources = PlayerResources.fromProfile(profile);
     } catch (e) {
       debugPrint('Error loading resources: $e');
+      _resources = const PlayerResources(credits: 1000, cpu: 200, bandwidth: 200, level: 1, experience: 0);
     }
   }
 

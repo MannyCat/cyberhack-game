@@ -336,7 +336,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                       children: [
                         Row(
                           children: [
-                            Text('${_nodeTypeLabel(node.nodeType)} #${node.id.substring(0, 6)}',
+                            Text('${_nodeTypeLabel(node.nodeType)} #${node.id.length >= 6 ? node.id.substring(0, 6) : node.id}',
                                 style: const TextStyle(color: _Theme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
                             const SizedBox(width: 8),
                             Container(

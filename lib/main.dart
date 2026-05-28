@@ -10,10 +10,12 @@ void main() async {
     await Supabase.initialize(
       url: SupabaseConfig.url,
       anonKey: SupabaseConfig.anonKey,
+      debug: true,
     );
+    debugPrint('Supabase initialized successfully');
   } catch (e) {
-    // If Supabase init fails, still run the app (will show error in UI)
     debugPrint('Supabase initialization failed: $e');
+    // App still runs — will show login screen and handle errors in UI
   }
 
   runApp(const CyberHackApp());

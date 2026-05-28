@@ -41,6 +41,10 @@ class _CyberHackAppState extends State<CyberHackApp> {
         final isLoggedIn = _authProvider.isAuthenticated;
         final isAuthRoute = state.matchedLocation == '/login' ||
             state.matchedLocation == '/register';
+        final isLoading = _authProvider.authState == AuthState.loading;
+
+        // Don't redirect while checking auth state
+        if (isLoading) return null;
 
         if (!isLoggedIn && !isAuthRoute) return '/login';
         if (isLoggedIn && isAuthRoute) return '/main-menu';
