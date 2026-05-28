@@ -172,6 +172,15 @@ create table if not exists public.player_stats (
   constraint player_stats_unique unique (player_id)
 );
 
+-- ---------------------------------------------------------------------------
+-- Ensure columns added in later migrations exist on older databases
+-- ---------------------------------------------------------------------------
+do $$ begin
+  alter table public.player_stats add column if not exists total_damage  integer not null default 0 check (total_damage >= 0);
+  alter table public.player_stats add column if not exists clan_score    integer not null default 0 check (clan_score >= 0);
+exception when others then null;
+end $$;
+
 
 -- =============================================================================
 -- INDEXES
