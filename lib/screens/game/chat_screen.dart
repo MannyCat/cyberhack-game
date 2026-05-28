@@ -29,17 +29,6 @@ class _ChatMessage {
     this.isSystem = false,
     this.senderClanTag,
   });
-
-  factory _ChatMessage.fromSupabase(Map<String, dynamic> row, String? myUserId) {
-    return _ChatMessage(
-      id: row['id'] as String,
-      senderName: row['sender_name'] as String? ?? 'Аноним',
-      content: row['content'] as String? ?? '',
-      timestamp: DateTime.parse(row['created_at'] as String),
-      isOwn: row['sender_id'] == myUserId,
-      senderClanTag: row['sender_clan_tag'] as String?,
-    );
-  }
 }
 
 class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {

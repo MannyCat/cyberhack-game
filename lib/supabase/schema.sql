@@ -611,6 +611,137 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Upgrade a network node (deducts credits, increases level/stats)
+-- Called by: game_provider.dart -> upgradeNode()
+-- ---------------------------------------------------------------------------
+create or replace function public.upgrade_network_node(
+  p_node_id uuid,
+  p_cost    integer
+)
+returns void
+language plpgsql
+security definer set search_path = ''
+as $$
+declare
+  v_node    record;
+  v_profile record;
+  v_level   integer;
+begin
+  -- Lock and fetch the node
+  select * into v_node
+  from public.network_nodes
+  where id = p_node_id
+  for update;
+
+  if v_node is null then
+    raise exception 'Node not found';
+  end if;
+
+  -- Verify caller owns this node
+  if auth.uid() is null or auth.uid() != v_node.player_id then
+    raise exception 'Permission denied';
+  end if;
+
+  -- Check player has enough credits
+  select credits into v_profile
+  from public.profiles
+  where id = auth.uid()
+  for update;
+
+  if v_profile.credits < p_cost then
+    raise exception 'Insufficient credits';
+  end if;
+
+  -- Calculate new level and stats
+  v_level := v_node.node_level + 1;
+
+  -- Deduct cost
+  update public.profiles set credits = credits - p_cost
+  where id = auth.uid();
+
+  -- Upgrade the node
+  update public.network_nodes set
+    node_level = v_level,
+    max_health = v_node.max_health + 50,
+    health = least(v_node.health + 50, v_node.max_health + 50)
+  where id = p_node_id;
+
+  -- Grant XP for upgrading
+  update public.profiles set
+    experience = experience + 60
+  where id = auth.uid();
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Purchase a market item (deducts credits, adds to inventory, decrements stock)
+-- Called by: game_provider.dart -> purchaseItem()
+-- Returns: true if successful, false if insufficient funds
+-- ---------------------------------------------------------------------------
+create or replace function public.purchase_item(
+  p_player_id uuid,
+  p_item_id   uuid,
+  p_price     integer
+)
+returns boolean
+language plpgsql
+security definer set search_path = ''
+as $$
+declare
+  v_item    record;
+  v_profile record;
+  v_new_qty integer;
+begin
+  -- Verify caller is the purchaser
+  if auth.uid() is null or auth.uid() != p_player_id then
+    raise exception 'Permission denied';
+  end if;
+
+  -- Lock and fetch the item
+  select * into v_item
+  from public.market_items
+  where id = p_item_id
+  for update;
+
+  if v_item is null then
+    raise exception 'Item not found';
+  end if;
+
+  -- Check stock
+  if v_item.stock = 0 then
+    return false;
+  end if;
+
+  -- Check player credits
+  select credits into v_profile
+  from public.profiles
+  where id = p_player_id
+  for update;
+
+  if v_profile.credits < p_price then
+    return false;
+  end if;
+
+  -- Deduct credits
+  update public.profiles set credits = credits - p_price
+  where id = p_player_id;
+
+  -- Decrement stock (skip if unlimited: stock = -1)
+  if v_item.stock > 0 then
+    update public.market_items set stock = stock - 1 where id = p_item_id;
+  end if;
+
+  -- Add to inventory (upsert)
+  insert into public.player_inventory (player_id, item_id, quantity)
+  values (p_player_id, p_item_id, 1)
+  on conflict (player_id, item_id) do update set
+    quantity = player_inventory.quantity + 1;
+
+  return true;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- Process attack result (called by game logic)
 -- ---------------------------------------------------------------------------
 create or replace function public.process_attack(

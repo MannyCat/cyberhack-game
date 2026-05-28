@@ -194,7 +194,6 @@ class GameProvider extends ChangeNotifier {
   bool _isInitialized = false;
 
   void init(String userId) {
-    if (_isInitialized) return;
     _isInitialized = true;
     _loadAllData(userId);
     _subscribeToRealtimeUpdates(userId);
