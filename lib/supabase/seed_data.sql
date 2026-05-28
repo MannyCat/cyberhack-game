@@ -1,11 +1,12 @@
 -- =============================================================================
--- CyberHack — Seed Data
+-- CyberHack — Seed Data (Idempotent)
+-- =============================================================================
+-- Uses ON CONFLICT DO NOTHING so it can be re-run safely.
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
 -- UTILITY: Level calculation from experience (1000 XP per level)
 -- ---------------------------------------------------------------------------
--- This function is idempotent; the version in schema.sql is the canonical one.
 create or replace function public.calculate_level(xp integer)
 returns integer
 language sql
@@ -78,7 +79,8 @@ insert into public.market_items (name, description, category, price, effect_json
   4000,
   '{"credit_bonus_percent": 0.20, "node_type": "database", "health": 180, "max_health": 180}',
   10
-);
+)
+on conflict do nothing;
 
 -- ---------------------------------------------------------------------------
 -- SOFTWARE
@@ -131,7 +133,8 @@ insert into public.market_items (name, description, category, price, effect_json
   1200,
   '{"detection_rate": 0.40, "duration": "permanent"}',
   -1
-);
+)
+on conflict do nothing;
 
 -- ---------------------------------------------------------------------------
 -- EXPLOITS
@@ -200,7 +203,8 @@ insert into public.market_items (name, description, category, price, effect_json
   3500,
   '{"damage": 60, "passive_income_percent": 0.15, "attack_type": "rootkit", "target": "any"}',
   5
-);
+)
+on conflict do nothing;
 
 -- ---------------------------------------------------------------------------
 -- TOOLS
@@ -253,16 +257,5 @@ insert into public.market_items (name, description, category, price, effect_json
   6000,
   '{"effect": "disable_all_nodes", "duration_seconds": 300, "uses": 1}',
   2
-);
-
-
--- =============================================================================
--- REALTIME SUBSCRIPTIONS SETUP
--- =============================================================================
-
--- Enable realtime for specific tables
-alter publication supabase_realtime add table public.profiles;
-alter publication supabase_realtime add table public.attacks;
-alter publication supabase_realtime add table public.chat_messages;
-alter publication supabase_realtime add table public.network_nodes;
-alter publication supabase_realtime add table public.clan_members;
+)
+on conflict do nothing;

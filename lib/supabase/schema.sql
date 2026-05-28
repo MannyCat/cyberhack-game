@@ -1,5 +1,8 @@
 -- =============================================================================
--- CyberHack — Supabase Database Schema
+-- CyberHack — Supabase Database Schema (Idempotent)
+-- =============================================================================
+-- All statements use IF NOT EXISTS / CREATE OR REPLACE so this script
+-- can be re-run safely against an existing database.
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -9,9 +12,9 @@ create extension if not exists "uuid-ossp";
 create extension if not exists "pgcrypto";
 
 -- ---------------------------------------------------------------------------
--- 2. PROFILES (no clan_id FK yet — added after clans table)
+-- 2. PROFILES
 -- ---------------------------------------------------------------------------
-create table public.profiles (
+create table if not exists public.profiles (
   id            uuid        primary key references auth.users(id) on delete cascade,
   username      text        not null,
   credits       integer     not null default 1000 check (credits >= 0),
@@ -27,9 +30,9 @@ create table public.profiles (
 );
 
 -- ---------------------------------------------------------------------------
--- 3. CLANS (no leader_id FK yet — added below)
+-- 3. CLANS
 -- ---------------------------------------------------------------------------
-create table public.clans (
+create table if not exists public.clans (
   id             uuid        primary key default uuid_generate_v4(),
   name           text        not null,
   tag            text        not null,
@@ -45,15 +48,28 @@ create table public.clans (
 -- ---------------------------------------------------------------------------
 -- Add FK constraints (avoid circular dependency)
 -- ---------------------------------------------------------------------------
-alter table public.clans
-  add constraint clans_leader_fkey foreign key (leader_id) references public.profiles(id) on delete cascade;
-alter table public.profiles
-  add constraint profiles_clan_fkey foreign key (clan_id) references public.clans(id) on delete set null;
+do $$ begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'clans_leader_fkey'
+  ) then
+    alter table public.clans
+      add constraint clans_leader_fkey foreign key (leader_id) references public.profiles(id) on delete cascade;
+  end if;
+end $$;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'profiles_clan_fkey'
+  ) then
+    alter table public.profiles
+      add constraint profiles_clan_fkey foreign key (clan_id) references public.clans(id) on delete set null;
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- 4. CLAN MEMBERS
 -- ---------------------------------------------------------------------------
-create table public.clan_members (
+create table if not exists public.clan_members (
   id         uuid        primary key default uuid_generate_v4(),
   clan_id    uuid        not null references public.clans(id) on delete cascade,
   player_id  uuid        not null references public.profiles(id) on delete cascade,
@@ -67,7 +83,7 @@ create table public.clan_members (
 -- ---------------------------------------------------------------------------
 -- 5. NETWORK NODES
 -- ---------------------------------------------------------------------------
-create table public.network_nodes (
+create table if not exists public.network_nodes (
   id            uuid        primary key default uuid_generate_v4(),
   player_id     uuid        not null references public.profiles(id) on delete cascade,
   node_type     text        not null
@@ -86,7 +102,7 @@ create table public.network_nodes (
 -- ---------------------------------------------------------------------------
 -- 6. ATTACKS
 -- ---------------------------------------------------------------------------
-create table public.attacks (
+create table if not exists public.attacks (
   id              uuid        primary key default uuid_generate_v4(),
   attacker_id     uuid        not null references public.profiles(id) on delete cascade,
   defender_id     uuid        not null references public.profiles(id) on delete cascade,
@@ -102,19 +118,19 @@ create table public.attacks (
 -- ---------------------------------------------------------------------------
 -- 7. CHAT MESSAGES
 -- ---------------------------------------------------------------------------
-create table public.chat_messages (
+create table if not exists public.chat_messages (
   id           uuid        primary key default uuid_generate_v4(),
   sender_id    uuid        not null references public.profiles(id) on delete cascade,
   sender_name  text        not null,
   content      text        not null check (char_length(content) <= 500),
-  clan_id      uuid        references public.clans(id) on delete cascade,   -- null = global
+  clan_id      uuid        references public.clans(id) on delete cascade,
   created_at   timestamptz not null default now()
 );
 
 -- ---------------------------------------------------------------------------
 -- 8. MARKET ITEMS
 -- ---------------------------------------------------------------------------
-create table public.market_items (
+create table if not exists public.market_items (
   id           uuid        primary key default uuid_generate_v4(),
   name         text        not null,
   description  text,
@@ -122,14 +138,14 @@ create table public.market_items (
                             check (category in ('hardware', 'software', 'exploits', 'tools')),
   price        integer     not null check (price > 0),
   effect_json  jsonb       not null default '{}'::jsonb,
-  stock        integer     not null default -1, -- -1 = unlimited
+  stock        integer     not null default -1,
   created_at   timestamptz not null default now()
 );
 
 -- ---------------------------------------------------------------------------
 -- 9. PLAYER INVENTORY
 -- ---------------------------------------------------------------------------
-create table public.player_inventory (
+create table if not exists public.player_inventory (
   id           uuid        primary key default uuid_generate_v4(),
   player_id    uuid        not null references public.profiles(id) on delete cascade,
   item_id      uuid        not null references public.market_items(id) on delete cascade,
@@ -142,7 +158,7 @@ create table public.player_inventory (
 -- ---------------------------------------------------------------------------
 -- 10. PLAYER STATS
 -- ---------------------------------------------------------------------------
-create table public.player_stats (
+create table if not exists public.player_stats (
   id                  uuid        primary key default uuid_generate_v4(),
   player_id           uuid        not null references public.profiles(id) on delete cascade,
   total_attacks       integer     not null default 0 check (total_attacks >= 0),
@@ -162,41 +178,43 @@ create table public.player_stats (
 -- =============================================================================
 
 -- profiles
-create index idx_profiles_username   on public.profiles (username);
-create index idx_profiles_clan_id    on public.profiles (clan_id) where clan_id is not null;
-create index idx_profiles_level      on public.profiles (level desc);
+create index if not exists idx_profiles_username   on public.profiles (username);
+create index if not exists idx_profiles_clan_id    on public.profiles (clan_id) where clan_id is not null;
+create index if not exists idx_profiles_level      on public.profiles (level desc);
 
 -- network_nodes
-create index idx_nodes_player_id     on public.network_nodes (player_id);
-create index idx_nodes_type          on public.network_nodes (node_type);
-create index idx_nodes_online        on public.network_nodes (player_id, is_online);
+create index if not exists idx_nodes_player_id     on public.network_nodes (player_id);
+create index if not exists idx_nodes_type          on public.network_nodes (node_type);
+create index if not exists idx_nodes_online        on public.network_nodes (player_id, is_online);
 
 -- attacks
-create index idx_attacks_attacker    on public.attacks (attacker_id, created_at desc);
-create index idx_attacks_defender    on public.attacks (defender_id, created_at desc);
-create index idx_attacks_status      on public.attacks (status);
-create index idx_attacks_created     on public.attacks (created_at desc);
+create index if not exists idx_attacks_attacker    on public.attacks (attacker_id, created_at desc);
+create index if not exists idx_attacks_defender    on public.attacks (defender_id, created_at desc);
+create index if not exists idx_attacks_status      on public.attacks (status);
+create index if not exists idx_attacks_created     on public.attacks (created_at desc);
 
 -- clan_members
-create index idx_clan_members_clan   on public.clan_members (clan_id);
-create index idx_clan_members_player on public.clan_members (player_id);
+create index if not exists idx_clan_members_clan   on public.clan_members (clan_id);
+create index if not exists idx_clan_members_player on public.clan_members (player_id);
 
 -- chat_messages
-create index idx_chat_clan_id        on public.chat_messages (clan_id) where clan_id is not null;
-create index idx_chat_global         on public.chat_messages (created_at desc) where clan_id is null;
-create index idx_chat_sender         on public.chat_messages (sender_id);
+create index if not exists idx_chat_clan_id        on public.chat_messages (clan_id) where clan_id is not null;
+create index if not exists idx_chat_global         on public.chat_messages (created_at desc) where clan_id is null;
+create index if not exists idx_chat_sender         on public.chat_messages (sender_id);
 
 -- market_items
-create index idx_market_category     on public.market_items (category);
-create index idx_market_stock        on public.market_items (stock) where stock > 0;
+create index if not exists idx_market_category     on public.market_items (category);
+create index if not exists idx_market_stock        on public.market_items (stock) where stock > 0;
 
 -- player_inventory
-create index idx_inventory_player    on public.player_inventory (player_id);
-create index idx_inventory_item      on public.player_inventory (item_id);
+create index if not exists idx_inventory_player    on public.player_inventory (player_id);
+create index if not exists idx_inventory_item      on public.player_inventory (item_id);
 
 -- player_stats
-create index idx_stats_successfull   on public.player_stats (successful_attacks desc);
-create index idx_stats_credits       on public.player_stats (credits_earned desc);
+create index if not exists idx_stats_successful    on public.player_stats (successful_attacks desc);
+create index if not exists idx_stats_credits       on public.player_stats (credits_earned desc);
+create index if not exists idx_stats_clan_score    on public.player_stats (clan_score desc);
+create index if not exists idx_stats_total_damage  on public.player_stats (total_damage desc);
 
 
 -- =============================================================================
@@ -230,6 +248,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row
@@ -237,7 +256,6 @@ create trigger on_auth_user_created
 
 -- ---------------------------------------------------------------------------
 -- Trigger 2: Auto-update profile level based on experience
--- (every 1000 xp = 1 level)
 -- ---------------------------------------------------------------------------
 create or replace function public.update_profile_level()
 returns trigger
@@ -258,6 +276,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_profile_experience_change on public.profiles;
 create trigger on_profile_experience_change
   before update of experience on public.profiles
   for each row
@@ -272,12 +291,10 @@ language plpgsql
 security definer set search_path = ''
 as $$
 begin
-  -- Only process completed attacks
   if new.status not in ('success', 'failed') then
     return new;
   end if;
 
-  -- Update attacker stats
   insert into public.player_stats (player_id, total_attacks, successful_attacks, credits_earned)
   values (new.attacker_id, 1, 1, new.credits_stolen)
   on conflict (player_id) do update set
@@ -285,7 +302,6 @@ begin
     successful_attacks = player_stats.successful_attacks + case when new.status = 'success' then 1 else 0 end,
     credits_earned     = player_stats.credits_earned + new.credits_stolen;
 
-  -- Check if defender's entire network is destroyed
   if new.status = 'success' then
     declare
       remaining_nodes integer;
@@ -307,6 +323,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_attack_completed on public.attacks;
 create trigger on_attack_completed
   after update of status on public.attacks
   for each row
@@ -325,6 +342,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_profile_update on public.profiles;
 create trigger on_profile_update
   before update on public.profiles
   for each row
@@ -335,86 +353,76 @@ create trigger on_profile_update
 -- ROW LEVEL SECURITY (RLS)
 -- =============================================================================
 
--- Enable RLS on all tables
-alter table public.profiles        enable row level security;
-alter table public.clans           enable row level security;
-alter table public.clan_members    enable row level security;
-alter table public.network_nodes   enable row level security;
-alter table public.attacks         enable row level security;
-alter table public.chat_messages   enable row level security;
-alter table public.market_items    enable row level security;
-alter table public.player_inventory enable row level security;
-alter table public.player_stats    enable row level security;
+-- Enable RLS on all tables (idempotent — safe to re-run)
+do $$ begin
+  alter table public.profiles        enable row level security;
+  alter table public.clans           enable row level security;
+  alter table public.clan_members    enable row level security;
+  alter table public.network_nodes   enable row level security;
+  alter table public.attacks         enable row level security;
+  alter table public.chat_messages   enable row level security;
+  alter table public.market_items    enable row level security;
+  alter table public.player_inventory enable row level security;
+  alter table public.player_stats    enable row level security;
+exception when others then null;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- profiles RLS
 -- ---------------------------------------------------------------------------
--- Everyone can read profiles
-create policy "Profiles are viewable by everyone"
+create or replace policy "Profiles are viewable by everyone"
   on public.profiles for select
   using (true);
 
--- Users can update their own profile
-create policy "Users can update own profile"
+create or replace policy "Users can update own profile"
   on public.profiles for update
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
--- Profiles are inserted by trigger (handle_new_user)
--- Allow service role and trigger to insert
-create policy "Service role can insert profiles"
+create or replace policy "Service role can insert profiles"
   on public.profiles for insert
   with check (true);
 
--- Users can delete their own profile
-create policy "Users can delete own profile"
+create or replace policy "Users can delete own profile"
   on public.profiles for delete
   using (auth.uid() = id);
 
 -- ---------------------------------------------------------------------------
 -- clans RLS
 -- ---------------------------------------------------------------------------
--- Everyone can read clans
-create policy "Clans are viewable by everyone"
+create or replace policy "Clans are viewable by everyone"
   on public.clans for select
   using (true);
 
--- Only authenticated users can create clans
-create policy "Authenticated users can create clans"
+create or replace policy "Authenticated users can create clans"
   on public.clans for insert
   with check (auth.uid() = leader_id);
 
--- Only clan leaders can update their clan
-create policy "Leaders can update own clan"
+create or replace policy "Leaders can update own clan"
   on public.clans for update
   using (auth.uid() = leader_id)
   with check (auth.uid() = leader_id);
 
--- Only clan leaders can delete their clan
-create policy "Leaders can delete own clan"
+create or replace policy "Leaders can delete own clan"
   on public.clans for delete
   using (auth.uid() = leader_id);
 
 -- ---------------------------------------------------------------------------
 -- clan_members RLS
 -- ---------------------------------------------------------------------------
--- Everyone can read clan members
-create policy "Clan members are viewable by everyone"
+create or replace policy "Clan members are viewable by everyone"
   on public.clan_members for select
   using (true);
 
--- Users can join a clan (insert themselves)
-create policy "Users can join clans"
+create or replace policy "Users can join clans"
   on public.clan_members for insert
   with check (auth.uid() = player_id);
 
--- Users can leave a clan (delete themselves)
-create policy "Users can leave clans"
+create or replace policy "Users can leave clans"
   on public.clan_members for delete
   using (auth.uid() = player_id);
 
--- Clan leaders and officers can manage members
-create policy "Officers can update clan members"
+create or replace policy "Officers can update clan members"
   on public.clan_members for update
   using (
     exists (
@@ -436,42 +444,35 @@ create policy "Officers can update clan members"
 -- ---------------------------------------------------------------------------
 -- network_nodes RLS
 -- ---------------------------------------------------------------------------
--- Everyone can see network nodes
-create policy "Network nodes are viewable by everyone"
+create or replace policy "Network nodes are viewable by everyone"
   on public.network_nodes for select
   using (true);
 
--- Users can create nodes for themselves
-create policy "Users can create own nodes"
+create or replace policy "Users can create own nodes"
   on public.network_nodes for insert
   with check (auth.uid() = player_id);
 
--- Users can update their own nodes
-create policy "Users can update own nodes"
+create or replace policy "Users can update their own nodes"
   on public.network_nodes for update
   using (auth.uid() = player_id)
   with check (auth.uid() = player_id);
 
--- Users can delete their own nodes
-create policy "Users can delete own nodes"
+create or replace policy "Users can delete their own nodes"
   on public.network_nodes for delete
   using (auth.uid() = player_id);
 
 -- ---------------------------------------------------------------------------
 -- attacks RLS
 -- ---------------------------------------------------------------------------
--- Attackers and defenders can view their attacks
-create policy "Users can view own attacks"
+create or replace policy "Users can view own attacks"
   on public.attacks for select
   using (auth.uid() = attacker_id or auth.uid() = defender_id);
 
--- Users can create attacks (as attacker)
-create policy "Users can create attacks"
+create or replace policy "Users can create attacks"
   on public.attacks for insert
   with check (auth.uid() = attacker_id);
 
--- Only the system / attacker can update attacks
-create policy "Attackers can update own attacks"
+create or replace policy "Attackers can update own attacks"
   on public.attacks for update
   using (auth.uid() = attacker_id)
   with check (auth.uid() = attacker_id);
@@ -479,8 +480,7 @@ create policy "Attackers can update own attacks"
 -- ---------------------------------------------------------------------------
 -- chat_messages RLS
 -- ---------------------------------------------------------------------------
--- Everyone can read global chat
-create policy "Global chat is viewable by everyone"
+create or replace policy "Global chat is viewable by everyone"
   on public.chat_messages for select
   using (clan_id is null or
     exists (
@@ -490,8 +490,7 @@ create policy "Global chat is viewable by everyone"
     )
   );
 
--- Authenticated users can send global messages
-create policy "Authenticated users can send messages"
+create or replace policy "Authenticated users can send messages"
   on public.chat_messages for insert
   with check (
     auth.uid() = sender_id
@@ -508,39 +507,34 @@ create policy "Authenticated users can send messages"
 -- ---------------------------------------------------------------------------
 -- market_items RLS
 -- ---------------------------------------------------------------------------
--- Everyone can view market items
-create policy "Market items are viewable by everyone"
+create or replace policy "Market items are viewable by everyone"
   on public.market_items for select
   using (true);
 
--- Only admins should insert/update/delete (no anon inserts)
-create policy "No anonymous market item inserts"
+create or replace policy "No anonymous market item inserts"
   on public.market_items for insert
   with check (false);
 
-create policy "No anonymous market item updates"
+create or replace policy "No anonymous market item updates"
   on public.market_items for update
   using (false);
 
-create policy "No anonymous market item deletes"
+create or replace policy "No anonymous market item deletes"
   on public.market_items for delete
   using (false);
 
 -- ---------------------------------------------------------------------------
 -- player_inventory RLS
 -- ---------------------------------------------------------------------------
--- Users can view their own inventory
-create policy "Users can view own inventory"
+create or replace policy "Users can view own inventory"
   on public.player_inventory for select
   using (auth.uid() = player_id);
 
--- Users can add to their own inventory (via purchase system)
-create policy "Users can add to own inventory"
+create or replace policy "Users can add to own inventory"
   on public.player_inventory for insert
   with check (auth.uid() = player_id);
 
--- Users can update their own inventory
-create policy "Users can update own inventory"
+create or replace policy "Users can update their own inventory"
   on public.player_inventory for update
   using (auth.uid() = player_id)
   with check (auth.uid() = player_id);
@@ -548,18 +542,15 @@ create policy "Users can update own inventory"
 -- ---------------------------------------------------------------------------
 -- player_stats RLS
 -- ---------------------------------------------------------------------------
--- Everyone can view player stats (for leaderboard)
-create policy "Player stats are viewable by everyone"
+create or replace policy "Player stats are viewable by everyone"
   on public.player_stats for select
   using (true);
 
--- No direct inserts (auto-created by trigger)
-create policy "Stats cannot be inserted directly"
+create or replace policy "Stats cannot be inserted directly"
   on public.player_stats for insert
   with check (false);
 
--- No direct updates (updated via trigger)
-create policy "Stats cannot be updated directly"
+create or replace policy "Stats cannot be updated directly"
   on public.player_stats for update
   using (false);
 
@@ -612,7 +603,6 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- Upgrade a network node (deducts credits, increases level/stats)
--- Called by: game_provider.dart -> upgradeNode()
 -- ---------------------------------------------------------------------------
 create or replace function public.upgrade_network_node(
   p_node_id uuid,
@@ -627,7 +617,6 @@ declare
   v_profile record;
   v_level   integer;
 begin
-  -- Lock and fetch the node
   select * into v_node
   from public.network_nodes
   where id = p_node_id
@@ -637,12 +626,10 @@ begin
     raise exception 'Node not found';
   end if;
 
-  -- Verify caller owns this node
   if auth.uid() is null or auth.uid() != v_node.player_id then
     raise exception 'Permission denied';
   end if;
 
-  -- Check player has enough credits
   select credits into v_profile
   from public.profiles
   where id = auth.uid()
@@ -652,21 +639,17 @@ begin
     raise exception 'Insufficient credits';
   end if;
 
-  -- Calculate new level and stats
   v_level := v_node.node_level + 1;
 
-  -- Deduct cost
   update public.profiles set credits = credits - p_cost
   where id = auth.uid();
 
-  -- Upgrade the node
   update public.network_nodes set
     node_level = v_level,
     max_health = v_node.max_health + 50,
     health = least(v_node.health + 50, v_node.max_health + 50)
   where id = p_node_id;
 
-  -- Grant XP for upgrading
   update public.profiles set
     experience = experience + 60
   where id = auth.uid();
@@ -674,9 +657,7 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- Purchase a market item (deducts credits, adds to inventory, decrements stock)
--- Called by: game_provider.dart -> purchaseItem()
--- Returns: true if successful, false if insufficient funds
+-- Purchase a market item
 -- ---------------------------------------------------------------------------
 create or replace function public.purchase_item(
   p_player_id uuid,
@@ -692,12 +673,10 @@ declare
   v_profile record;
   v_new_qty integer;
 begin
-  -- Verify caller is the purchaser
   if auth.uid() is null or auth.uid() != p_player_id then
     raise exception 'Permission denied';
   end if;
 
-  -- Lock and fetch the item
   select * into v_item
   from public.market_items
   where id = p_item_id
@@ -707,12 +686,10 @@ begin
     raise exception 'Item not found';
   end if;
 
-  -- Check stock
   if v_item.stock = 0 then
     return false;
   end if;
 
-  -- Check player credits
   select credits into v_profile
   from public.profiles
   where id = p_player_id
@@ -722,16 +699,13 @@ begin
     return false;
   end if;
 
-  -- Deduct credits
   update public.profiles set credits = credits - p_price
   where id = p_player_id;
 
-  -- Decrement stock (skip if unlimited: stock = -1)
   if v_item.stock > 0 then
     update public.market_items set stock = stock - 1 where id = p_item_id;
   end if;
 
-  -- Add to inventory (upsert)
   insert into public.player_inventory (player_id, item_id, quantity)
   values (p_player_id, p_item_id, 1)
   on conflict (player_id, item_id) do update set
@@ -742,7 +716,7 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- Process attack result (called by game logic)
+-- Process attack result
 -- ---------------------------------------------------------------------------
 create or replace function public.process_attack(
   p_attack_id uuid,
@@ -759,7 +733,6 @@ declare
   v_defender_credits integer;
   v_actual_stolen integer;
 begin
-  -- Lock and fetch the attack
   select * into v_attack
   from public.attacks
   where id = p_attack_id
@@ -773,14 +746,12 @@ begin
     raise exception 'Attack already processed';
   end if;
 
-  -- Update attack status
   update public.attacks set
     status = case when p_success then 'success' else 'failed' end,
     credits_stolen = case when p_success then p_stolen else 0 end
   where id = p_attack_id;
 
   if p_success then
-    -- Transfer credits from defender to attacker
     select credits into v_defender_credits
     from public.profiles where id = v_attack.defender_id;
 
@@ -795,7 +766,6 @@ begin
       experience = experience + p_xp_gain
     where id = v_attack.attacker_id;
 
-    -- Damage the target node if specified
     if v_attack.target_node_id is not null then
       update public.network_nodes set
         health = greatest(health - v_attack.damage, 0),
@@ -803,10 +773,39 @@ begin
       where id = v_attack.target_node_id;
     end if;
   else
-    -- Give small XP even on failure
     update public.profiles set
       experience = experience + 10
     where id = v_attack.attacker_id;
   end if;
 end;
 $$;
+
+
+-- =============================================================================
+-- REALTIME SUBSCRIPTIONS
+-- =============================================================================
+
+do $$ begin
+  alter publication supabase_realtime add table public.profiles;
+exception when others then null;
+end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table public.attacks;
+exception when others then null;
+end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table public.chat_messages;
+exception when others then null;
+end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table public.network_nodes;
+exception when others then null;
+end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table public.clan_members;
+exception when others then null;
+end $$;

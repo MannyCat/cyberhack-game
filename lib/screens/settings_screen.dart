@@ -236,7 +236,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionHeader('О ПРИЛОЖЕНИИ'),
           _sectionCard([
             _infoRow('Игра', 'CyberHack'),
-            _infoRow('Версия', '1.2.0'),
+            _infoRow('Версия', '1.3.0'),
             _infoRow('Сборка', '2026.05.28'),
             const _Divider(),
             Padding(

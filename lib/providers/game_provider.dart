@@ -441,7 +441,7 @@ class GameProvider extends ChangeNotifier {
       var query = _supabase
           .from('market_items')
           .select()
-          .gt('stock', 0);
+          .or('stock.gt.0,stock.eq.-1');
 
       if (category != null) {
         query = query.eq('category', category);
