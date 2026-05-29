@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
+import '../providers/event_provider.dart';
 import '../config/game_config.dart';
 
 // ─── Главное меню — Хаб стратегии в стиле Vikings ─────────────────────────
@@ -23,6 +24,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       final auth = context.read<AuthProvider>();
       if (auth.userId != null) {
         context.read<GameProvider>().init(auth.userId!);
+        context.read<EventProvider>().init(auth.userId!);
       }
     });
   }
