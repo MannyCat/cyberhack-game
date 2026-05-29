@@ -87,26 +87,30 @@ class _ResourceBarState extends State<ResourceBar>
     if (oldWidget.credits != widget.credits ||
         oldWidget.cpu != widget.cpu ||
         oldWidget.bandwidth != widget.bandwidth) {
-      _creditsAnim = Tween<double>(
-        begin: _prevCredits.toDouble(),
-        end: widget.credits.toDouble(),
+      // Dispose old CurvedAnimations to prevent memory leaks
       _curvedCredits?.dispose();
       _curvedCpu?.dispose();
       _curvedBandwidth?.dispose();
+
+      // Create new CurvedAnimations
       _curvedCredits = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+      _curvedCpu = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+      _curvedBandwidth = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+
+      _creditsAnim = Tween<double>(
+        begin: _prevCredits.toDouble(),
+        end: widget.credits.toDouble(),
       ).animate(_curvedCredits!);
 
       _cpuAnim = Tween<double>(
         begin: _prevCpu.toDouble(),
         end: widget.cpu.toDouble(),
-      _curvedCpu = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
       ).animate(_curvedCpu!);
 
       _bandwidthAnim = Tween<double>(
         begin: _prevBandwidth.toDouble(),
         end: widget.bandwidth.toDouble(),
-      _curvedCpu = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
-      ).animate(_curvedCpu!);
+      ).animate(_curvedBandwidth!);
 
       _prevCredits = widget.credits;
       _prevCpu = widget.cpu;
