@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -213,6 +214,9 @@ class GameProvider extends ChangeNotifier {
   List<AttackRecord> _attackHistory = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  // Utilities
+  final _random = Random();
 
   // Passive income
   Timer? _passiveIncomeTimer;
@@ -691,8 +695,23 @@ Future<bool> deployNode({
     required String? targetNodeId,
     required String attackType,
     required int damage,
+    int creditCost = 0,
+    int cpuCost = 0,
   }) async {
     try {
+      // Deduct attacker resources
+      if (creditCost > 0 || cpuCost > 0) {
+        final updates = <String, int>{};
+        if (creditCost > 0) updates['credits'] = credits - creditCost;
+        if (cpuCost > 0) updates['cpu'] = cpu - cpuCost;
+        if (updates.isNotEmpty) {
+          await _supabase.from('profiles').update(updates).eq('id', attackerId);
+        }
+      }
+
+      // Calculate stolen credits (random factor for PvP excitement)
+      final stolenAmount = (damage * (0.05 + _random.nextDouble() * 0.15)).round();
+
       final response = await _supabase.from('attacks').insert({
         'attacker_id': attackerId,
         'defender_id': defenderId,
@@ -700,12 +719,13 @@ Future<bool> deployNode({
         'attack_type': attackType,
         'damage': damage,
         'status': 'success',
-        'credits_stolen': (damage * 0.1).round(),
+        'credits_stolen': stolenAmount,
       }).select();
 
       if (response.isNotEmpty) {
         _attackHistory.insert(0, AttackRecord.fromJson(response.first));
         _updateMissionProgress();
+        await _loadResources(attackerId);
         notifyListeners();
       }
       return true;
