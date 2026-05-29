@@ -653,7 +653,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         try {
                           await Supabase.instance.client.auth.admin
                               .deleteUser(Supabase.instance.client.auth.currentUser!.id);
-                          await auth.signOut();
+                          await auth.logout();
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
