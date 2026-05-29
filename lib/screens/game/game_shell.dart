@@ -27,6 +27,7 @@ class _GameShellState extends State<GameShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchTotalPlayers();
     });
   }
 
