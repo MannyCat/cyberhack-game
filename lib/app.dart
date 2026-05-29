@@ -48,7 +48,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
     _eventProvider = EventProvider();
     _notificationProvider = NotificationProvider();
     _router = GoRouter(
-      initialLocation: '/login',
+      initialLocation: '/game/map',
       refreshListenable: _authProvider,
       redirect: (context, state) {
         final isLoggedIn = _authProvider.isAuthenticated;
@@ -57,7 +57,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
         final isLoading = _authProvider.authState == AuthState.loading;
         if (isLoading) return null;
         if (!isLoggedIn && !isAuthRoute) return '/login';
-        if (isLoggedIn && isAuthRoute) return '/game/home';
+        if (isLoggedIn && isAuthRoute) return '/game/map';
         return null;
       },
       routes: [
