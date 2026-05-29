@@ -8,6 +8,11 @@ on:
       - 'docs/**'
       - '.gitignore'
   workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Build with debug info'
+        required: false
+        default: 'false'
 
 jobs:
   build:
@@ -30,7 +35,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.27.4'
+          flutter-version: '3.29.3'
           cache: true
 
       - name: Get dependencies
@@ -67,8 +72,6 @@ jobs:
         run: |
           echo "=== All files in build/app/outputs ==="
           find build/app/outputs -type f 2>/dev/null || echo "(empty)"
-          echo "=== All APK files ==="
-          find . -name '*.apk' -type f 2>/dev/null
           APK_PATH=$(find build/app/outputs -name '*.apk' -type f 2>/dev/null | head -1)
           echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
 
@@ -83,20 +86,21 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          tag_name: v1.2.${{ github.run_number }}
-          name: CyberHack v1.2.${{ github.run_number }}
+          tag_name: v2.5.${{ github.run_number }}
+          name: CyberHack v2.5.${{ github.run_number }}
           body: |
             ## CyberHack — Многопользовательская онлайн-стратегия о хакерстве
-
-            ### Что нового (v1.2.0):
-            - Исправлен краш таблицы лидеров (добавлены столбцы total_damage, clan_score)
-            - Исправлено обновление узлов сети (теперь обновляет список узлов)
-            - Исправлен фильтр глобального чата (клиентская фильтрация вместо строкового 'null')
-            - Добавлены типы узлов 'scanner' и 'terminal' в схему БД
-            - Исправлена стоимость сканера (теперь привязан к proxy_node, а не database)
-            - Миграция для существующих баз данных (migration_002)
-
-            Автоматическая сборка из коммита `${{ github.sha }}`
+            
+            ### Что нового (v2.5.0):
+            - Система недельных событий (Турнир хакеров, Чёрная пятница, Клановый рейд, Охота на баги)
+            - Ежедневные награды со стриком 1-7 дней
+            - 10 достижений для отслеживания прогресса
+            - Анти-спам защита в глобальном чате
+            - Управление узлами сети (scanner, terminal, database, proxy)
+            - Улучшенная PvP-механика атак
+            - Исправлено ~17 багов
+            
+            Автоматическая сборка из коммита ${{ github.sha }}
           files: build/app/outputs/flutter-apk/app-release.apk
           draft: false
           prerelease: false
