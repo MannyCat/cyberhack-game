@@ -1423,6 +1423,69 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
     }
   }
 
+
+  Future<void> _destroyNode(
+    NetworkNode node,
+    GameProvider game,
+    AuthProvider auth,
+  ) async {
+    if (auth.userId == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF111827),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFFF0040), width: 1.5),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_forever, color: Color(0xFFFF0040)),
+            SizedBox(width: 10),
+            Text('Удалить узел?', style: TextStyle(color: Color(0xFFFF0040))),
+          ],
+        ),
+        content: Text(
+          'Узел ${_nodeTypeLabel(node.nodeType)} УР ${node.nodeLevel} будет безвозвратно удалён. Вы получите 50% стоимости постройки.',
+          style: const TextStyle(color: Color(0xFF7b8ca8)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('ОТМЕНА'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF0040)),
+            child: const Text('УДАЛИТЬ'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final success = await game.destroyNode(
+      nodeId: node.id,
+      userId: auth.userId!,
+    );
+
+    if (!mounted) return;
+    if (success) {
+      _showSnackBar('Узел удалён', _Theme.warningRed);
+      // Refund 50% of build cost
+      final stats = _statsFor(node.nodeType);
+      if (stats != null) {
+        final refund = (stats.buildCostCredits * 0.5).round();
+        await game.refreshResources(auth.userId!);
+      }
+    } else {
+      _showSnackBar(game.errorMessage ?? 'Не удалось удалить', _Theme.warningRed);
+    }
+  }
+
+
   Future<void> _deployNode(
     String nodeType,
     GameProvider game,
