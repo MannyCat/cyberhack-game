@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/event_provider.dart';
 import '../../widgets/resource_bar.dart';
 
 // ─── Game Shell — Оболочка с навигацией, ресурсами и уведомлениями ──────────
@@ -77,7 +78,6 @@ class _GameShellState extends State<GameShell> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle
               Center(
                 child: Container(
                   width: 40,
@@ -90,7 +90,6 @@ class _GameShellState extends State<GameShell> {
               ),
               const SizedBox(height: 16),
 
-              // Incoming attacks notification
               if (incomingAttacks.isNotEmpty) ...[
                 Container(
                   width: double.infinity,
@@ -122,7 +121,19 @@ class _GameShellState extends State<GameShell> {
                 ),
               ],
 
-              // Options
+              _moreTile(Icons.event, 'События', 'Недельные эвенты', const Color(0xFF00e5ff), () {
+                Navigator.pop(context);
+                context.go('/game/events');
+              }),
+              _moreTile(Icons.card_giftcard, 'Награды', 'Ежедневный бонус', const Color(0xFFFFD700), () {
+                Navigator.pop(context);
+                context.go('/game/daily-reward');
+              }),
+              _moreTile(Icons.emoji_events, 'Достижения', 'Трофеи и награды', const Color(0xFFa855f7), () {
+                Navigator.pop(context);
+                context.go('/game/achievements');
+              }),
+              const Divider(height: 24, color: Color(0xFF1e293b)),
               _moreTile(Icons.chat_bubble, 'Чат', 'Общение с игроками', primary, () {
                 Navigator.pop(context);
                 context.go('/game/chat');
@@ -143,6 +154,7 @@ class _GameShellState extends State<GameShell> {
                 Navigator.pop(context);
                 context.go('/game/map');
               }),
+              const Divider(height: 24, color: Color(0xFF1e293b)),
               _moreTile(Icons.person, 'Профиль', 'Статистика и настройки', const Color(0xFF78909c), () {
                 Navigator.pop(context);
                 context.go('/profile');
@@ -195,14 +207,26 @@ class _GameShellState extends State<GameShell> {
     );
   }
 
+  int get _incomingAttackCount {
+    try {
+      final auth = context.read<AuthProvider>();
+      final game = context.read<GameProvider>();
+      return game.attackHistory
+          .where((a) => a.defenderId == auth.userId && a.status == 'pending')
+          .length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final badgeCount = _incomingAttackCount;
 
     return Scaffold(
       body: Column(
         children: [
-          // ── Resource Bar вверху ──
           Builder(builder: (context) {
             final game = context.watch<GameProvider>();
             return ResourceBar(
@@ -213,7 +237,6 @@ class _GameShellState extends State<GameShell> {
               height: 44,
             );
           }),
-          // ── Контент ──
           Expanded(child: widget.child),
         ],
       ),
@@ -233,6 +256,7 @@ class _GameShellState extends State<GameShell> {
             children: List.generate(_tabs.length, (index) {
               final tab = _tabs[index];
               final isSelected = index == _currentIndex && index != 4;
+              final showBadge = index == 2 && badgeCount > 0;
 
               return Expanded(
                 child: GestureDetector(
@@ -251,7 +275,7 @@ class _GameShellState extends State<GameShell> {
                               size: 22,
                               color: isSelected ? primary : const Color(0xFF3a4060),
                             ),
-                            if (attackBadge > 0)
+                            if (showBadge)
                               Positioned(
                                 right: -8,
                                 top: -6,
@@ -265,7 +289,7 @@ class _GameShellState extends State<GameShell> {
                                   ),
                                   alignment: Alignment.center,
                                   child: Text(
-                                    '$attackBadge',
+                                    '$badgeCount',
                                     style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                                   ),
                                 ),
@@ -277,9 +301,7 @@ class _GameShellState extends State<GameShell> {
                           tab.label,
                           style: TextStyle(
                             fontSize: 10,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.w500,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                             color: isSelected ? primary : const Color(0xFF3a4060),
                           ),
                         ),
