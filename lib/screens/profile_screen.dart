@@ -71,7 +71,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final game = context.watch<GameProvider>();
-    final theme = Theme.of(context);
 
     final username = (widget.profile?.handle.isNotEmpty == true
         ? widget.profile!.handle
