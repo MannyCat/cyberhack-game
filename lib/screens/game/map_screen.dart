@@ -319,7 +319,7 @@ class _ActionPanel extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 node.city,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Color(0xFF4a5568),
                   fontSize: 11,
                   fontFamily: 'monospace',
@@ -369,7 +369,7 @@ class _ActionPanel extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFF4a5568), fontSize: 10, letterSpacing: 1.5, fontFamily: 'monospace')),
+        Text(label, style: TextStyle(color: Color(0xFF4a5568), fontSize: 10, letterSpacing: 1.5, fontFamily: 'monospace')),
         Text(value, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1, fontFamily: 'monospace')),
       ],
     );
@@ -466,7 +466,7 @@ class _PlayerCard extends StatelessWidget {
             child: Center(
               child: Text(
                 '$level',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Color(0xFF00ff41),
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -488,7 +488,7 @@ class _PlayerCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     '$credits ¢',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFFffcc00),
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -501,7 +501,7 @@ class _PlayerCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     '$nodesCount узл.',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Color(0xFF00e5ff),
                       fontSize: 12,
                       fontFamily: 'monospace',
@@ -517,8 +517,8 @@ class _PlayerCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     '+$passiveIncome ¢/30с',
-                    style: const TextStyle(
-                      color: Color(0xFF00ff41).withValues(alpha: 0.7),
+                    style: TextStyle(
+                      color: const Color(0xFF00ff41).withValues(alpha: 0.7),
                       fontSize: 10,
                       fontFamily: 'monospace',
                     ),
@@ -647,7 +647,7 @@ class _MissionCard extends StatelessWidget {
           // Description
           Text(
             mission.description,
-            style: const TextStyle(
+            style: TextStyle(
               color: Color(0xFF6a7080),
               fontSize: 9,
               fontFamily: 'monospace',
@@ -692,7 +692,7 @@ class _MissionCard extends StatelessWidget {
               const SizedBox(width: 3),
               Text(
                 '+${mission.rewardCredits}',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Color(0xFFffcc00),
                   fontSize: 10,
                   fontFamily: 'monospace',
@@ -704,7 +704,7 @@ class _MissionCard extends StatelessWidget {
               const SizedBox(width: 3),
               Text(
                 '+${mission.rewardXp}',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Color(0xFFa855f7),
                   fontSize: 10,
                   fontFamily: 'monospace',
@@ -975,7 +975,7 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
                           borderRadius: BorderRadius.circular(3),
                           border: Border.all(color: const Color(0xFF00ff41).withValues(alpha: 0.25)),
                         ),
-                        child: Text('${_nodes.length} УЗЛОВ', style: const TextStyle(color: Color(0xFF00ff41), fontSize: 9, letterSpacing: 1, fontFamily: 'monospace')),
+                        child: Text('${_nodes.length} УЗЛОВ', style: TextStyle(color: Color(0xFF00ff41), fontSize: 9, letterSpacing: 1, fontFamily: 'monospace')),
                       ),
                       const Spacer(),
                       GestureDetector(
@@ -1156,7 +1156,7 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
                               SnackBar(
                                 content: Text(
                                   'Награда получена: +${mission.rewardCredits} ¢, +${mission.rewardXp} XP',
-                                  style: const TextStyle(fontFamily: 'monospace', color: Color(0xFF00ff41)),
+                                  style: TextStyle(fontFamily: 'monospace', color: Color(0xFF00ff41)),
                                 ),
                                 backgroundColor: const Color(0xFF1a1f2e),
                                 behavior: SnackBarBehavior.floating,
@@ -1237,7 +1237,7 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('$label ', style: const TextStyle(color: Color(0xFF4a5568), fontSize: 9, letterSpacing: 1, fontFamily: 'monospace')),
+          Text('$label ', style: TextStyle(color: Color(0xFF4a5568), fontSize: 9, letterSpacing: 1, fontFamily: 'monospace')),
           Text(value, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1, fontFamily: 'monospace')),
         ],
       ),
@@ -1258,7 +1258,7 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
           ),
         ),
         const SizedBox(width: 6),
-        Text(text, style: const TextStyle(color: Color(0xFF6a7080), fontSize: 8, fontFamily: 'monospace')),
+        Text(text, style: TextStyle(color: Color(0xFF6a7080), fontSize: 8, fontFamily: 'monospace')),
       ],
     );
   }
