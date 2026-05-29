@@ -337,20 +337,27 @@ class AuthProvider extends ChangeNotifier {
 
   String _mapAuthError(String message) {
     final lower = message.toLowerCase();
-    if (lower.contains('invalid login') || lower.contains('invalid credentials'))
+    if (lower.contains('invalid login') || lower.contains('invalid credentials')) {
       return 'Неверный email или пароль';
-    if (lower.contains('email not confirmed'))
+    }
+    if (lower.contains('email not confirmed')) {
       return 'Подтвердите ваш адрес электронной почты';
-    if (lower.contains('user already registered') || lower.contains('already been registered'))
+    }
+    if (lower.contains('user already registered') || lower.contains('already been registered')) {
       return 'Аккаунт с такой почтой уже существует';
-    if (lower.contains('password'))
+    }
+    if (lower.contains('password')) {
       return 'Пароль должен быть не менее 6 символов';
-    if (lower.contains('network') || lower.contains('fetch'))
+    }
+    if (lower.contains('network') || lower.contains('fetch')) {
       return 'Ошибка сети. Проверьте подключение к интернету';
-    if (lower.contains('rate limit'))
+    }
+    if (lower.contains('rate limit')) {
       return 'Слишком много попыток. Подождите немного';
-    if (lower.contains('to redirect'))
+    }
+    if (lower.contains('to redirect')) {
       return 'Неверный URL перенаправления в настройках Supabase';
+    }
     return message;
   }
 
