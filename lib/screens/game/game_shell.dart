@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/event_provider.dart';
 import '../../widgets/resource_bar.dart';
 
 // ─── Game Shell — Оболочка с навигацией, ресурсами и уведомлениями ──────────
@@ -19,14 +18,12 @@ class GameShell extends StatefulWidget {
 
 class _GameShellState extends State<GameShell> {
   int _currentIndex = 0;
-  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
-      _currentUserId = auth.userId;
     });
   }
 
