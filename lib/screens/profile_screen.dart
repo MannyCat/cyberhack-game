@@ -288,6 +288,20 @@ class _ProfileScreenState extends State<ProfileScreen>
     final nodes = game.networkNodes.length;
     final onlineNodes = game.networkNodes.where((n) => n.isOnline).length;
 
+    // Combat stats from attack history
+    final totalAttacks = game.attackHistory.where((a) => a.attackerId == auth.userId).length;
+    final successfulAttacks = game.attackHistory.where((a) => a.attackerId == auth.userId && a.status == 'success').length;
+    final creditsEarned = game.attackHistory
+        .where((a) => a.attackerId == auth.userId && a.status == 'success')
+        .fold<int>(0, (sum, a) => sum + a.creditsStolen);
+
+    // Account age
+    final createdAt = auth.profile?.createdAt;
+    final accountAge = createdAt != null ? DateTime.now().difference(createdAt).inDays : 0;
+
+    // Clan info
+    final clanId = auth.profile?.clanId;
+
     final stats = [
       _StatItem(label: 'Кредиты', value: _formatNum(credits), icon: Icons.monetization_on, color: const Color(0xFFFFD700)),
       _StatItem(label: 'ЦПУ', value: '$cpu THz', icon: Icons.memory, color: const Color(0xFF00E5FF)),
@@ -295,6 +309,17 @@ class _ProfileScreenState extends State<ProfileScreen>
       _StatItem(label: 'Узлы онлайн', value: '$onlineNodes/$nodes', icon: Icons.dns, color: const Color(0xFF00FF41)),
       _StatItem(label: 'Уровень', value: '${game.level}', icon: Icons.trending_up, color: const Color(0xFF00E5FF)),
       _StatItem(label: 'Опыт', value: _formatNum(game.xp), icon: Icons.star, color: const Color(0xFFFFD700)),
+    ];
+
+    final combatStats = [
+      _StatItem(label: 'Всего атак', value: '$totalAttacks', icon: Icons.gps_fixed, color: const Color(0xFFFF1744)),
+      _StatItem(label: 'Успешных', value: '$successfulAttacks', icon: Icons.check_circle_outline, color: const Color(0xFF39FF14)),
+      _StatItem(label: 'Заработано', value: _formatNum(creditsEarned), icon: Icons.monetization_on, color: const Color(0xFFFFD700)),
+      _StatItem(label: 'Дней в игре', value: '$accountAge', icon: Icons.schedule, color: const Color(0xFF00E5FF)),
+      if (clanId != null)
+        _StatItem(label: 'Банда', value: 'В клане', icon: Icons.groups, color: const Color(0xFFa855f7))
+      else
+        _StatItem(label: 'Банда', value: 'Нет', icon: Icons.groups_outlined, color: const Color(0xFF4a5568)),
     ];
 
     return Column(
@@ -313,6 +338,21 @@ class _ProfileScreenState extends State<ProfileScreen>
           crossAxisSpacing: 8,
           childAspectRatio: 1.8,
           children: stats.map((s) => _buildStatCard(s)).toList(),
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          'БОЕВАЯ СТАТИСТИКА',
+          style: TextStyle(color: Color(0xFFFF1744), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 2),
+        ),
+        const SizedBox(height: 8),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 1.8,
+          children: combatStats.map((s) => _buildStatCard(s)).toList(),
         ),
       ],
     );

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../widgets/resource_bar.dart';
 
 // ─── Game Shell — Оболочка с навигацией, ресурсами и уведомлениями ──────────
@@ -18,13 +20,33 @@ class GameShell extends StatefulWidget {
 
 class _GameShellState extends State<GameShell> {
   int _currentIndex = 0;
+  int _totalPlayers = 0;
+  bool _fetchedPlayers = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
+      _fetchTotalPlayers();
     });
+  }
+
+  Future<void> _fetchTotalPlayers() async {
+    try {
+      final result = await Supabase.instance.client
+          .from('profiles')
+          .select('id', count: 'exact')
+          .limit(1);
+      if (mounted) {
+        setState(() {
+          _totalPlayers = result.count;
+          _fetchedPlayers = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _fetchedPlayers = true);
+    }
   }
 
   final _tabs = const [
@@ -151,6 +173,10 @@ class _GameShellState extends State<GameShell> {
                 Navigator.pop(context);
                 context.go('/game/map');
               }),
+              _moreTile(Icons.notifications, 'Уведомления', 'Атаки, события, банда', const Color(0xFFFF00E5), () {
+                Navigator.pop(context);
+                context.go('/game/notifications');
+              }),
               const Divider(height: 24, color: Color(0xFF1e293b)),
               _moreTile(Icons.person, 'Профиль', 'Статистика и настройки', const Color(0xFF78909c), () {
                 Navigator.pop(context);
@@ -224,14 +250,109 @@ class _GameShellState extends State<GameShell> {
     return Scaffold(
       body: Column(
         children: [
+          // ── Resource bar with notification bell and online counter ──
           Builder(builder: (context) {
             final game = context.watch<GameProvider>();
-            return ResourceBar(
-              credits: game.credits,
-              cpu: game.cpu,
-              bandwidth: game.bandwidth,
-              mode: ResourceBarMode.compact,
-              height: 44,
+            final notificationProvider = context.watch<NotificationProvider>();
+            return Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: primary.withValues(alpha: 0.08),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  // Resource bar takes remaining space
+                  Expanded(
+                    child: ResourceBar(
+                      credits: game.credits,
+                      cpu: game.cpu,
+                      bandwidth: game.bandwidth,
+                      mode: ResourceBarMode.compact,
+                      height: 44,
+                    ),
+                  ),
+                  // Online players counter
+                  if (_fetchedPlayers && _totalPlayers > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF39FF14),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF39FF14).withValues(alpha: 0.5),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$_totalPlayers',
+                            style: const TextStyle(
+                              color: Color(0xFF39FF14),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  // Notification bell
+                  GestureDetector(
+                    onTap: () => context.go('/game/notifications'),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(Icons.notifications_outlined, color: Color(0xFF00F0FF), size: 20),
+                          if (notificationProvider.hasUnread)
+                            Positioned(
+                              right: 6,
+                              top: 6,
+                              child: Container(
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFF1744),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFF0d1220), width: 2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFFF1744).withValues(alpha: 0.5),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  notificationProvider.unreadCount > 9
+                                      ? '9+'
+                                      : '${notificationProvider.unreadCount}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             );
           }),
           Expanded(child: widget.child),
