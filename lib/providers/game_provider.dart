@@ -936,6 +936,8 @@ Future<bool> deployNode({
         'clan_id': clanId,
       }).eq('id', playerId);
 
+      await _loadResources(playerId);
+      notifyListeners();
       return true;
     } catch (e) {
       debugPrint('Error joining clan: $e');
