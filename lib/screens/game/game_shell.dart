@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/resource_bar.dart';
 
-// ─── Game Shell — Оболочка с навигацией и ресурсами ─────────────────────────
+// ─── Game Shell — Оболочка с навигацией, ресурсами и уведомлениями ──────────
 
 class GameShell extends StatefulWidget {
   final Widget child;
@@ -38,7 +39,6 @@ class _GameShellState extends State<GameShell> {
 
   void _onTap(int index) {
     if (index == 4) {
-      // "Ещё" — показываем bottom sheet
       _showMoreSheet();
       return;
     }
@@ -48,6 +48,13 @@ class _GameShellState extends State<GameShell> {
 
   void _showMoreSheet() {
     final primary = Theme.of(context).colorScheme.primary;
+    final game = context.read<GameProvider>();
+    final auth = context.read<AuthProvider>();
+    final incomingAttacks = game.attackHistory
+        .where((a) => a.defenderId == auth.userId)
+        .take(3)
+        .toList();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF111827),
@@ -60,7 +67,7 @@ class _GameShellState extends State<GameShell> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Ручка
+              // Handle
               Center(
                 child: Container(
                   width: 40,
@@ -71,8 +78,41 @@ class _GameShellState extends State<GameShell> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              // Опции
+              const SizedBox(height: 16),
+
+              // Incoming attacks notification
+              if (incomingAttacks.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF0040).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFFF0040).withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning, color: Color(0xFFFF0040), size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Входящих атак: ${incomingAttacks.length}',
+                          style: const TextStyle(
+                            color: Color(0xFFFF0040),
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              // Options
               _moreTile(Icons.chat_bubble, 'Чат', 'Общение с игроками', primary, () {
                 Navigator.pop(context);
                 context.go('/game/chat');
@@ -88,6 +128,10 @@ class _GameShellState extends State<GameShell> {
               _moreTile(Icons.military_tech, 'Миссии', 'PvE кампания', const Color(0xFFFFD700), () {
                 Navigator.pop(context);
                 context.go('/game/campaign');
+              }),
+              _moreTile(Icons.public, 'Карта мира', 'Глобальная сеть', const Color(0xFF00e5ff), () {
+                Navigator.pop(context);
+                context.go('/game/map');
               }),
               _moreTile(Icons.person, 'Профиль', 'Статистика и настройки', const Color(0xFF78909c), () {
                 Navigator.pop(context);
@@ -110,27 +154,27 @@ class _GameShellState extends State<GameShell> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: color.withValues(alpha: 0.2)),
               ),
-              child: Icon(icon, color: color, size: 22),
+              child: Icon(icon, color: color, size: 20),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                  Text(title, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(color: Color(0xFF4a5568), fontSize: 12)),
+                  Text(subtitle, style: const TextStyle(color: Color(0xFF4a5568), fontSize: 11)),
                 ],
               ),
             ),
@@ -191,14 +235,14 @@ class _GameShellState extends State<GameShell> {
                       children: [
                         Icon(
                           tab.icon,
-                          size: 24,
+                          size: 22,
                           color: isSelected ? primary : const Color(0xFF3a4060),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 3),
                         Text(
                           tab.label,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: isSelected
                                 ? FontWeight.bold
                                 : FontWeight.w500,
