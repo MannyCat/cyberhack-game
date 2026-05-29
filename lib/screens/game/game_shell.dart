@@ -19,7 +19,7 @@ class _GameShellState extends State<GameShell> {
   int _currentIndex = 0;
 
   final _tabs = const [
-    _Tab(icon: Icons.public, label: 'Карта', path: '/game/map'),
+    _Tab(icon: Icons.home, label: 'Главная', path: '/game/home'),
     _Tab(icon: Icons.dns, label: 'База', path: '/game/network'),
     _Tab(icon: Icons.gps_fixed, label: 'Атака', path: '/game/attack'),
     _Tab(icon: Icons.storefront, label: 'Магазин', path: '/game/market'),
