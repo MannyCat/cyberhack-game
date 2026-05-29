@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/event_provider.dart';
@@ -220,7 +219,6 @@ class _EventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _eventColor;
     final isParticipating = participation != null;
-    final theme = Theme.of(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
