@@ -111,16 +111,22 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
               const SizedBox(height: 12),
 
+              // ── Daily Reward Banner ────────────────────────────────
+              _DailyRewardBanner(),
+
+              // ── Active Events Banner ────────────────────────────────
+              _ActiveEventsBanner(),
+
               // ── Второстепенные действия ─────────────────────────────
               _sectionTitle('ЗАДАЧИ'),
               const SizedBox(height: 8),
               _ActionGrid(children: [
                 _ActionCard(
-                  icon: Icons.storefront,
-                  label: 'Чёрный рынок',
-                  subtitle: 'Снаряжение и софт',
-                  color: const Color(0xFFff9800),
-                  onTap: () => context.go('/game/market'),
+                  icon: Icons.card_giftcard,
+                  label: 'Ежедневная награда',
+                  subtitle: 'Стрик-бонусы',
+                  color: const Color(0xFFFFD700),
+                  onTap: () => context.go('/game/daily_reward'),
                 ),
                 _ActionCard(
                   icon: Icons.military_tech,
@@ -152,11 +158,24 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               const SizedBox(height: 8),
               _ActionGrid(children: [
                 _ActionCard(
+                  icon: Icons.event,
+                  label: 'События недели',
+                  subtitle: 'Турниры и рейды',
+                  color: const Color(0xFF00e5ff),
+                  onTap: () => context.go('/game/events'),
+                ),
+                _ActionCard(
+                  icon: Icons.emoji_events,
+                  label: 'Достижения',
+                  subtitle: 'Награды за прогресс',
+                  color: const Color(0xFFa855f7),
+                  onTap: () => context.go('/game/achievements'),
+                ),
+                _ActionCard(
                   icon: Icons.chat_bubble,
                   label: 'Связь',
                   subtitle: 'Общий и клановый чат',
                   color: const Color(0xFF00e5ff),
-                  badge: null,
                   onTap: () => context.go('/game/chat'),
                 ),
                 _ActionCard(
@@ -164,23 +183,37 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   label: 'Банда',
                   subtitle: 'Создай или вступи',
                   color: const Color(0xFFa855f7),
-                  badge: null,
                   onTap: () => context.go('/game/clan'),
                 ),
+              ]),
+              const SizedBox(height: 8),
+              _ActionGrid(children: [
                 _ActionCard(
                   icon: Icons.leaderboard,
                   label: 'Рейтинг',
                   subtitle: 'Лучшие хакеры мира',
                   color: const Color(0xFFe91e63),
-                  badge: null,
                   onTap: () => context.go('/game/leaderboard'),
+                ),
+                _ActionCard(
+                  icon: Icons.storefront,
+                  label: 'Чёрный рынок',
+                  subtitle: 'Снаряжение и софт',
+                  color: const Color(0xFFff9800),
+                  onTap: () => context.go('/game/market'),
+                ),
+                _ActionCard(
+                  icon: Icons.shield,
+                  label: 'Оборона',
+                  subtitle: 'Защита базы',
+                  color: const Color(0xFFFF0040),
+                  onTap: () => context.go('/game/network'),
                 ),
                 _ActionCard(
                   icon: Icons.settings,
                   label: 'Настройки',
                   subtitle: 'Аккаунт и оформление',
                   color: const Color(0xFF4a5568),
-                  badge: null,
                   onTap: () => context.go('/settings'),
                 ),
               ]),
@@ -788,6 +821,156 @@ class _ActionCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+
+// ─── Daily Reward Banner ──────────────────────────────────────────────────────
+
+class _DailyRewardBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.go('/game/daily_reward'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFFFFD700).withValues(alpha: 0.12),
+              const Color(0xFFff9800).withValues(alpha: 0.04),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFD700).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
+              ),
+              child: const Center(
+                child: Text('🎁', style: TextStyle(fontSize: 24)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'ЕЖЕДНЕВНАЯ НАГРАДА',
+                    style: TextStyle(
+                      color: Color(0xFFFFD700),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    'Забирайте награду каждый день — стрик растёт!',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFFFFD700).withValues(alpha: 0.5)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Active Events Banner ────────────────────────────────────────────────────
+
+class _ActiveEventsBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final eventProvider = context.watch<EventProvider>();
+    final eventCount = eventProvider.activeEvents.length;
+
+    if (eventCount == 0) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () => context.go('/game/events'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF00e5ff).withValues(alpha: 0.12),
+              const Color(0xFFa855f7).withValues(alpha: 0.04),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF00e5ff).withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF00e5ff).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF00e5ff).withValues(alpha: 0.3)),
+              ),
+              child: const Center(
+                child: Icon(Icons.event, color: Color(0xFF00e5ff), size: 22),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'СОБЫТИЯ НЕДЕЛИ',
+                        style: TextStyle(
+                          color: Color(0xFF00e5ff),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF0040).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '$eventCount активно',
+                          style: const TextStyle(color: Color(0xFFFF0040), fontSize: 9, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    eventCount == 1
+                        ? 'Текущее событие: ${eventProvider.activeEvents.first.typeLabel}'
+                        : '$eventCount события ждут вашего участия',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFF00e5ff).withValues(alpha: 0.5)),
+          ],
         ),
       ),
     );
