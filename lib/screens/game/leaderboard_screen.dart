@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
@@ -14,18 +15,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
 
-  // Sort column maps to each tab
+  // Player sort columns for each tab
   final Map<int, String> _sortColumns = {
-    0: 'successful_attacks',   // Top Hackers
-    1: 'clan_score',           // Top Crews
-    2: 'credits_earned',       // Richest
-    3: 'total_damage',         // Most Destructive
+    0: 'successful_attacks',   // Лучшие хакеры
+    1: 'credits_earned',       // Богачейшие
+    2: 'total_damage',         // Разрушительные
   };
 
   String _currentSortColumn = 'successful_attacks';
   int _myRank = -1;
 
   Future<List<Map<String, dynamic>>>? _leaderboardFuture;
+  Future<List<Map<String, dynamic>>>? _clanLeaderboardFuture;
   String? _lastSortColumn;
 
   void _refreshLeaderboard() {
@@ -38,6 +39,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         offset: 0,
         sortColumn: _currentSortColumn,
       );
+      _clanLeaderboardFuture = game.getClanLeaderboard(limit: 50);
     });
   }
 
@@ -58,8 +60,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
-    _currentSortColumn = _sortColumns[_tabController.index] ?? 'successful_attacks';
-    _refreshLeaderboard();
+    if (_tabController.index == 3) {
+      // Clan tab — refresh clan leaderboard
+      setState(() {
+        _clanLeaderboardFuture = context.read<GameProvider>().getClanLeaderboard(limit: 50);
+      });
+    } else {
+      // Player tab
+      _currentSortColumn = _sortColumns[_tabController.index] ?? 'successful_attacks';
+      _refreshLeaderboard();
+    }
   }
 
   @override
@@ -74,10 +84,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           controller: _tabController,
           isScrollable: true,
           tabs: const [
-            Tab(text: 'ЛУЧШИЕ ХАКЕРЫ'),
-            Tab(text: 'ЛУЧШИЕ БАНДЫ'),
-            Tab(text: 'БОГАЧЕЙШИЕ'),
-            Tab(text: 'НАИБОЛЕЕ РАЗРУШИТЕЛЬНЫЕ'),
+            Tab(text: 'ХАКЕРЫ'),
+            Tab(text: 'БОГАТЫЕ'),
+            Tab(text: 'РАЗРУШИТЕЛИ'),
+            Tab(text: 'БАНДЫ'),
           ],
           labelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
@@ -92,100 +102,87 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           indicatorSize: TabBarIndicatorSize.tab,
           padding: const EdgeInsets.symmetric(horizontal: 8),
         ),
-      ),
-      body: Column(
-        children: [
-          // ── Leaderboard List ──
-          Expanded(
-            child: FutureBuilder(
-              future: _leaderboardFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.error_outline,
-                            size: 48, color: theme.colorScheme.error),
-                        const SizedBox(height: 12),
-                        Text('Не удалось загрузить рейтинг',
-                            style: theme.textTheme.bodyMedium),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _refreshLeaderboard,
-                          child: const Text('ПОВТОРИТЬ'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                final entries = snapshot.data ?? <Map<String, dynamic>>[];
-
-                if (entries.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.leaderboard,
-                            size: 64,
-                            color: theme.colorScheme.outline.withValues(alpha: 0.4)),
-                        const SizedBox(height: 16),
-                        Text('Данных рейтинга пока нет',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                                color: theme.colorScheme.outline)),
-                        const SizedBox(height: 8),
-                        Text('Начните взлом, чтобы занять своё место!',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.outline.withValues(alpha: 0.7))),
-                      ],
-                    ),
-                  );
-                }
-
-                // Find current user's rank
-                _myRank = entries.indexWhere(
-                    (e) => e['player_id'] == auth.userId);
-
-                return _buildLeaderboardList(entries, auth.userId, theme);
-              },
-            ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, size: 20),
+            tooltip: 'Обновить',
+            onPressed: _refreshLeaderboard,
           ),
-
-          // ── Your Rank Sticky Footer ──
-          if (_myRank >= 0 && _myRank < 50) _buildYourRankFooter(auth, theme),
+        ],
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildPlayerTab(0, auth, theme),
+          _buildPlayerTab(1, auth, theme),
+          _buildPlayerTab(2, auth, theme),
+          _buildClanTab(theme),
         ],
       ),
     );
   }
 
-  Widget _buildLeaderboardList(
+  // ═══════════════════════════════════════════════════════════
+  // Player Tab
+  // ═══════════════════════════════════════════════════════════
+
+  Widget _buildPlayerTab(int tabIndex, AuthProvider auth, ThemeData theme) {
+    // Only rebuild FutureBuilder if the tab matches current index
+    if (_tabController.index != tabIndex && _leaderboardFuture != null) {
+      return const SizedBox.shrink();
+    }
+
+    return FutureBuilder(
+      future: _leaderboardFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return _buildErrorState(theme, 'Не удалось загрузить рейтинг', _refreshLeaderboard);
+        }
+
+        final entries = snapshot.data ?? <Map<String, dynamic>>[];
+
+        if (entries.isEmpty) {
+          return _buildEmptyState(theme, Icons.leaderboard, 'Данных пока нет', 'Начните игру, чтобы занять место!');
+        }
+
+        _myRank = entries.indexWhere((e) => e['player_id'] == auth.userId);
+
+        return Column(
+          children: [
+            Expanded(
+              child: _buildPlayerList(entries, auth.userId, theme),
+            ),
+            if (_myRank >= 0 && _myRank < 50)
+              _buildYourRankFooter(auth, theme),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPlayerList(
     List<Map<String, dynamic>> entries,
     String? userId,
     ThemeData theme,
   ) {
-    // Top 3 podium at top, rest as normal list
     final topThree = entries.take(3).toList();
     final rest = entries.skip(3).toList();
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       children: [
-        // ── Top 3 Podium ──
         if (topThree.length >= 3) _buildPodium(topThree, userId, theme),
         if (topThree.length >= 3) const SizedBox(height: 16),
-
-        // ── Rest of the list ──
         ...rest.asMap().entries.map((entry) {
-          final index = entry.key + 3; // Offset for top 3
+          final index = entry.key + 3;
           final data = entry.value;
           return _buildAnimatedEntry(data, index, userId, theme);
         }),
-        const SizedBox(height: 80), // Space for sticky footer
+        const SizedBox(height: 80),
       ],
     );
   }
@@ -195,7 +192,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     String? userId,
     ThemeData theme,
   ) {
-    // Order: [1st center, 2nd left, 3rd right]
     final second = topThree[1];
     final first = topThree[0];
     final third = topThree[2];
@@ -294,7 +290,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Rank badge
           Container(
             width: 32,
             height: 32,
@@ -315,7 +310,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             ),
           ),
           const SizedBox(height: 6),
-          // Avatar
           CircleAvatar(
             radius: rank == 1 ? 22 : 18,
             backgroundColor: color.withValues(alpha: 0.3),
@@ -329,7 +323,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             ),
           ),
           const SizedBox(height: 4),
-          // Username
           Text(
             username,
             style: theme.textTheme.labelMedium?.copyWith(
@@ -467,7 +460,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             ],
           ),
           subtitle: Text(
-            'Ур.$level • ${_formatStatValue(statValue)}',
+            'Ур.$level · ${_formatStatValue(statValue)}',
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               fontSize: 12,
@@ -492,6 +485,189 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       ),
     );
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // Clan Tab
+  // ═══════════════════════════════════════════════════════════
+
+  Widget _buildClanTab(ThemeData theme) {
+    return FutureBuilder(
+      future: _clanLeaderboardFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return _buildErrorState(theme, 'Не удалось загрузить банды', _refreshLeaderboard);
+        }
+
+        final clans = snapshot.data ?? <Map<String, dynamic>>[];
+
+        if (clans.isEmpty) {
+          return _buildEmptyState(theme, Icons.groups, 'Банд пока нет', 'Создайте первую банду!');
+        }
+
+        return RefreshIndicator(
+          color: theme.colorScheme.primary,
+          onRefresh: () {
+            setState(() {
+              _clanLeaderboardFuture = context.read<GameProvider>().getClanLeaderboard(limit: 50);
+            });
+            return _clanLeaderboardFuture!;
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            itemCount: clans.length,
+            itemBuilder: (context, index) {
+              final clan = clans[index];
+              return _buildClanEntry(clan, index, theme);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildClanEntry(Map<String, dynamic> clan, int index, ThemeData theme) {
+    final name = clan['name'] as String? ?? 'Безымянная';
+    final tag = clan['tag'] as String? ?? '???';
+    final description = clan['description'] as String? ?? '';
+    final memberCount = clan['member_count'] as int? ?? 0;
+    final leaderName = clan['leader_username'] as String? ?? 'Неизвестен';
+    final isTop = index < 3;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 300 + (index * 30).clamp(0, 500)),
+      curve: Curves.easeOut,
+      builder: (context, anim, child) {
+        return Opacity(
+          opacity: anim,
+          child: Transform.translate(
+            offset: Offset(0, (1.0 - anim) * 15),
+            child: child,
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
+          border: Border.all(
+            color: isTop
+                ? theme.colorScheme.tertiary.withValues(alpha: 0.3)
+                : theme.colorScheme.outline.withValues(alpha: 0.12),
+            width: isTop ? 1.5 : 0.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Rank badge
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: _rankColor(index).withValues(alpha: 0.15),
+                border: Border.all(
+                  color: _rankColor(index).withValues(alpha: 0.4),
+                  width: 1,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '${index + 1}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: _rankColor(index),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Clan icon
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.tertiary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.tertiary.withValues(alpha: 0.25),
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '[$tag]',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.tertiary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  fontSize: 10,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (description.isNotEmpty)
+                    Text(
+                      description,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.person, size: 12, color: theme.colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 3),
+                      Text(
+                        '$memberCount уч.',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 10,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Icon(Icons.star, size: 12, color: theme.colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 3),
+                      Text(
+                        leaderName,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Shared Components
+  // ═══════════════════════════════════════════════════════════
 
   Widget _buildYourRankFooter(AuthProvider auth, ThemeData theme) {
     if (_myRank < 0) return const SizedBox.shrink();
@@ -572,6 +748,44 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(ThemeData theme, String message, VoidCallback onRetry) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
+            const SizedBox(height: 12),
+            Text(message, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: onRetry, child: const Text('ПОВТОРИТЬ')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme, IconData icon, String title, String subtitle) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: theme.colorScheme.outline.withValues(alpha: 0.4)),
+            const SizedBox(height: 16),
+            Text(title, style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.outline)),
+            const SizedBox(height: 8),
+            Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.outline.withValues(alpha: 0.7))),
+          ],
+        ),
       ),
     );
   }
