@@ -1581,3 +1581,60 @@ create policy "player_achievements_update" on public.player_achievements for upd
 
 -- Seed events and achievements on first run
 select public.seed_achievements();
+
+
+-- =============================================================================
+-- WEEKLY EVENTS — SEED DATA (4 rotating events)
+-- =============================================================================
+-- These seed events provide an initial set. A cron job or admin action
+-- should periodically create new events.
+-- =============================================================================
+
+insert into public.weekly_events (id, name, description, event_type, start_date, end_date, is_active, reward_credits, reward_xp, bonus_modifier)
+values
+  (
+    'e1a2b3c4-0001-4000-8000-000000000001',
+    'Турнир хакеров: Открытый сезон',
+    'Атакуй других игроков и зарабатывай очки. Топ-10 получают бонусные кредиты и XP!',
+    'pvp_tournament',
+    now(),
+    now() + interval '7 days',
+    true,
+    10000, 2000,
+    '{"xp_multiplier": 1.5, "credits_bonus": 20}'::jsonb
+  ),
+  (
+    'e1a2b3c4-0002-4000-8000-000000000002',
+    'Чёрная пятница на Чёрном рынке',
+    'Все товары в магазине со скидкой 50%! Успей купить до конца события.',
+    'black_friday',
+    now(),
+    now() + interval '7 days',
+    true,
+    5000, 500,
+    '{"discount_percent": 50}'::jsonb
+  ),
+  (
+    'e1a2b3c4-0003-4000-8000-000000000003',
+    'Клановый рейд: Сервер corporations.gov',
+    'Объединись с кланом для массовой атаки на правительственный сервер.',
+    'clan_raid',
+    now(),
+    now() + interval '7 days',
+    true,
+    25000, 5000,
+    '{"clan_bonus_multiplier": 2.0, "min_clan_members": 3}'::jsonb
+  ),
+  (
+    'e1a2b3c4-0004-4000-8000-000000000004',
+    'Охота на баги: Опасные уязвимости',
+    'Найди и эксплуатируй уязвимости в PvE миссиях. Больше багов — больше наград!',
+    'bug_hunt',
+    now(),
+    now() + interval '7 days',
+    true,
+    15000, 3000,
+    '{"bug_score_multiplier": 2.0}'::jsonb
+  )
+on conflict do nothing;
+
