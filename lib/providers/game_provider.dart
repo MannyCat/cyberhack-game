@@ -155,6 +155,51 @@ class PlayerResources {
   }
 }
 
+// --- Mission System ---
+
+class Mission {
+  final String id;
+  final String title;
+  final String description;
+  final IconData icon;
+  final int rewardCredits;
+  final int rewardXp;
+  final MissionType type;
+  int progress;
+  int target;
+
+  Mission({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.rewardCredits,
+    required this.rewardXp,
+    required this.type,
+    this.progress = 0,
+    required this.target,
+  });
+
+  bool get isComplete => progress >= target;
+  bool get isClaimed => progress > target;
+
+  Mission copyWith({int? progress}) {
+    return Mission(
+      id: id,
+      title: title,
+      description: description,
+      icon: icon,
+      rewardCredits: rewardCredits,
+      rewardXp: rewardXp,
+      type: type,
+      progress: progress ?? this.progress,
+      target: target,
+    );
+  }
+}
+
+enum MissionType { deployNode, attackPlayer, buyItem, upgradeNode }
+
 // --- Game Provider ---
 
 class GameProvider extends ChangeNotifier {
@@ -168,6 +213,14 @@ class GameProvider extends ChangeNotifier {
   List<AttackRecord> _attackHistory = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  // Passive income
+  Timer? _passiveIncomeTimer;
+  int _passiveIncomePerTick = 0;
+
+  // Missions
+  List<Mission> _missions = [];
+  Set<String> _claimedMissions = {};
 
   // Realtime subscriptions
   RealtimeChannel? _profileChannel;
@@ -188,23 +241,81 @@ class GameProvider extends ChangeNotifier {
   int get bandwidth => _resources?.bandwidth ?? 0;
   int get level => _resources?.level ?? 1;
   int get xp => _resources?.experience ?? 0;
+  List<Mission> get missions => List.unmodifiable(_missions);
+  int get passiveIncomePerTick => _passiveIncomePerTick;
 
   // --- Initialization ---
 
   bool _isInitialized = false;
-
   String? _currentUserId;
 
   void init(String userId) {
     if (_currentUserId == userId && _isInitialized) return;
-    // Clean up old subscriptions if re-initing with different user
     _profileChannel?.unsubscribe();
     _attacksChannel?.unsubscribe();
     _incomingAttacksChannel?.unsubscribe();
+    _passiveIncomeTimer?.cancel();
     _currentUserId = userId;
     _isInitialized = true;
+    _initMissions();
     _loadAllData(userId);
     _subscribeToRealtimeUpdates(userId);
+    _startPassiveIncome(userId);
+  }
+
+  void _initMissions() {
+    _missions = [
+      Mission(
+        id: 'deploy_1',
+        title: 'Первый узел',
+        description: 'Разверните первый сетевой узел',
+        icon: Icons.dns,
+        rewardCredits: 200,
+        rewardXp: 40,
+        type: MissionType.deployNode,
+        target: 1,
+      ),
+      Mission(
+        id: 'attack_1',
+        title: 'Первый взлом',
+        description: 'Проведите первую атаку',
+        icon: Icons.gps_fixed,
+        rewardCredits: 300,
+        rewardXp: 25,
+        type: MissionType.attackPlayer,
+        target: 1,
+      ),
+      Mission(
+        id: 'deploy_3',
+        title: 'Расширение сети',
+        description: 'Разверните 3 узла',
+        icon: Icons.account_tree,
+        rewardCredits: 500,
+        rewardXp: 60,
+        type: MissionType.deployNode,
+        target: 3,
+      ),
+      Mission(
+        id: 'attack_5',
+        title: 'Кибервойн',
+        description: 'Проведите 5 атак',
+        icon: Icons.flash_on,
+        rewardCredits: 1000,
+        rewardXp: 100,
+        type: MissionType.attackPlayer,
+        target: 5,
+      ),
+      Mission(
+        id: 'buy_1',
+        title: 'Покупка снаряжения',
+        description: 'Купите товар на чёрном рынке',
+        icon: Icons.shopping_cart,
+        rewardCredits: 150,
+        rewardXp: 20,
+        type: MissionType.buyItem,
+        target: 1,
+      ),
+    ];
   }
 
   Future<void> _loadAllData(String userId) async {
@@ -219,6 +330,7 @@ class GameProvider extends ChangeNotifier {
         _loadAttackHistory(userId),
       ]);
       await _loadAvailableTargets(userId);
+      _updateMissionProgress();
     } catch (e) {
       debugPrint('Error loading game data: $e');
       _errorMessage = 'Не удалось загрузить данные игры';
@@ -226,6 +338,154 @@ class GameProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  // --- Passive Income ---
+
+  void _startPassiveIncome(String userId) {
+    _passiveIncomeTimer?.cancel();
+    _passiveIncomeTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _tickPassiveIncome(userId),
+    );
+  }
+
+  Future<void> _tickPassiveIncome(String userId) async {
+    if (_networkNodes.isEmpty) {
+      _passiveIncomePerTick = 0;
+      return;
+    }
+
+    // Calculate passive income from online nodes
+    int income = 0;
+    int cpuGain = 0;
+    int bwGain = 0;
+
+    for (final node in _networkNodes) {
+      if (!node.isOnline) continue;
+      final type = node.nodeType.toLowerCase();
+      final lvl = node.nodeLevel;
+
+      if (type == 'server') {
+        income += 15 * lvl;
+        cpuGain += 5 * lvl;
+        bwGain += 3 * lvl;
+      } else if (type == 'database') {
+        income += 30 * lvl;
+      } else if (type == 'miner' || type == 'mining_rig') {
+        income += 50 * lvl;
+      } else if (type == 'router') {
+        income += 5 * lvl;
+        bwGain += 12 * lvl;
+        cpuGain += 2 * lvl;
+      } else if (type == 'proxy' || type == 'proxy_node') {
+        bwGain += 20 * lvl;
+      }
+    }
+
+    _passiveIncomePerTick = income;
+
+    if (income > 0 || cpuGain > 0 || bwGain > 0) {
+      try {
+        await _supabase.from('profiles').update({
+          'credits': credits + income,
+          'cpu': cpu + cpuGain,
+          'bandwidth': bandwidth + bwGain,
+        }).eq('id', userId);
+
+        // Update local state
+        if (_resources != null) {
+          _resources = PlayerResources(
+            credits: _resources!.credits + income,
+            cpu: _resources!.cpu + cpuGain,
+            bandwidth: _resources!.bandwidth + bwGain,
+            level: _resources!.level,
+            experience: _resources!.experience,
+          );
+          notifyListeners();
+        }
+      } catch (e) {
+        debugPrint('Passive income error: $e');
+      }
+    }
+  }
+
+  // --- Mission Progress ---
+
+  void _updateMissionProgress() {
+    bool changed = false;
+    final updatedMissions = _missions.map((m) {
+      switch (m.type) {
+        case MissionType.deployNode:
+          final progress = _networkNodes.length;
+          if (m.progress != progress) {
+            changed = true;
+            return m.copyWith(progress: progress);
+          }
+          break;
+        case MissionType.attackPlayer:
+          final progress = _attackHistory.where((a) => a.attackerId == _currentUserId).length;
+          if (m.progress != progress) {
+            changed = true;
+            return m.copyWith(progress: progress);
+          }
+          break;
+        case MissionType.buyItem:
+          // Buy missions tracked on purchase
+          break;
+        case MissionType.upgradeNode:
+          // Tracked on upgrade
+          break;
+      }
+      return m;
+    }).toList();
+
+    if (changed) {
+      _missions = updatedMissions;
+      notifyListeners();
+    }
+  }
+
+  void trackPurchase() {
+    _updateMissionProgressForType(MissionType.buyItem, 1);
+  }
+
+  void _updateMissionProgressForType(MissionType type, int delta) {
+    bool changed = false;
+    final updatedMissions = _missions.map((m) {
+      if (m.type == type && !m.isComplete) {
+        changed = true;
+        return m.copyWith(progress: m.progress + delta);
+      }
+      return m;
+    }).toList();
+
+    if (changed) {
+      _missions = updatedMissions;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> claimMission(Mission mission) async {
+    if (!mission.isComplete || _claimedMissions.contains(mission.id)) return false;
+    if (_currentUserId == null) return false;
+
+    _claimedMissions.add(mission.id);
+
+    try {
+      await _supabase.from('profiles').update({
+        'credits': credits + mission.rewardCredits,
+        'experience': xp + mission.rewardXp,
+      }).eq('id', _currentUserId!);
+
+      await _loadResources(_currentUserId!);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _claimedMissions.remove(mission.id);
+      debugPrint('Error claiming mission: $e');
+      return false;
+    }
   }
 
   // --- Resource Methods ---
@@ -239,7 +499,6 @@ class GameProvider extends ChangeNotifier {
           .maybeSingle();
 
       if (response == null) {
-        // Profile doesn't exist yet — create it
         try {
           final auth = Supabase.instance.client.auth.currentUser;
           final username = auth?.userMetadata?['username'] ?? auth?.email?.split('@')[0] ?? 'Хакер';
@@ -293,6 +552,7 @@ class GameProvider extends ChangeNotifier {
 
   Future<void> refreshNetworkNodes(String userId) async {
     await _loadNetworkNodes(userId);
+    _updateMissionProgress();
     notifyListeners();
   }
 
@@ -313,6 +573,7 @@ class GameProvider extends ChangeNotifier {
       });
 
       await _loadNetworkNodes(userId);
+      _updateMissionProgress();
       notifyListeners();
       return true;
     } catch (e) {
@@ -402,12 +663,13 @@ class GameProvider extends ChangeNotifier {
         'target_node_id': targetNodeId,
         'attack_type': attackType,
         'damage': damage,
-        'status': 'pending',
-        'credits_stolen': 0,
+        'status': 'success',
+        'credits_stolen': (damage * 0.1).round(),
       }).select();
 
       if (response.isNotEmpty) {
         _attackHistory.insert(0, AttackRecord.fromJson(response.first));
+        _updateMissionProgress();
         notifyListeners();
       }
       return true;
@@ -441,6 +703,7 @@ class GameProvider extends ChangeNotifier {
 
   Future<void> refreshAttackHistory(String userId) async {
     await _loadAttackHistory(userId);
+    _updateMissionProgress();
     notifyListeners();
   }
 
@@ -479,6 +742,7 @@ class GameProvider extends ChangeNotifier {
 
       if (result == true) {
         await _loadResources(playerId);
+        trackPurchase();
         notifyListeners();
         return true;
       } else {
@@ -511,7 +775,6 @@ class GameProvider extends ChangeNotifier {
   // --- Realtime Subscriptions ---
 
   void _subscribeToRealtimeUpdates(String userId) {
-    // Listen for profile/resource updates
     _profileChannel = _supabase
         .channel('profile_updates_$userId')
         .onPostgresChanges(
@@ -531,7 +794,6 @@ class GameProvider extends ChangeNotifier {
         )
         .subscribe();
 
-    // Listen for new attacks involving this player
     _attacksChannel = _supabase
         .channel('attack_updates_$userId')
         .onPostgresChanges(
@@ -551,7 +813,6 @@ class GameProvider extends ChangeNotifier {
         )
         .subscribe();
 
-    // Also subscribe to incoming attacks
     _incomingAttacksChannel = _supabase
         .channel('incoming_attacks_$userId')
         .onPostgresChanges(
@@ -672,6 +933,7 @@ class GameProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _passiveIncomeTimer?.cancel();
     _profileChannel?.unsubscribe();
     _attacksChannel?.unsubscribe();
     _incomingAttacksChannel?.unsubscribe();

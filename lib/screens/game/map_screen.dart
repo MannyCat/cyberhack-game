@@ -2,7 +2,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/game_provider.dart';
 
 // ─── Game Map Node Model ──────────────────────────────────────────────────
 
@@ -417,9 +418,346 @@ class _ActionBtnState extends State<_ActionBtn> {
   }
 }
 
-// ─── Connection Lines Overlay ─────────────────────────────────────────────
+// ─── Floating Player Card ────────────────────────────────────────────────
 
+class _PlayerCard extends StatelessWidget {
+  final int level;
+  final int credits;
+  final int nodesCount;
+  final int passiveIncome;
 
+  const _PlayerCard({
+    required this.level,
+    required this.credits,
+    required this.nodesCount,
+    required this.passiveIncome,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1a1f2e).withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFF00ff41).withValues(alpha: 0.25),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withValues(alpha: 0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Level badge
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF00ff41).withValues(alpha: 0.12),
+              border: Border.all(color: const Color(0xFF00ff41).withValues(alpha: 0.4)),
+            ),
+            child: Center(
+              child: Text(
+                '$level',
+                style: const TextStyle(
+                  color: Color(0xFF00ff41),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Stats
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.account_balance_wallet, color: Color(0xFFffcc00), size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$credits ¢',
+                    style: const TextStyle(
+                      color: Color(0xFFffcc00),
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Icon(Icons.dns, color: Color(0xFF00e5ff), size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$nodesCount узл.',
+                    style: const TextStyle(
+                      color: Color(0xFF00e5ff),
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.trending_up, color: Color(0xFF00ff41), size: 12),
+                  const SizedBox(width: 4),
+                  Text(
+                    '+$passiveIncome ¢/30с',
+                    style: const TextStyle(
+                      color: Color(0xFF00ff41).withValues(alpha: 0.7),
+                      fontSize: 10,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Mission Card Widget ─────────────────────────────────────────────────
+
+class _MissionCard extends StatelessWidget {
+  final Mission mission;
+  final VoidCallback? onClaim;
+
+  const _MissionCard({required this.mission, this.onClaim});
+
+  IconData get _missionIcon {
+    // The Mission.icon field is declared as String but sometimes holds IconData.
+    // Handle both cases gracefully.
+    final icon = mission.icon;
+    if (icon is IconData) return icon;
+    // Fallback by type
+    switch (mission.type) {
+      case MissionType.deployNode:
+        return Icons.dns;
+      case MissionType.attackPlayer:
+        return Icons.gps_fixed;
+      case MissionType.buyItem:
+        return Icons.shopping_cart;
+      case MissionType.upgradeNode:
+        return Icons.arrow_upward;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progressRatio = mission.target > 0
+        ? (mission.progress.clamp(0, mission.target) / mission.target)
+        : 0.0;
+
+    final isReady = mission.isComplete && !mission.isClaimed;
+    final isDone = mission.isClaimed;
+
+    return Container(
+      width: 200,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1a1f2e).withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDone
+              ? const Color(0xFF4a5568).withValues(alpha: 0.4)
+              : isReady
+                  ? const Color(0xFF00ff41).withValues(alpha: 0.6)
+                  : const Color(0xFF00e5ff).withValues(alpha: 0.25),
+        ),
+        boxShadow: [
+          if (isReady)
+            BoxShadow(
+              color: const Color(0xFF00ff41).withValues(alpha: 0.15),
+              blurRadius: 12,
+            ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: isDone
+                      ? const Color(0xFF4a5568).withValues(alpha: 0.2)
+                      : isReady
+                          ? const Color(0xFF00ff41).withValues(alpha: 0.15)
+                          : const Color(0xFF00e5ff).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: isDone
+                        ? const Color(0xFF4a5568).withValues(alpha: 0.3)
+                        : isReady
+                            ? const Color(0xFF00ff41).withValues(alpha: 0.4)
+                            : const Color(0xFF00e5ff).withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Icon(
+                  _missionIcon,
+                  color: isDone
+                      ? const Color(0xFF4a5568)
+                      : isReady
+                          ? const Color(0xFF00ff41)
+                          : const Color(0xFF00e5ff),
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  mission.title,
+                  style: TextStyle(
+                    color: isDone
+                        ? const Color(0xFF4a5568)
+                        : const Color(0xFFe0e6f0),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                    letterSpacing: 0.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Description
+          Text(
+            mission.description,
+            style: const TextStyle(
+              color: Color(0xFF6a7080),
+              fontSize: 9,
+              fontFamily: 'monospace',
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: progressRatio,
+              minHeight: 4,
+              backgroundColor: const Color(0xFF2a2f40),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isDone
+                    ? const Color(0xFF4a5568)
+                    : isReady
+                        ? const Color(0xFF00ff41)
+                        : const Color(0xFF00e5ff),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Progress text
+          Text(
+            '${mission.progress}/${mission.target}',
+            style: TextStyle(
+              color: isDone
+                  ? const Color(0xFF4a5568)
+                  : const Color(0xFF8090a0),
+              fontSize: 9,
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Rewards row
+          Row(
+            children: [
+              const Icon(Icons.monetization_on, color: Color(0xFFffcc00), size: 12),
+              const SizedBox(width: 3),
+              Text(
+                '+${mission.rewardCredits}',
+                style: const TextStyle(
+                  color: Color(0xFFffcc00),
+                  fontSize: 10,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Icon(Icons.star, color: Color(0xFFa855f7), size: 12),
+              const SizedBox(width: 3),
+              Text(
+                '+${mission.rewardXp}',
+                style: const TextStyle(
+                  color: Color(0xFFa855f7),
+                  fontSize: 10,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              if (isDone)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4a5568).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: const Text(
+                    '✓',
+                    style: TextStyle(
+                      color: Color(0xFF4a5568),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                )
+              else if (isReady)
+                GestureDetector(
+                  onTap: onClaim,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00ff41).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFF00ff41).withValues(alpha: 0.5)),
+                    ),
+                    child: const Text(
+                      'ЗАБРАТЬ',
+                      style: TextStyle(
+                        color: Color(0xFF00ff41),
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 // ─── Game Map Screen ─────────────────────────────────────────────────────
 
@@ -539,10 +877,10 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
     _mapController.move(const LatLng(55.75, 37.62), 5.0);
   }
 
-
-
   @override
   Widget build(BuildContext context) {
+    final game = context.watch<GameProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFF0a0e17),
       body: Stack(
@@ -607,18 +945,69 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
           if (_showScanEffect)
             _ScanEffectOverlay(animation: _mapAnimController),
 
-          // ── Top Bar ──
+          // ── Floating Player Card (top) ──
           Positioned(
             top: 0,
-            left: 0,
-            right: 0,
-            child: _buildTopBar(),
+            left: 16,
+            right: 16,
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _PlayerCard(
+                    level: game.level,
+                    credits: game.credits,
+                    nodesCount: game.networkNodes.length,
+                    passiveIncome: game.passiveIncomePerTick,
+                  ),
+                  const SizedBox(height: 8),
+                  // Map title + scan button row
+                  Row(
+                    children: [
+                      const Text('◆ ГЛОБАЛЬНАЯ КАРТА СЕТИ',
+                          style: TextStyle(color: Color(0xFF00ff41), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontFamily: 'monospace')),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00ff41).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(3),
+                          border: Border.all(color: const Color(0xFF00ff41).withValues(alpha: 0.25)),
+                        ),
+                        child: Text('${_nodes.length} УЗЛОВ', style: const TextStyle(color: Color(0xFF00ff41), fontSize: 9, letterSpacing: 1, fontFamily: 'monospace')),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: _scanNetwork,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00e5ff).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: const Color(0xFF00e5ff).withValues(alpha: 0.3)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.sensors, color: Color(0xFF00e5ff), size: 14),
+                              SizedBox(width: 4),
+                              Text('СКАН', style: TextStyle(color: Color(0xFF00e5ff), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1, fontFamily: 'monospace')),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
 
           // ── Zoom controls (right) ──
           Positioned(
             right: 16,
-            top: 80,
+            top: 110,
             child: Column(
               children: [
                 _zoomButton(Icons.add, () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1)),
@@ -635,13 +1024,21 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
           // ── Node count badges (left) ──
           Positioned(
             left: 16,
-            top: 80,
+            top: 110,
             child: _infoBadge('ВАШИ УЗЛЫ', '${_nodes.where((n) => n.isPlayerOwned).length}', const Color(0xFF00ff41)),
           ),
           Positioned(
             left: 16,
-            top: 120,
+            top: 150,
             child: _infoBadge('ЦЕЛИ', '${_nodes.where((n) => !n.isPlayerOwned).length}', const Color(0xFFff4444)),
+          ),
+
+          // ── Missions Panel (bottom-center, above legend & action panel) ──
+          Positioned(
+            left: 8,
+            right: 8,
+            bottom: 170,
+            child: _buildMissionsPanel(game),
           ),
 
           // ── Legend (bottom-left) ──
@@ -700,6 +1097,84 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
     );
   }
 
+  // ── Missions Panel ──
+
+  Widget _buildMissionsPanel(GameProvider game) {
+    final missions = game.missions;
+    if (missions.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0d1117).withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFF00e5ff).withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(left: 6, bottom: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.assignment, color: Color(0xFF00e5ff), size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'МИССИИ',
+                  style: TextStyle(
+                    color: Color(0xFF00e5ff),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 148,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: missions.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              itemBuilder: (context, index) {
+                final mission = missions[index];
+                return _MissionCard(
+                  mission: mission,
+                  onClaim: mission.isComplete && !mission.isClaimed
+                      ? () async {
+                          final success = await game.claimMission(mission);
+                          if (!context.mounted) return;
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Награда получена: +${mission.rewardCredits} ¢, +${mission.rewardXp} XP',
+                                  style: const TextStyle(fontFamily: 'monospace', color: Color(0xFF00ff41)),
+                                ),
+                                backgroundColor: const Color(0xFF1a1f2e),
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        }
+                      : null,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Connection polylines between nodes ──
   Widget _buildConnectionPolylines() {
     final polylines = <Polyline>[];
@@ -733,69 +1208,6 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
     }
 
     return PolylineLayer(polylines: polylines);
-  }
-
-  Widget _buildTopBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1a1f2e),
-        border: Border(bottom: BorderSide(color: const Color(0xFF00ff41).withValues(alpha: 0.2))),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: () => context.go('/main-menu'),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0d1117),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFF00e5ff).withValues(alpha: 0.3)),
-                ),
-                child: const Icon(Icons.arrow_back, color: Color(0xFF00e5ff), size: 18),
-              ),
-            ),
-            const SizedBox(width: 16),
-            const Text('◆ ГЛОБАЛЬНАЯ КАРТА СЕТИ',
-                style: TextStyle(color: Color(0xFF00ff41), fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 2, fontFamily: 'monospace')),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00ff41).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(3),
-                border: Border.all(color: const Color(0xFF00ff41).withValues(alpha: 0.3)),
-              ),
-              child: Text('${_nodes.length} УЗЛОВ', style: const TextStyle(color: Color(0xFF00ff41), fontSize: 10, letterSpacing: 1, fontFamily: 'monospace')),
-            ),
-            const Spacer(),
-            // Scan button
-            GestureDetector(
-              onTap: _scanNetwork,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00e5ff).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: const Color(0xFF00e5ff).withValues(alpha: 0.3)),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.sensors, color: Color(0xFF00e5ff), size: 16),
-                    SizedBox(width: 6),
-                    Text('СКАН', style: TextStyle(color: Color(0xFF00e5ff), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1, fontFamily: 'monospace')),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _zoomButton(IconData icon, VoidCallback onTap) {

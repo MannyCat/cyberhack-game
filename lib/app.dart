@@ -6,7 +6,6 @@ import 'providers/auth_provider.dart';
 import 'providers/game_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
-import 'screens/main_menu_screen.dart';
 import 'screens/game/game_shell.dart';
 import 'screens/game/map_screen.dart';
 import 'screens/game/network_screen.dart';
@@ -29,11 +28,13 @@ class _CyberHackAppState extends State<CyberHackApp> {
   late final ThemeData _theme = _buildCyberpunkTheme();
   late final GoRouter _router;
   late final AuthProvider _authProvider;
+  late final GameProvider _gameProvider;
 
   @override
   void initState() {
     super.initState();
     _authProvider = AuthProvider();
+    _gameProvider = GameProvider();
     _router = GoRouter(
       initialLocation: '/login',
       refreshListenable: _authProvider,
@@ -43,11 +44,9 @@ class _CyberHackAppState extends State<CyberHackApp> {
             state.matchedLocation == '/register';
         final isLoading = _authProvider.authState == AuthState.loading;
 
-        // Don't redirect while checking auth state
         if (isLoading) return null;
-
         if (!isLoggedIn && !isAuthRoute) return '/login';
-        if (isLoggedIn && isAuthRoute) return '/main-menu';
+        if (isLoggedIn && isAuthRoute) return '/game/map';
         return null;
       },
       routes: [
@@ -65,10 +64,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
             child: const RegisterScreen(),
           ),
         ),
-        GoRoute(
-          path: '/main-menu',
-          builder: (context, state) => const MainMenuScreen(),
-        ),
+        // ── Все игровые экраны внутри ShellRoute ──
         ShellRoute(
           builder: (context, state, child) => GameShell(child: child),
           routes: [
@@ -114,15 +110,26 @@ class _CyberHackAppState extends State<CyberHackApp> {
                 child: LeaderboardScreen(),
               ),
             ),
+            GoRoute(
+              path: '/game/more',
+              redirect: (context, state) => '/game/map',
+            ),
           ],
         ),
+        // ── Экраны вне ShellRoute ──
         GoRoute(
           path: '/settings',
-          builder: (context, state) => const SettingsScreen(),
+          builder: (context, state) => ChangeNotifierProvider.value(
+            value: _gameProvider,
+            child: const SettingsScreen(),
+          ),
         ),
         GoRoute(
           path: '/profile',
-          builder: (context, state) => const ProfileScreen(),
+          builder: (context, state) => ChangeNotifierProvider.value(
+            value: _gameProvider,
+            child: const ProfileScreen(),
+          ),
         ),
       ],
     );
@@ -131,6 +138,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
   @override
   void dispose() {
     _authProvider.dispose();
+    _gameProvider.dispose();
     super.dispose();
   }
 
@@ -139,7 +147,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _authProvider),
-        ChangeNotifierProvider(create: (_) => GameProvider()),
+        ChangeNotifierProvider.value(value: _gameProvider),
       ],
       child: MaterialApp.router(
         title: 'CyberHack',
@@ -155,15 +163,15 @@ class _CyberHackAppState extends State<CyberHackApp> {
   ThemeData _buildCyberpunkTheme() {
     const colorScheme = ColorScheme.dark(
       brightness: Brightness.dark,
-      primary: Color(0xFF00F0FF),       // Neon cyan
+      primary: Color(0xFF00F0FF),
       onPrimary: Color(0xFF001519),
       primaryContainer: Color(0xFF003940),
       onPrimaryContainer: Color(0xFF00F0FF),
-      secondary: Color(0xFFFF00E5),     // Neon pink/magenta
+      secondary: Color(0xFFFF00E5),
       onSecondary: Color(0xFF1A0014),
       secondaryContainer: Color(0xFF5C004F),
       onSecondaryContainer: Color(0xFFFF80F0),
-      tertiary: Color(0xFF39FF14),      // Neon green
+      tertiary: Color(0xFF39FF14),
       onTertiary: Color(0xFF001A00),
       tertiaryContainer: Color(0xFF003300),
       onTertiaryContainer: Color(0xFF39FF14),
@@ -171,7 +179,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
       onError: Color(0xFFFFFFFF),
       errorContainer: Color(0xFF5C0011),
       onErrorContainer: Color(0xFFFFB3BA),
-      surface: Color(0xFF0A0E17),       // Deep dark blue-black
+      surface: Color(0xFF0A0E17),
       onSurface: Color(0xFFE0E6F0),
       surfaceContainerHighest: Color(0xFF1A2030),
       outline: Color(0xFF3A4060),
@@ -271,8 +279,8 @@ class _CyberHackAppState extends State<CyberHackApp> {
             width: 2,
           ),
         ),
-        hintStyle: TextStyle(
-          color: const Color(0xFF3A4060),
+        hintStyle: const TextStyle(
+          color: Color(0xFF3A4060),
           fontSize: 14,
         ),
         labelStyle: const TextStyle(
