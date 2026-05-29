@@ -179,7 +179,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButtonStyle.from(
+        style: TextButton.styleFrom(
           foregroundColor: const Color(0xFF00F0FF),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 1),
         ),
@@ -193,14 +193,14 @@ class _CyberHackAppState extends State<CyberHackApp> {
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1.5),
         ),
       ),
-      inputDecorationTheme: const InputDecorationTheme(
+      inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Color(0xFF111827),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF2A3050))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF00F0FF).withValues(alpha: 0.3))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF00F0FF), width: 2)),
-        hintStyle: TextStyle(color: Color(0xFF3A4060), fontSize: 14),
-        labelStyle: TextStyle(color: Color(0xFF00F0FF), fontSize: 14),
+        fillColor: const Color(0xFF111827),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A3050))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: const Color(0xFF00F0FF).withValues(alpha: 0.3))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF00F0FF), width: 2)),
+        hintStyle: const TextStyle(color: Color(0xFF3A4060), fontSize: 14),
+        labelStyle: const TextStyle(color: Color(0xFF00F0FF), fontSize: 14),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Color(0xFF0D1220),
