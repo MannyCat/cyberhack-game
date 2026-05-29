@@ -266,6 +266,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   Future<void> _sendMessage() async {
     final text = _textController.text.trim();
     if (text.isEmpty || _myUserId == null) return;
+    final isClanTab = _tabController.index == 1;
+
 
     // Rate limit: max 1 message per 2 seconds (separate per chat tab)
     final lastSent = isClanTab ? _lastClanSent : _lastGlobalSent;
@@ -286,7 +288,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
     final auth = context.read<AuthProvider>();
     final senderName = auth.displayName;
-    final isClanTab = _tabController.index == 1;
 
     // Max message length
     if (text.length > 500) {
