@@ -924,6 +924,36 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+
+  // --- Clan Leaderboard ---
+
+  Future<List<Map<String, dynamic>>> getClanLeaderboard({
+    int limit = 50,
+  }) async {
+    try {
+      final response = await _supabase
+          .from('clans')
+          .select('*, clan_members(count), leader:profiles!clans_leader_id_fkey(username)')
+          .order('created_at', ascending: false)
+          .limit(limit);
+
+      return (response as List).map((e) {
+        final row = Map<String, dynamic>.from(e as Map);
+        final members = row['clan_members'] as List?;
+        final memberCount = members?.isNotEmpty == true
+            ? ((members!.first as Map?)?['count'] as num?)?.toInt() ?? members.length
+            : 0;
+        row['member_count'] = memberCount;
+        final leader = row['leader'] as Map?;
+        row['leader_username'] = leader?['username'] as String? ?? 'Неизвестный';
+        return row;
+      }).toList();
+    } catch (e) {
+      debugPrint('Error loading clan leaderboard: $e');
+      return [];
+    }
+  }
+
   // --- Utility ---
 
   void clearError() {
