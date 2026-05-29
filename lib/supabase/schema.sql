@@ -849,3 +849,425 @@ do $$ begin
   alter publication supabase_realtime add table public.clan_members;
 exception when others then null;
 end $$;
+
+
+-- =============================================================================
+-- PVE CAMPAIGN SYSTEM — Tables, Indexes, RLS, Functions, Seed Data
+-- =============================================================================
+-- PvE campaign missions (like Vikings campaign), trainable programs ("troops"),
+-- and campaign progress tracking.
+-- =============================================================================
+
+
+-- ---------------------------------------------------------------------------
+-- 11. CAMPAIGNS — PvE campaign missions
+-- ---------------------------------------------------------------------------
+create table if not exists public.campaigns (
+  id               uuid        primary key default uuid_generate_v4(),
+  name             text        not null,
+  description      text,
+  difficulty       integer     not null default 1 check (difficulty >= 1),
+  required_level   integer     not null default 1 check (required_level >= 1),
+  enemy_name       text        not null,
+  enemy_strength   integer     not null default 50,
+  reward_credits   integer     not null default 100 check (reward_credits >= 0),
+  reward_xp        integer     not null default 50 check (reward_xp >= 0),
+  reward_item_id   uuid        references public.market_items(id) on delete set null,
+  sort_order       integer     not null default 0,
+  is_active        boolean     not null default true,
+  created_at       timestamptz not null default now()
+);
+
+-- ---------------------------------------------------------------------------
+-- 12. CAMPAIGN PROGRESS — Tracks player progress on campaigns
+-- ---------------------------------------------------------------------------
+create table if not exists public.campaign_progress (
+  id           uuid        primary key default uuid_generate_v4(),
+  player_id    uuid        not null references public.profiles(id) on delete cascade,
+  campaign_id  uuid        not null references public.campaigns(id) on delete cascade,
+  status       text        not null default 'available'
+                            check (status in ('available', 'in_progress', 'completed', 'failed')),
+  attempts     integer     not null default 0 check (attempts >= 0),
+  best_damage  integer     not null default 0 check (best_damage >= 0),
+  completed_at timestamptz,
+  created_at   timestamptz not null default now(),
+
+  constraint campaign_progress_unique unique (player_id, campaign_id)
+);
+
+-- ---------------------------------------------------------------------------
+-- 13. PLAYER PROGRAMS — Trainable hacking programs ("troops")
+-- ---------------------------------------------------------------------------
+create table if not exists public.player_programs (
+  id            uuid        primary key default uuid_generate_v4(),
+  player_id     uuid        not null references public.profiles(id) on delete cascade,
+  program_type  text        not null
+                             check (program_type in (
+                               'trojan', 'worm', 'ransomware',
+                               'spyware', 'botnet', 'rootkit'
+                             )),
+  quantity      integer     not null default 1 check (quantity >= 0),
+  trained_at    timestamptz not null default now(),
+
+  constraint player_programs_unique unique (player_id, program_type)
+);
+
+-- ---------------------------------------------------------------------------
+-- 14. TRAINING QUEUE — Programs being trained
+-- ---------------------------------------------------------------------------
+create table if not exists public.training_queue (
+  id                  uuid        primary key default uuid_generate_v4(),
+  player_id           uuid        not null references public.profiles(id) on delete cascade,
+  program_type        text        not null
+                                  check (program_type in (
+                                    'trojan', 'worm', 'ransomware',
+                                    'spyware', 'botnet', 'rootkit'
+                                  )),
+  quantity            integer     not null default 1 check (quantity > 0),
+  training_cost       integer     not null default 100 check (training_cost > 0),
+  training_time_seconds integer   not null default 60 check (training_time_seconds > 0),
+  started_at          timestamptz not null default now(),
+  completes_at        timestamptz not null,
+  status              text        not null default 'training'
+                                  check (status in ('training', 'completed', 'cancelled'))
+);
+
+
+-- =============================================================================
+-- CAMPAIGN SYSTEM — INDEXES
+-- =============================================================================
+
+-- campaigns
+create index if not exists idx_campaigns_difficulty    on public.campaigns (difficulty);
+create index if not exists idx_campaigns_required_lvl  on public.campaigns (required_level);
+create index if not exists idx_campaigns_sort_order    on public.campaigns (sort_order);
+create index if not exists idx_campaigns_active        on public.campaigns (is_active) where is_active = true;
+
+-- campaign_progress
+create index if not exists idx_camp_progress_player    on public.campaign_progress (player_id);
+create index if not exists idx_camp_progress_campaign  on public.campaign_progress (campaign_id);
+create index if not exists idx_camp_progress_status    on public.campaign_progress (player_id, status);
+
+-- player_programs
+create index if not exists idx_player_programs_player  on public.player_programs (player_id);
+create index if not exists idx_player_programs_type    on public.player_programs (program_type);
+
+-- training_queue
+create index if not exists idx_training_queue_player   on public.training_queue (player_id);
+create index if not exists idx_training_queue_status   on public.training_queue (player_id, status);
+create index if not exists idx_training_queue_complete  on public.training_queue (status, completes_at) where status = 'training';
+
+
+-- =============================================================================
+-- CAMPAIGN SYSTEM — ROW LEVEL SECURITY (RLS)
+-- =============================================================================
+
+-- Enable RLS on campaign tables
+do $$ begin
+  alter table public.campaigns         enable row level security;
+  alter table public.campaign_progress enable row level security;
+  alter table public.player_programs   enable row level security;
+  alter table public.training_queue    enable row level security;
+exception when others then null;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- campaigns RLS
+-- ---------------------------------------------------------------------------
+drop policy if exists "Campaigns are viewable by everyone" on public.campaigns;
+create policy "Campaigns are viewable by everyone"
+  on public.campaigns for select
+  using (true);
+
+drop policy if exists "No anonymous campaign inserts" on public.campaigns;
+create policy "No anonymous campaign inserts"
+  on public.campaigns for insert
+  with check (false);
+
+drop policy if exists "No anonymous campaign updates" on public.campaigns;
+create policy "No anonymous campaign updates"
+  on public.campaigns for update
+  using (false);
+
+drop policy if exists "No anonymous campaign deletes" on public.campaigns;
+create policy "No anonymous campaign deletes"
+  on public.campaigns for delete
+  using (false);
+
+-- ---------------------------------------------------------------------------
+-- campaign_progress RLS
+-- ---------------------------------------------------------------------------
+drop policy if exists "Users can view own campaign progress" on public.campaign_progress;
+create policy "Users can view own campaign progress"
+  on public.campaign_progress for select
+  using (auth.uid() = player_id);
+
+drop policy if exists "Users can insert own campaign progress" on public.campaign_progress;
+create policy "Users can insert own campaign progress"
+  on public.campaign_progress for insert
+  with check (auth.uid() = player_id);
+
+drop policy if exists "Users can update own campaign progress" on public.campaign_progress;
+create policy "Users can update own campaign progress"
+  on public.campaign_progress for update
+  using (auth.uid() = player_id)
+  with check (auth.uid() = player_id);
+
+-- ---------------------------------------------------------------------------
+-- player_programs RLS
+-- ---------------------------------------------------------------------------
+drop policy if exists "Users can view own programs" on public.player_programs;
+create policy "Users can view own programs"
+  on public.player_programs for select
+  using (auth.uid() = player_id);
+
+drop policy if exists "Users can insert own programs" on public.player_programs;
+create policy "Users can insert own programs"
+  on public.player_programs for insert
+  with check (auth.uid() = player_id);
+
+drop policy if exists "Users can update own programs" on public.player_programs;
+create policy "Users can update own programs"
+  on public.player_programs for update
+  using (auth.uid() = player_id)
+  with check (auth.uid() = player_id);
+
+-- ---------------------------------------------------------------------------
+-- training_queue RLS
+-- ---------------------------------------------------------------------------
+drop policy if exists "Users can view own training queue" on public.training_queue;
+create policy "Users can view own training queue"
+  on public.training_queue for select
+  using (auth.uid() = player_id);
+
+drop policy if exists "Users can insert own training queue" on public.training_queue;
+create policy "Users can insert own training queue"
+  on public.training_queue for insert
+  with check (auth.uid() = player_id);
+
+drop policy if exists "Users can update own training queue" on public.training_queue;
+create policy "Users can update own training queue"
+  on public.training_queue for update
+  using (auth.uid() = player_id)
+  with check (auth.uid() = player_id);
+
+drop policy if exists "Users can delete own training queue" on public.training_queue;
+create policy "Users can delete own training queue"
+  on public.training_queue for delete
+  using (auth.uid() = player_id);
+
+
+-- =============================================================================
+-- CAMPAIGN SYSTEM — HELPER FUNCTIONS
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- Complete a campaign mission
+--   Updates campaign_progress, awards credits/xp on success, tracks stats.
+-- ---------------------------------------------------------------------------
+create or replace function public.complete_campaign(
+  p_player_id    uuid,
+  p_campaign_id  uuid,
+  p_success      boolean,
+  p_damage_dealt integer default 0
+)
+returns void
+language plpgsql
+security definer set search_path = ''
+as $$
+declare
+  v_campaign record;
+  v_status   text;
+begin
+  -- Fetch campaign details
+  select * into v_campaign
+  from public.campaigns
+  where id = p_campaign_id;
+
+  if v_campaign is null then
+    raise exception 'Campaign not found';
+  end if;
+
+  -- Determine final status
+  if p_success then
+    v_status := 'completed';
+  else
+    v_status := 'failed';
+  end if;
+
+  -- Upsert campaign progress
+  insert into public.campaign_progress (
+    player_id, campaign_id, status, attempts, best_damage, completed_at
+  ) values (
+    p_player_id, p_campaign_id, v_status, 1,
+    greatest(p_damage_dealt, 0),
+    case when p_success then now() else null end
+  )
+  on conflict (player_id, campaign_id) do update set
+    status       = excluded.status,
+    attempts     = campaign_progress.attempts + 1,
+    best_damage  = greatest(campaign_progress.best_damage, p_damage_dealt),
+    completed_at = case
+                      when excluded.status = 'completed' then now()
+                      else campaign_progress.completed_at
+                    end;
+
+  -- Award rewards on success
+  if p_success then
+    -- Add credits
+    update public.profiles
+    set credits = credits + v_campaign.reward_credits
+    where id = p_player_id;
+
+    -- Add XP (trigger will auto-update level)
+    update public.profiles
+    set experience = experience + v_campaign.reward_xp
+    where id = p_player_id;
+
+    -- Update player stats
+    insert into public.player_stats (
+      player_id, total_attacks, successful_attacks,
+      credits_earned, total_damage
+    ) values (
+      p_player_id, 1, 1,
+      v_campaign.reward_credits, p_damage_dealt
+    )
+    on conflict (player_id) do update set
+      total_attacks      = player_stats.total_attacks + 1,
+      successful_attacks = player_stats.successful_attacks + 1,
+      credits_earned     = player_stats.credits_earned + v_campaign.reward_credits,
+      total_damage       = player_stats.total_damage + p_damage_dealt;
+  else
+    -- Still record the attempt in stats
+    insert into public.player_stats (player_id, total_attacks)
+    values (p_player_id, 1)
+    on conflict (player_id) do update set
+      total_attacks = player_stats.total_attacks + 1;
+  end if;
+end;
+$$;
+
+
+-- =============================================================================
+-- CAMPAIGN SYSTEM — REALTIME SUBSCRIPTIONS
+-- =============================================================================
+
+do $$ begin
+  alter publication supabase_realtime add table public.campaigns;
+exception when others then null;
+end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table public.campaign_progress;
+exception when others then null;
+end $$;
+
+
+-- =============================================================================
+-- CAMPAIGN SYSTEM — SEED DATA (10 missions)
+-- =============================================================================
+
+-- Only insert if the campaigns table is empty
+insert into public.campaigns (id, name, description, difficulty, required_level, enemy_name, enemy_strength, reward_credits, reward_xp, sort_order)
+values
+  (
+    'a1b2c3d4-0001-4000-8000-000000000001',
+    'Первый взлом',
+    'Простая задача для новичков. Взломай unprotected сервер.',
+    1, 1,
+    'Скрипт-кидди',
+    30,
+    200, 50,
+    1
+  ),
+  (
+    'a1b2c3d4-0002-4000-8000-000000000002',
+    'Корпоративная сеть',
+    'Корпоративный firewall нужно обойти. Будь осторожен.',
+    2, 2,
+    'CORP-SEC-01',
+    60,
+    400, 100,
+    2
+  ),
+  (
+    'a1b2c3d4-0003-4000-8000-000000000003',
+    'Финансовый сектор',
+    'Банковские серверы защищены серьёзно. Покажи свои навыки.',
+    3, 3,
+    'BANK-GUARD',
+    100,
+    800, 150,
+    3
+  ),
+  (
+    'a1b2c3d4-0004-4000-8000-000000000004',
+    'Государственные серверы',
+    'Правительственная сеть с многоуровневой защитой. Только для опытных.',
+    4, 5,
+    'GOV-FIREWALL',
+    150,
+    1500, 250,
+    4
+  ),
+  (
+    'a1b2c3d4-0005-4000-8000-000000000005',
+    'Тёмная сеть',
+    'Тёмные узлы интернета — опасная территория для хакеров.',
+    5, 7,
+    'DARK-NODE',
+    200,
+    2500, 400,
+    5
+  ),
+  (
+    'a1b2c3d4-0006-4000-8000-000000000006',
+    'Военная база',
+    'Военные серверы с максимальной защитой. Только элита.',
+    6, 10,
+    'MIL-SERVER',
+    300,
+    5000, 600,
+    6
+  ),
+  (
+    'a1b2c3d4-0007-4000-8000-000000000007',
+    'Квантовый центр',
+    'Квантовые вычисления — новый frontier. Взломай будущее.',
+    7, 13,
+    'QUANTUM-AI',
+    400,
+    8000, 800,
+    7
+  ),
+  (
+    'a1b2c3d4-0008-4000-8000-000000000008',
+    'Спутниковая сеть',
+    'Спутниковые системы управления. Одна ошибка — и ты потерян.',
+    8, 16,
+    'SAT-CTRL',
+    500,
+    12000, 1000,
+    8
+  ),
+  (
+    'a1b2c3d4-0009-4000-8000-000000000009',
+    'Подводный кабель',
+    'Подводные коммуникационные кабели — уязвимое звено мировой сети.',
+    9, 20,
+    'DEEP-WEB',
+    650,
+    20000, 1500,
+    9
+  ),
+  (
+    'a1b2c3d4-0010-4000-8000-000000000010',
+    'Главный сервер',
+    'Финальная миссия. Главный сервер — ядро всей системы. Удачи.',
+    10, 25,
+    'OMEGA-CORE',
+    1000,
+    50000, 3000,
+    10
+  )
+on conflict do nothing;

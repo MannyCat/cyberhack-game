@@ -14,6 +14,7 @@ import 'screens/game/market_screen.dart';
 import 'screens/game/chat_screen.dart';
 import 'screens/game/clan_screen.dart';
 import 'screens/game/leaderboard_screen.dart';
+import 'screens/game/campaign_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/profile_screen.dart';
 
@@ -108,6 +109,12 @@ class _CyberHackAppState extends State<CyberHackApp> {
               path: '/game/leaderboard',
               pageBuilder: (context, state) => const NoTransitionPage(
                 child: LeaderboardScreen(),
+              ),
+            ),
+            GoRoute(
+              path: '/game/campaign',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: CampaignScreen(),
               ),
             ),
             GoRoute(

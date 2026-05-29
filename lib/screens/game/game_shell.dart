@@ -85,6 +85,10 @@ class _GameShellState extends State<GameShell> {
                 Navigator.pop(context);
                 context.go('/game/leaderboard');
               }),
+              _moreTile(Icons.military_tech, 'Миссии', 'PvE кампания', const Color(0xFFFFD700), () {
+                Navigator.pop(context);
+                context.go('/game/campaign');
+              }),
               _moreTile(Icons.person, 'Профиль', 'Статистика и настройки', const Color(0xFF78909c), () {
                 Navigator.pop(context);
                 context.go('/profile');
@@ -145,7 +149,16 @@ class _GameShellState extends State<GameShell> {
       body: Column(
         children: [
           // ── Resource Bar вверху ──
-          const ResourceBar(expanded: false),
+          Builder(builder: (context) {
+            final game = context.watch<GameProvider>();
+            return ResourceBar(
+              credits: game.credits,
+              cpu: game.cpu,
+              bandwidth: game.bandwidth,
+              mode: ResourceBarMode.compact,
+              height: 44,
+            );
+          }),
           // ── Контент ──
           Expanded(child: widget.child),
         ],
