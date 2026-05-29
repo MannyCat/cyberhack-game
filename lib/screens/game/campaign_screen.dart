@@ -87,7 +87,7 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
           .eq('is_active', true)
           .order('sort_order');
 
-      _campaigns = (response as List).cast<Map<String, dynamic>>();
+      _campaigns = (response as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
       setState(() => _isLoading = false);
     } catch (e) {
       debugPrint('Error loading campaigns: $e');
