@@ -566,7 +566,7 @@ class GameProvider extends ChangeNotifier {
     try {
       await _supabase.from('network_nodes').update({
         'is_online': true,
-        'health': 100,
+        'health': _networkNodes.firstWhere((n) => n.id == nodeId, orElse: () => NetworkNode(id: '', playerId: '', nodeType: '', nodeLevel: 1, health: 100, maxHealth: 100, isOnline: true, createdAt: DateTime.now())).maxHealth,
       }).eq('id', nodeId).eq('player_id', userId);
 
       await _loadNetworkNodes(userId);
@@ -667,7 +667,7 @@ Future<bool> deployNode({
           .limit(20);
 
       _availableTargets = (response as List).map((row) {
-        final clan = row['clan'] as Map?;
+        final clan = row['clan'] is Map<String, dynamic> ? row['clan'] as Map<String, dynamic> : null;
         final nodes = row['network_nodes'];
         final nodeCount = nodes is Map
             ? (nodes['count'] as num?)?.toInt() ?? 0
@@ -750,7 +750,7 @@ Future<bool> deployNode({
       _attackHistory = (response as List)
           .map((json) => AttackRecord.fromJson({
             ...json,
-            'defender_name': (json['defender'] as Map?)?['username'],
+            'defender_name': json['defender'] is Map<String, dynamic> ? (json['defender'] as Map<String, dynamic>)['username'] : null,
           }))
           .toList();
     } catch (e) {
@@ -844,9 +844,13 @@ Future<bool> deployNode({
             value: userId,
           ),
           callback: (payload) {
-            final newProfile = PlayerProfile.fromJson(payload.newRecord as Map<String, dynamic>);
-            _resources = PlayerResources.fromProfile(newProfile);
-            notifyListeners();
+            try {
+              final newProfile = PlayerProfile.fromJson(payload.newRecord as Map<String, dynamic>);
+              _resources = PlayerResources.fromProfile(newProfile);
+              notifyListeners();
+            } catch (e) {
+              debugPrint('Realtime profile update error: $e');
+            }
           },
         )
         .subscribe();
@@ -863,9 +867,14 @@ Future<bool> deployNode({
             value: userId,
           ),
           callback: (payload) {
-            final record = AttackRecord.fromJson(payload.newRecord as Map<String, dynamic>);
-            _attackHistory.insert(0, record);
-            notifyListeners();
+            try {
+              final record = AttackRecord.fromJson(payload.newRecord as Map<String, dynamic>);
+              _attackHistory.insert(0, record);
+              if (_attackHistory.length > 50) _attackHistory.removeRange(50, _attackHistory.length);
+              notifyListeners();
+            } catch (e) {
+              debugPrint('Realtime attack update error: $e');
+            }
           },
         )
         .subscribe();
@@ -882,9 +891,14 @@ Future<bool> deployNode({
             value: userId,
           ),
           callback: (payload) {
-            final record = AttackRecord.fromJson(payload.newRecord as Map<String, dynamic>);
-            _attackHistory.insert(0, record);
-            notifyListeners();
+            try {
+              final record = AttackRecord.fromJson(payload.newRecord as Map<String, dynamic>);
+              _attackHistory.insert(0, record);
+              if (_attackHistory.length > 50) _attackHistory.removeRange(50, _attackHistory.length);
+              notifyListeners();
+            } catch (e) {
+              debugPrint('Realtime incoming attack error: $e');
+            }
           },
         )
         .subscribe();
