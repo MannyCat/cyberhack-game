@@ -39,8 +39,8 @@ class PlayerProfile {
       level: (json['level'] as num?)?.toInt() ?? 1,
       experience: (json['experience'] as num?)?.toInt() ?? 0,
       clanId: json['clan_id'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: json['created_at'] != null ? (DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? (DateTime.tryParse(json['updated_at'] as String) ?? DateTime.now()) : DateTime.now(),
     );
   }
 
