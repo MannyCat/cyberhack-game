@@ -556,7 +556,43 @@ class GameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> deployNode({
+  
+  Future<bool> rebootNode({required String nodeId, required String userId}) async {
+    try {
+      await _supabase.from('network_nodes').update({
+        'is_online': true,
+        'health': 100,
+      }).eq('id', nodeId).eq('player_id', userId);
+
+      await _loadNetworkNodes(userId);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error rebooting node: $e');
+      _errorMessage = 'Не удалось перезагрузить узел';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> destroyNode({required String nodeId, required String userId}) async {
+    try {
+      await _supabase.from('network_nodes').delete()
+          .eq('id', nodeId).eq('player_id', userId);
+
+      await _loadNetworkNodes(userId);
+      _updateMissionProgress();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error destroying node: $e');
+      _errorMessage = 'Не удалось удалить узел';
+      notifyListeners();
+      return false;
+    }
+  }
+
+Future<bool> deployNode({
     required String userId,
     required String nodeType,
     required int health,
@@ -933,7 +969,8 @@ class GameProvider extends ChangeNotifier {
     try {
       final response = await _supabase
           .from('clans')
-          .select('*, clan_members(count), leader:profiles!clans_leader_id_fkey(username)')
+          .select('*, clan_members(count), leader:profiles(id, username)')
+          .eq('is_public', true)
           .order('created_at', ascending: false)
           .limit(limit);
 
@@ -945,7 +982,11 @@ class GameProvider extends ChangeNotifier {
             : 0;
         row['member_count'] = memberCount;
         final leader = row['leader'] as Map?;
-        row['leader_username'] = leader?['username'] as String? ?? 'Неизвестный';
+        if (leader != null) {
+          row['leader_username'] = leader['username'] as String? ?? 'Неизвестный';
+        } else {
+          row['leader_username'] = 'Неизвестный';
+        }
         return row;
       }).toList();
     } catch (e) {
