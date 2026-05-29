@@ -35,12 +35,14 @@ class _CyberHackAppState extends State<CyberHackApp> {
   late final GoRouter _router;
   late final AuthProvider _authProvider;
   late final GameProvider _gameProvider;
+  late final EventProvider _eventProvider;
 
   @override
   void initState() {
     super.initState();
     _authProvider = AuthProvider();
     _gameProvider = GameProvider();
+    _eventProvider = EventProvider();
     _router = GoRouter(
       initialLocation: '/login',
       refreshListenable: _authProvider,
@@ -49,114 +51,54 @@ class _CyberHackAppState extends State<CyberHackApp> {
         final isAuthRoute = state.matchedLocation == '/login' ||
             state.matchedLocation == '/register';
         final isLoading = _authProvider.authState == AuthState.loading;
-
         if (isLoading) return null;
         if (!isLoggedIn && !isAuthRoute) return '/login';
         if (isLoggedIn && isAuthRoute) return '/game/home';
         return null;
       },
       routes: [
-        GoRoute(
-          path: '/login',
-          builder: (context, state) => ChangeNotifierProvider.value(
-            value: _authProvider,
-            child: const LoginScreen(),
-          ),
-        ),
-        GoRoute(
-          path: '/register',
-          builder: (context, state) => ChangeNotifierProvider.value(
-            value: _authProvider,
-            child: const RegisterScreen(),
-          ),
-        ),
-        // ── Все игровые экраны внутри ShellRoute ──
-        ShellRoute(
-          builder: (context, state, child) => GameShell(child: child),
-          routes: [
-            GoRoute(
-              path: '/game/home',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: MainMenuScreen(),
-              ),
-            ),
-            GoRoute(
-              path: '/game/map',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: GameMapScreen(),
-              ),
-            ),
-            GoRoute(
-              path: '/game/network',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: NetworkOverviewScreen(),
-              ),
-            ),
-            GoRoute(
-              path: '/game/attack',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: AttackScreen(),
-              ),
-            ),
-            GoRoute(
-              path: '/game/market',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: MarketScreen(),
-              ),
-            ),
-            GoRoute(
-              path: '/game/chat',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: ChatScreen(),
-              ),
-            ),
-            GoRoute(
-              path: '/game/clan',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: ClanScreen(),
-              ),
-            ),
-            GoRoute(
-              path: '/game/leaderboard',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: LeaderboardScreen(),
-              ),
-            ),
-            GoRoute(
-              path: '/game/campaign',
-              pageBuilder: (context, state) => const NoTransitionPage(
-                child: CampaignScreen(),
-              ),
-            ),
-            GoRoute(
-              path: '/game/more',
-              redirect: (context, state) => '/game/map',
-            ),
-          ],
-        ),
-        // ── Экраны вне ShellRoute ──
-        GoRoute(
-          path: '/settings',
-          builder: (context, state) => ChangeNotifierProvider.value(
-            value: _gameProvider,
-            child: const SettingsScreen(),
-          ),
-        ),
-        GoRoute(
-          path: '/profile',
-          builder: (context, state) => ChangeNotifierProvider.value(
-            value: _gameProvider,
-            child: const ProfileScreen(),
-          ),
-        ),
+        GoRoute(path: '/login', builder: (context, state) => ChangeNotifierProvider.value(value: _authProvider, child: const LoginScreen())),
+        GoRoute(path: '/register', builder: (context, state) => ChangeNotifierProvider.value(value: _authProvider, child: const RegisterScreen())),
+        ShellRoute(builder: (context, state, child) => GameShell(child: child), routes: [
+          GoRoute(path: '/game/home', pageBuilder: (context, state) => const NoTransitionPage(child: MainMenuScreen())),
+          GoRoute(path: '/game/map', pageBuilder: (context, state) => const NoTransitionPage(child: GameMapScreen())),
+          GoRoute(path: '/game/network', pageBuilder: (context, state) => const NoTransitionPage(child: NetworkOverviewScreen())),
+          GoRoute(path: '/game/attack', pageBuilder: (context, state) => const NoTransitionPage(child: AttackScreen())),
+          GoRoute(path: '/game/market', pageBuilder: (context, state) => const NoTransitionPage(child: MarketScreen())),
+          GoRoute(path: '/game/chat', pageBuilder: (context, state) => const NoTransitionPage(child: ChatScreen())),
+          GoRoute(path: '/game/clan', pageBuilder: (context, state) => const NoTransitionPage(child: ClanScreen())),
+          GoRoute(path: '/game/leaderboard', pageBuilder: (context, state) => const NoTransitionPage(child: LeaderboardScreen())),
+          GoRoute(path: '/game/campaign', pageBuilder: (context, state) => const NoTransitionPage(child: CampaignScreen())),
+          GoRoute(path: '/game/more', redirect: (context, state) => '/game/map'),
+          GoRoute(path: '/game/events', pageBuilder: (context, state) => const NoTransitionPage(child: WeeklyEventScreen())),
+          GoRoute(path: '/game/daily-reward', pageBuilder: (context, state) => const NoTransitionPage(child: DailyRewardScreen())),
+          GoRoute(path: '/game/achievements', pageBuilder: (context, state) => const NoTransitionPage(child: AchievementScreen())),
+        ]),
+        GoRoute(path: '/settings', builder: (context, state) => ChangeNotifierProvider.value(value: _gameProvider, child: const SettingsScreen())),
+        GoRoute(path: '/profile', builder: (context, state) => ChangeNotifierProvider.value(value: _gameProvider, child: const ProfileScreen())),
       ],
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initEventProvider());
+  }
+
+  void _initEventProvider() {
+    _authProvider.addListener(() {
+      if (_authProvider.isAuthenticated) {
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId != null) _eventProvider.init(userId);
+      }
+    });
+    if (_authProvider.isAuthenticated) {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId != null) _eventProvider.init(userId);
+    }
   }
 
   @override
   void dispose() {
     _authProvider.dispose();
     _gameProvider.dispose();
+    _eventProvider.dispose();
     super.dispose();
   }
 
@@ -166,6 +108,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
       providers: [
         ChangeNotifierProvider.value(value: _authProvider),
         ChangeNotifierProvider.value(value: _gameProvider),
+        ChangeNotifierProvider.value(value: _eventProvider),
       ],
       child: MaterialApp.router(
         title: 'CyberHack',
@@ -216,24 +159,13 @@ class _CyberHackAppState extends State<CyberHackApp> {
         foregroundColor: Color(0xFF00F0FF),
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: TextStyle(
-          color: Color(0xFF00F0FF),
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 2,
-        ),
+        titleTextStyle: TextStyle(color: Color(0xFF00F0FF), fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
       ),
       cardTheme: CardThemeData(
         color: const Color(0xFF111827),
         elevation: 4,
         shadowColor: const Color(0xFF00F0FF).withValues(alpha: 0.15),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: const Color(0xFF00F0FF).withValues(alpha: 0.2),
-            width: 1,
-          ),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: const Color(0xFF00F0FF).withValues(alpha: 0.2), width: 1)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -242,24 +174,14 @@ class _CyberHackAppState extends State<CyberHackApp> {
           elevation: 4,
           shadowColor: const Color(0xFF00F0FF).withValues(alpha: 0.4),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1.5),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
+        style: TextButtonStyle.from(
           foregroundColor: const Color(0xFF00F0FF),
-          textStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1,
-          ),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 1),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -267,149 +189,53 @@ class _CyberHackAppState extends State<CyberHackApp> {
           foregroundColor: const Color(0xFF00F0FF),
           side: const BorderSide(color: Color(0xFF00F0FF), width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1.5),
         ),
       ),
-      inputDecorationTheme: InputDecorationTheme(
+      inputDecorationTheme: const InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF111827),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF2A3050)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
-            color: const Color(0xFF00F0FF).withValues(alpha: 0.3),
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(
-            color: Color(0xFF00F0FF),
-            width: 2,
-          ),
-        ),
-        hintStyle: const TextStyle(
-          color: Color(0xFF3A4060),
-          fontSize: 14,
-        ),
-        labelStyle: const TextStyle(
-          color: Color(0xFF00F0FF),
-          fontSize: 14,
-        ),
+        fillColor: Color(0xFF111827),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF2A3050))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF00F0FF).withValues(alpha: 0.3))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF00F0FF), width: 2)),
+        hintStyle: TextStyle(color: Color(0xFF3A4060), fontSize: 14),
+        labelStyle: TextStyle(color: Color(0xFF00F0FF), fontSize: 14),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Color(0xFF0D1220),
         selectedItemColor: Color(0xFF00F0FF),
         unselectedItemColor: Color(0xFF3A4060),
         type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
+        selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
         unselectedLabelStyle: TextStyle(fontSize: 11),
         elevation: 8,
       ),
       textTheme: const TextTheme(
-        headlineLarge: TextStyle(
-          color: Color(0xFF00F0FF),
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 3,
-        ),
-        headlineMedium: TextStyle(
-          color: Color(0xFF00F0FF),
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 2,
-        ),
-        headlineSmall: TextStyle(
-          color: Color(0xFFE0E6F0),
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.5,
-        ),
-        titleLarge: TextStyle(
-          color: Color(0xFFE0E6F0),
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1,
-        ),
-        titleMedium: TextStyle(
-          color: Color(0xFFE0E6F0),
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-        bodyLarge: TextStyle(
-          color: Color(0xFFC0C8D8),
-          fontSize: 16,
-        ),
-        bodyMedium: TextStyle(
-          color: Color(0xFFA0A8B8),
-          fontSize: 14,
-        ),
-        bodySmall: TextStyle(
-          color: Color(0xFF8090A0),
-          fontSize: 12,
-        ),
-        labelLarge: TextStyle(
-          color: Color(0xFF00F0FF),
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1,
-        ),
-        labelMedium: TextStyle(
-          color: Color(0xFF8090A0),
-          fontSize: 12,
-        ),
+        headlineLarge: TextStyle(color: Color(0xFF00F0FF), fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 3),
+        headlineMedium: TextStyle(color: Color(0xFF00F0FF), fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2),
+        headlineSmall: TextStyle(color: Color(0xFFE0E6F0), fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+        titleLarge: TextStyle(color: Color(0xFFE0E6F0), fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: 1),
+        titleMedium: TextStyle(color: Color(0xFFE0E6F0), fontSize: 16, fontWeight: FontWeight.w500),
+        bodyLarge: TextStyle(color: Color(0xFFC0C8D8), fontSize: 16),
+        bodyMedium: TextStyle(color: Color(0xFFA0A8B8), fontSize: 14),
+        bodySmall: TextStyle(color: Color(0xFF8090A0), fontSize: 12),
+        labelLarge: TextStyle(color: Color(0xFF00F0FF), fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1),
+        labelMedium: TextStyle(color: Color(0xFF8090A0), fontSize: 12),
       ),
-      iconTheme: const IconThemeData(
-        color: Color(0xFF00F0FF),
-        size: 24,
-      ),
-      dividerTheme: const DividerThemeData(
-        color: Color(0xFF1A2030),
-        thickness: 1,
-        space: 1,
-      ),
+      iconTheme: const IconThemeData(color: Color(0xFF00F0FF), size: 24),
+      dividerTheme: const DividerThemeData(color: Color(0xFF1A2030), thickness: 1, space: 1),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: const Color(0xFF111827),
         contentTextStyle: const TextStyle(color: Color(0xFFE0E6F0)),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(
-            color: const Color(0xFF00F0FF).withValues(alpha: 0.3),
-          ),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: const Color(0xFF00F0FF).withValues(alpha: 0.3))),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: const Color(0xFF111827),
-        titleTextStyle: const TextStyle(
-          color: Color(0xFF00F0FF),
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 2,
-        ),
-        contentTextStyle: const TextStyle(
-          color: Color(0xFFC0C8D8),
-          fontSize: 14,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: const Color(0xFF00F0FF).withValues(alpha: 0.3),
-          ),
-        ),
+        titleTextStyle: const TextStyle(color: Color(0xFF00F0FF), fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
+        contentTextStyle: const TextStyle(color: Color(0xFFC0C8D8), fontSize: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: const Color(0xFF00F0FF).withValues(alpha: 0.3))),
       ),
     );
   }
