@@ -27,20 +27,17 @@ class _GameShellState extends State<GameShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = context.read<AuthProvider>();
-      _fetchTotalPlayers();
     });
   }
 
   Future<void> _fetchTotalPlayers() async {
     try {
-      final result = await Supabase.instance.client
+      final response = await Supabase.instance.client
           .from('profiles')
-          .select('id', count: 'exact')
-          .limit(1);
+          .select('id');
       if (mounted) {
         setState(() {
-          _totalPlayers = result.count;
+          _totalPlayers = (response as List).length;
           _fetchedPlayers = true;
         });
       }
@@ -79,7 +76,6 @@ class _GameShellState extends State<GameShell> {
   void _showMoreSheet() {
     final primary = Theme.of(context).colorScheme.primary;
     final game = context.read<GameProvider>();
-    final auth = context.read<AuthProvider>();
     final incomingAttacks = game.attackHistory
         .where((a) => a.defenderId == auth.userId)
         .take(3)
@@ -232,7 +228,6 @@ class _GameShellState extends State<GameShell> {
 
   int get _incomingAttackCount {
     try {
-      final auth = context.read<AuthProvider>();
       final game = context.read<GameProvider>();
       return game.attackHistory
           .where((a) => a.defenderId == auth.userId && a.status == 'pending')
