@@ -6,7 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../config/game_config.dart';
 
-// ─── Главное меню — Мобильный хаб стратегии ───────────────────────────────
+// ─── Главное меню — Хаб стратегии в стиле Vikings ─────────────────────────
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -36,6 +36,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     return 'Новичок';
   }
 
+  Color _rankColor(int level) {
+    if (level >= 50) return const Color(0xFFFFD700);
+    if (level >= 40) return const Color(0xFF00F0FF);
+    if (level >= 30) return const Color(0xFFa855f7);
+    if (level >= 20) return const Color(0xFF00ff41);
+    if (level >= 10) return const Color(0xFFff9800);
+    return const Color(0xFF4a5568);
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -49,6 +58,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     final xpPercent = xpNeeded > 0 ? (xp / xpNeeded).clamp(0.0, 1.0) : 0.0;
     final onlineNodes = game.networkNodes.where((n) => n.isOnline).length;
     final totalNodes = game.networkNodes.length;
+    final income = game.passiveIncomePerTick;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0a0e17),
@@ -64,92 +74,67 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             }
           },
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             children: [
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
 
               // ── Карточка игрока ──────────────────────────────────────
               _PlayerCard(
                 username: username,
                 level: level,
                 rankTitle: _rankTitle(level),
+                rankColor: _rankColor(level),
                 xpPercent: xpPercent,
                 xp: xp,
                 xpNeeded: xpNeeded,
                 credits: credits,
                 onlineNodes: onlineNodes,
                 totalNodes: totalNodes,
+                income: income,
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               // ── Подсказка для новичков ──────────────────────────────
               if (totalNodes == 0) _NewPlayerHint(),
 
+              // ── Быстрые уведомления ───────────────────────────────
+              if (totalNodes > 0 && onlineNodes == 0)
+                _OfflineNodesWarning(nodeCount: totalNodes),
+
+              // ── Основные действия (самые частые) ───────────────────
+              _sectionTitle('ПЕРВЫЕ ДЕЙСТВИЯ'),
+              const SizedBox(height: 8),
+
+              // Две главные кнопки: База и Атака — в стиле Vikings
+              _buildPrimaryActions(game),
+
               const SizedBox(height: 12),
 
-              // ── Основные действия ────────────────────────────────────
-              _sectionTitle('ОСНОВНЫЕ ДЕЙСТВИЯ'),
+              // ── Второстепенные действия ─────────────────────────────
+              _sectionTitle('ЗАДАЧИ'),
               const SizedBox(height: 8),
               _ActionGrid(children: [
                 _ActionCard(
-                  icon: Icons.account_tree,
-                  label: 'Моя база',
-                  subtitle: onlineNodes > 0
-                      ? '$onlineNodes узлов онлайн'
-                      : 'Построй первый узел!',
-                  color: const Color(0xFF00ff41),
-                  onTap: () => context.go('/game/network'),
-                ),
-                _ActionCard(
-                  icon: Icons.gps_fixed,
-                  label: 'Атаковать',
-                  subtitle: 'Выбери цель и атакуй',
-                  color: const Color(0xFFff4444),
-                  onTap: () => context.go('/game/attack'),
-                ),
-                _ActionCard(
                   icon: Icons.storefront,
-                  label: 'Магазин',
-                  subtitle: 'Купи снаряжение',
+                  label: 'Чёрный рынок',
+                  subtitle: 'Снаряжение и софт',
                   color: const Color(0xFFff9800),
                   onTap: () => context.go('/game/market'),
                 ),
                 _ActionCard(
+                  icon: Icons.military_tech,
+                  label: 'Миссии',
+                  subtitle: 'PvE кампания',
+                  color: const Color(0xFFFFD700),
+                  onTap: () => context.go('/game/campaign'),
+                ),
+                _ActionCard(
                   icon: Icons.public,
                   label: 'Карта мира',
-                  subtitle: 'Глобальная карта',
+                  subtitle: 'Глобальная сеть',
                   color: const Color(0xFF00e5ff),
                   onTap: () => context.go('/game/map'),
-                ),
-              ]),
-
-              const SizedBox(height: 20),
-
-              // ── Общение и рейтинг ────────────────────────────────────
-              _sectionTitle('ОБЩЕНИЕ'),
-              const SizedBox(height: 8),
-              _ActionGrid(children: [
-                _ActionCard(
-                  icon: Icons.chat_bubble,
-                  label: 'Чат',
-                  subtitle: 'Глобальный и клановый',
-                  color: const Color(0xFF00e5ff),
-                  onTap: () => context.go('/game/chat'),
-                ),
-                _ActionCard(
-                  icon: Icons.groups,
-                  label: 'Клан',
-                  subtitle: 'Создай или вступи',
-                  color: const Color(0xFFa855f7),
-                  onTap: () => context.go('/game/clan'),
-                ),
-                _ActionCard(
-                  icon: Icons.leaderboard,
-                  label: 'Рейтинг',
-                  subtitle: 'Лучшие хакеры',
-                  color: const Color(0xFFe91e63),
-                  onTap: () => context.go('/game/leaderboard'),
                 ),
                 _ActionCard(
                   icon: Icons.person,
@@ -160,12 +145,90 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 ),
               ]),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
+              // ── Общение и клан ─────────────────────────────────────
+              _sectionTitle('АЛЬЯНС'),
+              const SizedBox(height: 8),
+              _ActionGrid(children: [
+                _ActionCard(
+                  icon: Icons.chat_bubble,
+                  label: 'Связь',
+                  subtitle: 'Общий и клановый чат',
+                  color: const Color(0xFF00e5ff),
+                  badge: null,
+                  onTap: () => context.go('/game/chat'),
+                ),
+                _ActionCard(
+                  icon: Icons.groups,
+                  label: 'Банда',
+                  subtitle: 'Создай или вступи',
+                  color: const Color(0xFFa855f7),
+                  badge: null,
+                  onTap: () => context.go('/game/clan'),
+                ),
+                _ActionCard(
+                  icon: Icons.leaderboard,
+                  label: 'Рейтинг',
+                  subtitle: 'Лучшие хакеры мира',
+                  color: const Color(0xFFe91e63),
+                  badge: null,
+                  onTap: () => context.go('/game/leaderboard'),
+                ),
+                _ActionCard(
+                  icon: Icons.settings,
+                  label: 'Настройки',
+                  subtitle: 'Аккаунт и оформление',
+                  color: const Color(0xFF4a5568),
+                  badge: null,
+                  onTap: () => context.go('/settings'),
+                ),
+              ]),
+
+              const SizedBox(height: 20),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // ── Primary Action Buttons (База + Атака) ──
+
+  Widget _buildPrimaryActions(GameProvider game) {
+    final onlineNodes = game.networkNodes.where((n) => n.isOnline).length;
+    final totalNodes = game.networkNodes.length;
+
+    return Row(
+      children: [
+        // Кнопка "Моя база" — зелёная, большая
+        Expanded(
+          child: _PrimaryActionCard(
+            icon: Icons.account_tree,
+            label: 'МОЯ БАЗА',
+            subtitle: onlineNodes > 0
+                ? '$onlineNodes/$totalNodes узлов'
+                : 'Построй первый узел!',
+            color: const Color(0xFF00ff41),
+            glowColor: const Color(0xFF00ff41).withValues(alpha: 0.15),
+            onTap: () => context.go('/game/network'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        // Кнопка "Атаковать" — красная, большая
+        Expanded(
+          child: _PrimaryActionCard(
+            icon: Icons.gps_fixed,
+            label: 'АТАКА',
+            subtitle: game.availableTargets.isNotEmpty
+                ? '${game.availableTargets.length} целей'
+                : 'Поиск целей...',
+            color: const Color(0xFFFF0040),
+            glowColor: const Color(0xFFFF0040).withValues(alpha: 0.15),
+            onTap: () => context.go('/game/attack'),
+          ),
+        ),
+      ],
     );
   }
 
@@ -176,9 +239,104 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         text,
         style: const TextStyle(
           color: Color(0xFF4a5568),
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: FontWeight.bold,
           letterSpacing: 2,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Primary Action Card (large button) ─────────────────────────────────────
+
+class _PrimaryActionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color color;
+  final Color glowColor;
+  final VoidCallback onTap;
+
+  const _PrimaryActionCard({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.color,
+    required this.glowColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF111827),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF111827),
+                glowColor,
+              ],
+            ),
+            border: Border.all(
+              color: color.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: glowColor,
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: color.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  fontSize: 11,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -191,29 +349,33 @@ class _PlayerCard extends StatelessWidget {
   final String username;
   final int level;
   final String rankTitle;
+  final Color rankColor;
   final double xpPercent;
   final int xp;
   final int xpNeeded;
   final int credits;
   final int onlineNodes;
   final int totalNodes;
+  final int income;
 
   const _PlayerCard({
     required this.username,
     required this.level,
     required this.rankTitle,
+    required this.rankColor,
     required this.xpPercent,
     required this.xp,
     required this.xpNeeded,
     required this.credits,
     required this.onlineNodes,
     required this.totalNodes,
+    required this.income,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -222,31 +384,31 @@ class _PlayerCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF00ff41).withValues(alpha: 0.2),
+          color: const Color(0xFF00ff41).withValues(alpha: 0.15),
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00ff41).withValues(alpha: 0.08),
+            color: const Color(0xFF00ff41).withValues(alpha: 0.06),
             blurRadius: 20,
           ),
         ],
       ),
       child: Column(
         children: [
-          // Аватар + имя + уровень
+          // Аватар + имя + уровень + кредиты
           Row(
             children: [
               // Аватар
               Container(
-                width: 52,
-                height: 52,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF00ff41), Color(0xFF00e5ff)],
+                  gradient: LinearGradient(
+                    colors: [rankColor, rankColor.withValues(alpha: 0.5)],
                   ),
                   border: Border.all(
-                    color: const Color(0xFF00ff41).withValues(alpha: 0.5),
+                    color: rankColor.withValues(alpha: 0.5),
                     width: 2,
                   ),
                 ),
@@ -257,13 +419,13 @@ class _PlayerCard extends StatelessWidget {
                         : '?',
                     style: const TextStyle(
                       color: Color(0xFF0a0e17),
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               // Информация
               Expanded(
                 child: Column(
@@ -273,26 +435,26 @@ class _PlayerCard extends StatelessWidget {
                       username.isEmpty ? 'Хакер' : username,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                              horizontal: 6, vertical: 1),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF00ff41)
-                                .withValues(alpha: 0.15),
+                            color: rankColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'Уровень $level',
-                            style: const TextStyle(
-                              color: Color(0xFF00ff41),
-                              fontSize: 12,
+                            'УР $level',
+                            style: TextStyle(
+                              color: rankColor,
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -300,9 +462,10 @@ class _PlayerCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text(
                           rankTitle,
-                          style: const TextStyle(
-                            color: Color(0xFF4a5568),
-                            fontSize: 12,
+                          style: TextStyle(
+                            color: rankColor.withValues(alpha: 0.7),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -314,19 +477,28 @@ class _PlayerCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    '$credits',
-                    style: const TextStyle(
-                      color: Color(0xFF00ff41),
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.monetization_on, color: Color(0xFFFFD700), size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$credits',
+                        style: const TextStyle(
+                          color: Color(0xFFFFD700),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                  const Text(
-                    'кредитов',
+                  Text(
+                    income > 0 ? '+$income/30с' : 'кредитов',
                     style: TextStyle(
-                      color: Color(0xFF4a5568),
-                      fontSize: 11,
+                      color: income > 0
+                          ? const Color(0xFF00ff41).withValues(alpha: 0.6)
+                          : const Color(0xFF4a5568),
+                      fontSize: 10,
                     ),
                   ),
                 ],
@@ -334,11 +506,12 @@ class _PlayerCard extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
-          // Прогресс XP
+          // Прогресс XP + узлы в одну строку
           Row(
             children: [
+              // XP бар
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,68 +520,60 @@ class _PlayerCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Опыт',
+                          'ОПЫТ',
                           style: TextStyle(
                             color: Color(0xFF4a5568),
-                            fontSize: 11,
+                            fontSize: 9,
+                            letterSpacing: 1,
                           ),
                         ),
                         Text(
                           '$xp / $xpNeeded',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            fontSize: 11,
+                            color: Colors.white.withValues(alpha: 0.4),
+                            fontSize: 9,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(3),
                       child: LinearProgressIndicator(
                         value: xpPercent,
-                        minHeight: 8,
+                        minHeight: 6,
                         backgroundColor: const Color(0xFF0d1117),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                            Color(0xFF00ff41)),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            rankColor),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 16),
               // Узлы
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.dns,
-                          color: Color(0xFF00e5ff), size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$onlineNodes',
-                        style: const TextStyle(
-                          color: Color(0xFF00e5ff),
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        ' / $totalNodes',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                  Icon(
+                    Icons.dns,
+                    color: onlineNodes > 0 ? const Color(0xFF00e5ff) : const Color(0xFF4a5568),
+                    size: 16,
                   ),
-                  const Text(
-                    'узлов онлайн',
+                  const SizedBox(width: 4),
+                  Text(
+                    '$onlineNodes',
                     style: TextStyle(
-                      color: Color(0xFF4a5568),
-                      fontSize: 11,
+                      color: onlineNodes > 0 ? const Color(0xFF00e5ff) : const Color(0xFF4a5568),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    ' / $totalNodes',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -427,18 +592,19 @@ class _NewPlayerHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFff9800).withValues(alpha: 0.1),
+        color: const Color(0xFFff9800).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFff9800).withValues(alpha: 0.3),
+          color: const Color(0xFFff9800).withValues(alpha: 0.25),
         ),
       ),
       child: Row(
         children: [
-          const Icon(Icons.lightbulb, color: Color(0xFFff9800), size: 24),
-          const SizedBox(width: 12),
+          const Icon(Icons.lightbulb, color: Color(0xFFff9800), size: 22),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,16 +613,16 @@ class _NewPlayerHint extends StatelessWidget {
                   'Добро пожаловать, хакер!',
                   style: TextStyle(
                     color: Color(0xFFff9800),
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   'Начни с постройки базы — открой «Моя база» и разверни первый узел.',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 11,
                   ),
                 ),
               ],
@@ -464,7 +630,7 @@ class _NewPlayerHint extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.arrow_forward,
-                color: Color(0xFFff9800)),
+                color: Color(0xFFff9800), size: 20),
             onPressed: () => context.go('/game/network'),
           ),
         ],
@@ -473,7 +639,64 @@ class _NewPlayerHint extends StatelessWidget {
   }
 }
 
-// ─── Сетка действий ────────────────────────────────────────────────────────
+// ─── Предупреждение о офлайн узлах ─────────────────────────────────────────
+
+class _OfflineNodesWarning extends StatelessWidget {
+  final int nodeCount;
+
+  const _OfflineNodesWarning({required this.nodeCount});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFF0040).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFFF0040).withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning, color: Color(0xFFFF0040), size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Все узлы офлайн!',
+                  style: TextStyle(
+                    color: Color(0xFFFF0040),
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Доход приостановлен. Перезагрузите узлы в базе.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.power_settings_new,
+                color: Color(0xFFFF0040), size: 20),
+            onPressed: () => context.go('/game/network'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Сетка действий ───────────────────────────────────────────────────────
 
 class _ActionGrid extends StatelessWidget {
   final List<Widget> children;
@@ -486,9 +709,9 @@ class _ActionGrid extends StatelessWidget {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 1.25,
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      childAspectRatio: 1.2,
       children: children,
     );
   }
@@ -499,6 +722,7 @@ class _ActionCard extends StatelessWidget {
   final String label;
   final String subtitle;
   final Color color;
+  final String? badge;
   final VoidCallback onTap;
 
   const _ActionCard({
@@ -506,6 +730,7 @@ class _ActionCard extends StatelessWidget {
     required this.label,
     required this.subtitle,
     required this.color,
+    this.badge,
     required this.onTap,
   });
 
@@ -518,11 +743,11 @@ class _ActionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: color.withValues(alpha: 0.15),
+              color: color.withValues(alpha: 0.12),
             ),
           ),
           child: Column(
@@ -530,13 +755,13 @@ class _ActionCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: color, size: 22),
+                child: Icon(icon, color: color, size: 20),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -544,17 +769,17 @@ class _ActionCard extends StatelessWidget {
                   Text(
                     label,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.35),
-                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.3),
+                      fontSize: 10,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -568,4 +793,3 @@ class _ActionCard extends StatelessWidget {
     );
   }
 }
-
