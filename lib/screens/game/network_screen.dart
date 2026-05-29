@@ -332,7 +332,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                 const Text(
                   ' CR',
                   style: TextStyle(
-                    color: _Theme.accentGold.withValues(alpha: 0.7),
+                    color: const Color(0xB2ff41),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
