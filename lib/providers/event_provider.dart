@@ -72,9 +72,9 @@ class WeeklyEvent {
     if (remaining.isNegative) return 'Завершён';
     final days = remaining.inDays;
     final hours = remaining.inHours % 24;
-    if (days > 0) return '${days}д ${hours}ч';
+    if (days > 0) return '$daysд $hoursч';
     final minutes = remaining.inMinutes % 60;
-    return '${hours}ч ${minutes}м';
+    return '$hoursч $minutesм';
   }
 
   bool get isMarketDiscount => eventType == 'black_friday';
@@ -443,8 +443,4 @@ class EventProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }
