@@ -131,6 +131,8 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
       targetNodeId: null,
       attackType: attackType.name,
       damage: attackType.damage,
+      creditCost: attackType.creditCost,
+      cpuCost: attackType.cpuCost,
     );
 
     if (!mounted) return;
@@ -737,4 +739,92 @@ class _AttackType {
     required this.color,
     required this.description,
   });
+}
+
+
+// ─── Incoming Attacks Dialog ─────────────────────────────────────────────────
+
+class _IncomingAttacksDialog extends StatelessWidget {
+  final List<AttackRecord> attacks;
+
+  const _IncomingAttacksDialog({required this.attacks});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF111827),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFFF0040), width: 1.5),
+      ),
+      title: const Row(
+        children: [
+          Icon(Icons.shield, color: Color(0xFFFF0040)),
+          SizedBox(width: 10),
+          Text('ВОХРУЖЁННАЯ СЕТЬ', style: TextStyle(color: Color(0xFFFF0040))),
+        ],
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: attacks.take(10).map((attack) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1a1f2e),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF2a2f40)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.gps_fixed, color: Color(0xFFFF0040), size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        attack.attackType.toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xFFFF0040),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '-${attack.damage} HP',
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'От: ${attack.defenderName ?? "Неизвестный"}',
+                    style: const TextStyle(color: Color(0xFF7b8ca8), fontSize: 10),
+                  ),
+                  Text(
+                    'Украдено: ${attack.creditsStolen} CR',
+                    style: const TextStyle(color: Color(0xFFFFD700), fontSize: 10),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('ЗАКРЫТЬ'),
+        ),
+      ],
+    );
+  }
 }
