@@ -320,10 +320,12 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> resetPassword({required String email}) async {
     _errorMessage = null;
+    _errorMessage = null;
 
     try {
       await _supabase.auth.resetPasswordForEmail(email);
       return true;
+      notifyListeners();
     } on AuthException catch (e) {
       _errorMessage = _mapAuthError(e.message);
       return false;
