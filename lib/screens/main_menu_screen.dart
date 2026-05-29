@@ -162,10 +162,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
               const SizedBox(height: 20),
 
-              // ── Нижняя кнопка ────────────────────────────────────────
-              _BottomActions(),
-
-              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -573,48 +569,3 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
-// ─── Нижние кнопки ─────────────────────────────────────────────────────────
-
-class _BottomActions extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => context.go('/settings'),
-            icon: const Icon(Icons.settings, size: 18),
-            label: const Text('Настройки'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF4a5568),
-              side: const BorderSide(color: Color(0xFF1a2030)),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () async {
-              final auth = context.read<AuthProvider>();
-              await auth.logout();
-            },
-            icon: const Icon(Icons.power_settings_new, size: 18),
-            label: const Text('Выйти'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFff4444),
-              side: const BorderSide(color: Color(0xFF331111)),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
