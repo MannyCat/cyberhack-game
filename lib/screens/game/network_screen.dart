@@ -540,6 +540,11 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                                 ),
                               ),
                             ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_forever, color: Color(0xFFFF0040), size: 20),
+                              onPressed: () => _destroyNode(node, game, auth),
+                              tooltip: 'Удалить узел',
+                            ),
                           ],
                         ),
 
