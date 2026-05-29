@@ -139,7 +139,6 @@ class _AchievementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final a = achievement;
 
     final iconMap = {
