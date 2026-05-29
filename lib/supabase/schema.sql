@@ -1271,3 +1271,313 @@ values
     10
   )
 on conflict do nothing;
+
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- WEEKLY EVENTS SYSTEM
+-- ═══════════════════════════════════════════════════════════════════════
+
+create table if not exists public.weekly_events (
+    id uuid primary key default gen_random_uuid(),
+    name text not null,
+    description text,
+    event_type text not null check (event_type in ('pvp_tournament', 'black_friday', 'clan_raid', 'bug_hunt')),
+    start_date timestamptz not null,
+    end_date timestamptz not null,
+    is_active boolean default false,
+    reward_credits int default 0,
+    reward_xp int default 0,
+    reward_item_id uuid references public.market_items(id),
+    bonus_modifier jsonb default '{}'::jsonb,
+    created_at timestamptz default now()
+);
+
+create table if not exists public.event_participation (
+    id uuid primary key default gen_random_uuid(),
+    player_id uuid not null references public.profiles(id) on delete cascade,
+    event_id uuid not null references public.weekly_events(id) on delete cascade,
+    score int default 0,
+    attempts int default 0,
+    best_score int default 0,
+    has_claimed_reward boolean default false,
+    rank_position int default 0,
+    created_at timestamptz default now(),
+    updated_at timestamptz default now(),
+    unique(player_id, event_id)
+);
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- DAILY REWARDS (Streak System)
+-- ═══════════════════════════════════════════════════════════════════════
+
+create table if not exists public.daily_rewards (
+    id uuid primary key default gen_random_uuid(),
+    player_id uuid not null references public.profiles(id) on delete cascade,
+    streak_day int not null default 1,
+    last_claim_date date,
+    current_streak int not null default 0,
+    best_streak int not null default 0,
+    total_claimed int not null default 0,
+    created_at timestamptz default now(),
+    updated_at timestamptz default now(),
+    unique(player_id)
+);
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- ACHIEVEMENTS SYSTEM
+-- ═══════════════════════════════════════════════════════════════════════
+
+create table if not exists public.achievements (
+    id uuid primary key default gen_random_uuid(),
+    key text not null unique,
+    name text not null,
+    description text,
+    icon text not null default 'star',
+    category text not null default 'general' check (category in ('network', 'combat', 'economy', 'social', 'special')),
+    requirement jsonb not null default '{}'::jsonb,
+    reward_credits int default 0,
+    reward_xp int default 0,
+    sort_order int default 0,
+    is_hidden boolean default false
+);
+
+create table if not exists public.player_achievements (
+    id uuid primary key default gen_random_uuid(),
+    player_id uuid not null references public.profiles(id) on delete cascade,
+    achievement_id uuid not null references public.achievements(id) on delete cascade,
+    progress jsonb not null default '{}'::jsonb,
+    is_completed boolean default false,
+    is_claimed boolean default false,
+    completed_at timestamptz,
+    claimed_at timestamptz,
+    created_at timestamptz default now(),
+    unique(player_id, achievement_id)
+);
+
+-- ═══════════════════════════════════════════════════════════════════════
+-- RPC FUNCTIONS FOR NEW SYSTEMS
+-- ═══════════════════════════════════════════════════════════════════════
+
+-- Claim daily reward (with streak tracking)
+create or replace function public.claim_daily_reward(p_player_id uuid)
+returns jsonb as $$
+declare
+    v_reward record;
+    v_today date := current_date;
+    v_streak int;
+    v_rewards jsonb := '[
+        {"day":1,"credits":100,"xp":10},
+        {"day":2,"credits":200,"xp":20},
+        {"day":3,"credits":300,"xp":30},
+        {"day":4,"credits":500,"xp":50},
+        {"day":5,"credits":800,"xp":80},
+        {"day":6,"credits":1200,"xp":120},
+        {"day":7,"credits":2000,"xp":250}
+    ]'::jsonb;
+begin
+    -- Upsert daily reward record
+    insert into public.daily_rewards (player_id, streak_day, last_claim_date, current_streak, total_claimed)
+    values (p_player_id, 1, null, 0, 0)
+    on conflict (player_id) do nothing;
+
+    select * into v_reward from public.daily_rewards where player_id = p_player_id;
+
+    -- Check if already claimed today
+    if v_reward.last_claim_date = v_today then
+        return jsonb_build_object('success', false, 'message', 'Награда уже получена сегодня');
+    end if;
+
+    -- Calculate streak
+    if v_reward.last_claim_date = v_today - 1 then
+        v_streak := least(v_reward.current_streak + 1, 7);
+    elsif v_reward.last_claim_date < v_today - 1 then
+        v_streak := 1;
+    else
+        v_streak := 1;
+    end if;
+
+    -- Get reward for current day
+    v_reward.streak_day := v_streak;
+    v_reward.current_streak := v_streak;
+    v_reward.last_claim_date := v_today;
+    v_reward.total_claimed := v_reward.total_claimed + 1;
+    if v_streak > v_reward.best_streak then
+        v_reward.best_streak := v_streak;
+    end if;
+
+    -- Apply credits and xp reward
+    update public.profiles
+    set credits = credits + (v_rewards->>(v_streak-1)->>'credits')::int,
+        experience = experience + (v_rewards->>(v_streak-1)->>'xp')::int
+    where id = p_player_id;
+
+    -- Save daily reward state
+    update public.daily_rewards
+    set streak_day = v_streak,
+        last_claim_date = v_today,
+        current_streak = v_streak,
+        best_streak = greatest(best_streak, v_streak),
+        total_claimed = total_claimed + 1,
+        updated_at = now()
+    where player_id = p_player_id;
+
+    return jsonb_build_object(
+        'success', true,
+        'streak', v_streak,
+        'credits', (v_rewards->>(v_streak-1)->>'credits')::int,
+        'xp', (v_rewards->>(v_streak-1)->>'xp')::int,
+        'total_claimed', v_reward.total_claimed + 1
+    );
+end;
+$$ language plpgsql security definer;
+
+-- Get active weekly events
+create or replace function public.get_active_events()
+returns setof public.weekly_events as $$
+begin
+    return query
+    select * from public.weekly_events
+    where is_active = true
+      and start_date <= now()
+      and end_date >= now()
+    order by start_date;
+end;
+$$ language plpgsql security definer stable;
+
+-- Join event
+create or replace function public.join_event(p_player_id uuid, p_event_id uuid)
+returns boolean as $$
+begin
+    insert into public.event_participation (player_id, event_id)
+    values (p_player_id, p_event_id)
+    on conflict (player_id, event_id) do nothing;
+    return true;
+end;
+$$ language plpgsql security definer;
+
+-- Update event score
+create or replace function public.update_event_score(p_player_id uuid, p_event_id uuid, p_score int)
+returns boolean as $$
+begin
+    update public.event_participation
+    set score = score + p_score,
+        attempts = attempts + 1,
+        best_score = greatest(best_score, p_score),
+        updated_at = now()
+    where player_id = p_player_id and event_id = p_event_id;
+    return true;
+end;
+$$ language plpgsql security definer;
+
+-- Check and unlock achievements
+create or replace function public.check_achievements(p_player_id uuid)
+returns setof uuid as $$
+declare
+    v_profile record;
+    v_node_count int;
+    v_attack_count int;
+    v_max_streak int;
+begin
+    select * into v_profile from public.profiles where id = p_player_id;
+    select count(*) into v_node_count from public.network_nodes where player_id = p_player_id;
+    select count(*) into v_attack_count from public.attacks where attacker_id = p_player_id;
+    select coalesce(best_streak, 0) into v_max_streak from public.daily_rewards where player_id = p_player_id;
+
+    -- First Node
+    if v_node_count >= 1 then
+        insert into public.player_achievements (player_id, achievement_id, progress, is_completed, completed_at)
+        select p_player_id, id, '{"nodes":1}'::jsonb, true, now()
+        from public.achievements where key = 'first_node'
+        on conflict (player_id, achievement_id) do nothing
+        returning achievement_id;
+    end if;
+
+    -- Network Builder (5 nodes)
+    if v_node_count >= 5 then
+        insert into public.player_achievements (player_id, achievement_id, progress, is_completed, completed_at)
+        select p_player_id, id, jsonb_build_object('nodes', v_node_count)::jsonb, true, now()
+        from public.achievements where key = 'network_builder'
+        on conflict (player_id, achievement_id) do nothing
+        returning achievement_id;
+    end if;
+
+    -- First Blood (first attack)
+    if v_attack_count >= 1 then
+        insert into public.player_achievements (player_id, achievement_id, progress, is_completed, completed_at)
+        select p_player_id, id, jsonb_build_object('attacks', v_attack_count)::jsonb, true, now()
+        from public.achievements where key = 'first_blood'
+        on conflict (player_id, achievement_id) do nothing
+        returning achievement_id;
+    end if;
+
+    -- Veteran (100 attacks)
+    if v_attack_count >= 100 then
+        insert into public.player_achievements (player_id, achievement_id, progress, is_completed, completed_at)
+        select p_player_id, id, jsonb_build_object('attacks', v_attack_count)::jsonb, true, now()
+        from public.achievements where key = 'veteran'
+        on conflict (player_id, achievement_id) do nothing
+        returning achievement_id;
+    end if;
+
+    -- Millionaire (1M credits)
+    if v_profile.credits >= 1000000 then
+        insert into public.player_achievements (player_id, achievement_id, progress, is_completed, completed_at)
+        select p_player_id, id, jsonb_build_object('credits', v_profile.credits)::jsonb, true, now()
+        from public.achievements where key = 'millionaire'
+        on conflict (player_id, achievement_id) do nothing
+        returning achievement_id;
+    end if;
+
+    -- Streak Master (7 day streak)
+    if v_max_streak >= 7 then
+        insert into public.player_achievements (player_id, achievement_id, progress, is_completed, completed_at)
+        select p_player_id, id, jsonb_build_object('streak', v_max_streak)::jsonb, true, now()
+        from public.achievements where key = 'streak_master'
+        on conflict (player_id, achievement_id) do nothing
+        returning achievement_id;
+    end if;
+
+    return;
+end;
+$$ language plpgsql security definer;
+
+-- Seed default achievements
+create or replace function public.seed_achievements()
+returns void as $$
+begin
+    insert into public.achievements (key, name, description, icon, category, reward_credits, reward_xp, sort_order) values
+    ('first_node', 'Первый узел', 'Разверните свой первый сетевой узел', 'dns', 'network', 500, 50, 1),
+    ('network_builder', 'Строитель сети', 'Разверните 5 или более узлов', 'account_tree', 'network', 2000, 200, 2),
+    ('network_empire', 'Сетевая империя', 'Разверните 15 или более узлов', 'hub', 'network', 10000, 500, 3),
+    ('first_blood', 'Первая кровь', 'Проведите свою первую атаку', 'gps_fixed', 'combat', 300, 25, 10),
+    ('aggressor', 'Агрессор', 'Проведите 25 атак', 'flash_on', 'combat', 1500, 100, 11),
+    ('veteran', 'Ветеран', 'Проведите 100 атак', 'military_tech', 'combat', 5000, 300, 12),
+    ('millionaire', 'Миллионер', 'Накопите 1,000,000 кредитов', 'monetization_on', 'economy', 0, 1000, 20),
+    'trader', 'Торговец', 'Купите 10 товаров на рынке', 'storefront', 'economy', 1000, 100, 21),
+    ('clan_founder', 'Основатель', 'Создайте свой клан', 'groups', 'social', 500, 50, 30),
+    ('streak_master', 'Мастер streak''а', 'Добейтесь 7-дневной серии наград', 'local_fire_department', 'special', 3000, 200, 40)
+    on conflict (key) do nothing;
+end;
+$$ language plpgsql security definer;
+
+-- RLS for new tables
+alter table public.weekly_events enable row level security;
+alter table public.event_participation enable row level security;
+alter table public.daily_rewards enable row level security;
+alter table public.achievements enable row level security;
+alter table public.player_achievements enable row level security;
+
+create policy "weekly_events_select" on public.weekly_events for select using (true);
+create policy "event_participation_select" on public.event_participation for select using (player_id = auth.uid());
+create policy "event_participation_insert" on public.event_participation for insert with check (player_id = auth.uid());
+create policy "event_participation_update" on public.event_participation for update using (player_id = auth.uid());
+create policy "daily_rewards_select" on public.daily_rewards for select using (player_id = auth.uid());
+create policy "daily_rewards_insert" on public.daily_rewards for insert with check (player_id = auth.uid());
+create policy "daily_rewards_update" on public.daily_rewards for update using (player_id = auth.uid());
+create policy "achievements_select" on public.achievements for select using (true);
+create policy "player_achievements_select" on public.player_achievements for select using (player_id = auth.uid());
+create policy "player_achievements_insert" on public.player_achievements for insert with check (player_id = auth.uid());
+create policy "player_achievements_update" on public.player_achievements for update using (player_id = auth.uid());
+
+-- Seed events and achievements on first run
+select public.seed_achievements();
