@@ -54,6 +54,9 @@ class ResourceBar extends StatefulWidget {
 class _ResourceBarState extends State<ResourceBar>
     with TickerProviderStateMixin {
   late AnimationController _controller;
+  CurvedAnimation? _curvedCredits;
+  CurvedAnimation? _curvedCpu;
+  CurvedAnimation? _curvedBandwidth;
   late Animation<double> _creditsAnim;
   late Animation<double> _cpuAnim;
   late Animation<double> _bandwidthAnim;
@@ -87,17 +90,23 @@ class _ResourceBarState extends State<ResourceBar>
       _creditsAnim = Tween<double>(
         begin: _prevCredits.toDouble(),
         end: widget.credits.toDouble(),
-      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+      _curvedCredits?.dispose();
+      _curvedCpu?.dispose();
+      _curvedBandwidth?.dispose();
+      _curvedCredits = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+      ).animate(_curvedCredits!);
 
       _cpuAnim = Tween<double>(
         begin: _prevCpu.toDouble(),
         end: widget.cpu.toDouble(),
-      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+      _curvedCpu = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+      ).animate(_curvedCpu!);
 
       _bandwidthAnim = Tween<double>(
         begin: _prevBandwidth.toDouble(),
         end: widget.bandwidth.toDouble(),
-      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+      _curvedCpu = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+      ).animate(_curvedCpu!);
 
       _prevCredits = widget.credits;
       _prevCpu = widget.cpu;
@@ -112,6 +121,9 @@ class _ResourceBarState extends State<ResourceBar>
 
   @override
   void dispose() {
+    _curvedCredits?.dispose();
+    _curvedCpu?.dispose();
+    _curvedBandwidth?.dispose();
     _controller.dispose();
     super.dispose();
   }
