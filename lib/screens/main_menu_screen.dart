@@ -128,7 +128,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   label: 'Ежедневная награда',
                   subtitle: 'Стрик-бонусы',
                   color: const Color(0xFFFFD700),
-                  onTap: () => context.go('/game/daily_reward'),
+                  onTap: () => context.go('/game/daily-reward'),
                 ),
                 _ActionCard(
                   icon: Icons.military_tech,
@@ -836,7 +836,7 @@ class _DailyRewardBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.go('/game/daily_reward'),
+      onTap: () => context.go('/game/daily-reward'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
