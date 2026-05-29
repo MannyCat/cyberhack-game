@@ -39,6 +39,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _inputFocus = FocusNode();
   DateTime? _lastMessageTime;
+  DateTime? _lastGlobalSent;
+  DateTime? _lastClanSent;
 
   bool _isLoading = false;
   bool _isTyping = false;
@@ -265,14 +267,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final text = _textController.text.trim();
     if (text.isEmpty || _myUserId == null) return;
 
-    // Rate limit: max 1 message per 2 seconds
-    if (_lastMessageTime != null) {
-      final elapsed = DateTime.now().difference(_lastMessageTime!).inMilliseconds;
+    // Rate limit: max 1 message per 2 seconds (separate per chat tab)
+    final lastSent = isClanTab ? _lastClanSent : _lastGlobalSent;
+    if (lastSent != null) {
+      final elapsed = DateTime.now().difference(lastSent).inMilliseconds;
       if (elapsed < 2000) {
         final remaining = ((2000 - elapsed) / 1000).toStringAsFixed(1);
         _showSnackBar('Подождите $remainingс перед отправкой', Colors.orangeAccent);
         return;
       }
+    }
+    if (isClanTab) {
+      _lastClanSent = DateTime.now();
+    } else {
+      _lastGlobalSent = DateTime.now();
     }
     _lastMessageTime = DateTime.now();
 
