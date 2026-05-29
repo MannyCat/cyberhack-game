@@ -76,6 +76,7 @@ class _GameShellState extends State<GameShell> {
   void _showMoreSheet() {
     final primary = Theme.of(context).colorScheme.primary;
     final game = context.read<GameProvider>();
+    final auth = context.read<AuthProvider>();
     final incomingAttacks = game.attackHistory
         .where((a) => a.defenderId == auth.userId)
         .take(3)
@@ -229,6 +230,7 @@ class _GameShellState extends State<GameShell> {
   int get _incomingAttackCount {
     try {
       final game = context.read<GameProvider>();
+      final auth = context.read<AuthProvider>();
       return game.attackHistory
           .where((a) => a.defenderId == auth.userId && a.status == 'pending')
           .length;
