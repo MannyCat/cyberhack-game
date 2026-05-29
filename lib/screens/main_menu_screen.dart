@@ -24,7 +24,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       final auth = context.read<AuthProvider>();
       if (auth.userId != null) {
         context.read<GameProvider>().init(auth.userId!);
-        context.read<EventProvider>().init(auth.userId!);
       }
     });
   }
