@@ -172,6 +172,7 @@ class CyberTextField extends StatelessWidget {
   final TextEditingController controller;
   final IconData icon;
   final String? errorText;
+  final Widget? suffixIcon;
 
   const CyberTextField({
     super.key,
@@ -181,6 +182,7 @@ class CyberTextField extends StatelessWidget {
     this.obscureText = false,
     required this.icon,
     this.errorText,
+    this.suffixIcon,
   });
 
   @override
@@ -234,6 +236,7 @@ class CyberTextField extends StatelessWidget {
                 fontFamily: 'monospace',
               ),
               prefixIcon: Icon(icon, color: const Color(0xFF00e5ff), size: 18),
+              suffixIcon: suffixIcon,
               border: InputBorder.none,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -276,6 +279,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isSubmitting = false;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -498,7 +502,15 @@ class _LoginScreenState extends State<LoginScreen>
                       hintText: '••••••••••••••••',
                       controller: _passwordController,
                       icon: Icons.lock_outline,
-                      obscureText: true,
+                      obscureText: _obscurePassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: const Color(0xFF00e5ff),
+                          size: 18,
+                        ),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      ),
                     ),
                     const SizedBox(height: 12),
 
