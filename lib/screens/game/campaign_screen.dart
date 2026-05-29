@@ -573,7 +573,7 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
                               Row(
                                 children: [
                                   Icon(
-                                    Icons.skull_outline,
+                                    Icons.report_problem,
                                     color: isLocked
                                         ? theme.colorScheme.outline.withValues(alpha: 0.4)
                                         : const Color(0xFFFF0040),
@@ -1010,7 +1010,7 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
         children: [
           Row(
             children: [
-              const Icon(Icons.skull, color: Color(0xFFFF0040), size: 20),
+              Icon(Icons.report_problem, color: Color(0xFFFF0040), size: 20),
               const SizedBox(width: 8),
               Text(
                 'ЦЕЛЬ',
