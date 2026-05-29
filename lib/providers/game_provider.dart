@@ -37,7 +37,7 @@ class NetworkNode {
       health: (json['health'] as num?)?.toInt() ?? 0,
       maxHealth: (json['max_health'] as num?)?.toInt() ?? 100,
       isOnline: (json['is_online'] as bool?) ?? true,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null ? (DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()) : DateTime.now(),
     );
   }
 
@@ -125,7 +125,7 @@ class AttackRecord {
       damage: (json['damage'] as num?)?.toInt() ?? 0,
       status: json['status'] as String? ?? 'pending',
       creditsStolen: (json['credits_stolen'] as num?)?.toInt() ?? 0,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null ? (DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()) : DateTime.now(),
       defenderName: json['defender_name'] as String?,
     );
   }
