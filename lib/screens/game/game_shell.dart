@@ -18,6 +18,16 @@ class GameShell extends StatefulWidget {
 
 class _GameShellState extends State<GameShell> {
   int _currentIndex = 0;
+  String? _currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      _currentUserId = auth.userId;
+    });
+  }
 
   final _tabs = const [
     _Tab(icon: Icons.home, label: 'Главная', path: '/game/home'),
@@ -233,10 +243,34 @@ class _GameShellState extends State<GameShell> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          tab.icon,
-                          size: 22,
-                          color: isSelected ? primary : const Color(0xFF3a4060),
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Icon(
+                              tab.icon,
+                              size: 22,
+                              color: isSelected ? primary : const Color(0xFF3a4060),
+                            ),
+                            if (attackBadge > 0)
+                              Positioned(
+                                right: -8,
+                                top: -6,
+                                child: Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFF0040),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: const Color(0xFF0d1220), width: 2),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '$attackBadge',
+                                    style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 3),
                         Text(
