@@ -17,6 +17,7 @@ import 'screens/game/leaderboard_screen.dart';
 import 'screens/game/campaign_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/main_menu_screen.dart';
 
 class CyberHackApp extends StatefulWidget {
   const CyberHackApp({super.key});
@@ -47,7 +48,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
 
         if (isLoading) return null;
         if (!isLoggedIn && !isAuthRoute) return '/login';
-        if (isLoggedIn && isAuthRoute) return '/game/map';
+        if (isLoggedIn && isAuthRoute) return '/game/home';
         return null;
       },
       routes: [
@@ -69,6 +70,12 @@ class _CyberHackAppState extends State<CyberHackApp> {
         ShellRoute(
           builder: (context, state, child) => GameShell(child: child),
           routes: [
+            GoRoute(
+              path: '/game/home',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: MainMenuScreen(),
+              ),
+            ),
             GoRoute(
               path: '/game/map',
               pageBuilder: (context, state) => const NoTransitionPage(
