@@ -38,6 +38,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _inputFocus = FocusNode();
+  DateTime? _lastMessageTime;
 
   bool _isLoading = false;
   bool _isTyping = false;
@@ -264,9 +265,26 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final text = _textController.text.trim();
     if (text.isEmpty || _myUserId == null) return;
 
+    // Rate limit: max 1 message per 2 seconds
+    if (_lastMessageTime != null) {
+      final elapsed = DateTime.now().difference(_lastMessageTime!).inMilliseconds;
+      if (elapsed < 2000) {
+        final remaining = ((2000 - elapsed) / 1000).toStringAsFixed(1);
+        _showSnackBar('Подождите $remainingс перед отправкой', Colors.orangeAccent);
+        return;
+      }
+    }
+    _lastMessageTime = DateTime.now();
+
     final auth = context.read<AuthProvider>();
     final senderName = auth.displayName;
     final isClanTab = _tabController.index == 1;
+
+    // Max message length
+    if (text.length > 500) {
+      _showSnackBar('Сообщение слишком длинное (макс. 500 символов)', Colors.orangeAccent);
+      return;
+    }
 
     // Validate clan membership for clan messages
     if (isClanTab && _myClanId == null) {
