@@ -81,6 +81,32 @@ class BuildingConfig {
       upgradeCostMultiplier: 2.1,
       buildTimeSeconds: 50,
     ),
+    'scanner': BuildingStats(
+      buildCostCredits: 400,
+      buildCostCpu: 25,
+      buildCostBandwidth: 20,
+      hp: 80,
+      defense: 0,
+      passiveIncome: 0,
+      cpuYield: 3,
+      bandwidthYield: 5,
+      upgradeCostMultiplier: 1.5,
+      buildTimeSeconds: 15,
+      // Special: reveals enemy stats in PvP attacks
+    ),
+    'terminal': BuildingStats(
+      buildCostCredits: 200,
+      buildCostCpu: 15,
+      buildCostBandwidth: 10,
+      hp: 100,
+      defense: 5,
+      passiveIncome: 3,
+      cpuYield: 2,
+      bandwidthYield: 2,
+      upgradeCostMultiplier: 1.4,
+      buildTimeSeconds: 10,
+      // Basic multi-purpose node for beginners
+    ),
     'proxy_node': BuildingStats(
       buildCostCredits: 600,
       buildCostCpu: 40,
