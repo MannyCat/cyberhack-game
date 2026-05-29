@@ -64,7 +64,7 @@ class _ClanScreenState extends State<ClanScreen> {
           .limit(50);
       if (!mounted) return;
       setState(() {
-        _publicClans = (response as List).cast<Map<String, dynamic>>();
+        _publicClans = (response as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
         _isLoadingClans = false;
       });
     } catch (e) {
