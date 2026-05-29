@@ -239,7 +239,7 @@ class DailyRewardTier {
   ];
 
   static DailyRewardTier get forDay {
-    final day = DateTime.now().weekday; // 1=Monday, 7=Sunday
+    final day = DateTime.now().weekday;
     return tiers[(day - 1) % 7];
   }
 }
@@ -258,6 +258,11 @@ class EventProvider extends ChangeNotifier {
   String? _errorMessage;
   bool _dailyRewardClaiming = false;
 
+  // Table availability flags
+  bool _eventsAvailable = true;
+  bool _dailyRewardsAvailable = true;
+  bool _achievementsAvailable = true;
+
   // Getters
   List<WeeklyEvent> get activeEvents => List.unmodifiable(_activeEvents);
   DailyRewardState get dailyRewardState => _dailyRewardState;
@@ -267,6 +272,9 @@ class EventProvider extends ChangeNotifier {
   bool get hasActiveEvents => _activeEvents.isNotEmpty;
   bool get canClaimDaily => _dailyRewardState.canClaimToday;
   int get completedAchievements => _achievements.where((a) => a.isCompleted).length;
+  bool get isEventsAvailable => _eventsAvailable;
+  bool get isDailyRewardsAvailable => _dailyRewardsAvailable;
+  bool get isAchievementsAvailable => _achievementsAvailable;
 
   // ─── Initialization ───────────────────────────────────────────────────────
 
@@ -298,8 +306,11 @@ class EventProvider extends ChangeNotifier {
       _activeEvents = (response as List?)
           ?.map((e) => WeeklyEvent.fromJson(e as Map<String, dynamic>))
           .toList() ?? [];
+      _eventsAvailable = true;
     } catch (e) {
       debugPrint('Error loading events: $e');
+      _activeEvents = [];
+      _eventsAvailable = false;
     }
   }
 
@@ -317,6 +328,7 @@ class EventProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error loading participations: $e');
+      _myParticipations = {};
     }
   }
 
@@ -352,8 +364,11 @@ class EventProvider extends ChangeNotifier {
       _dailyRewardState = response != null
           ? DailyRewardState.fromJson(response)
           : const DailyRewardState();
+      _dailyRewardsAvailable = true;
     } catch (e) {
       debugPrint('Error loading daily reward: $e');
+      _dailyRewardState = const DailyRewardState();
+      _dailyRewardsAvailable = false;
     }
   }
 
@@ -373,7 +388,7 @@ class EventProvider extends ChangeNotifier {
         notifyListeners();
         return resultMap;
       } else {
-        return resultMap; // contains error message
+        return resultMap;
       }
     } catch (e) {
       debugPrint('Error claiming daily reward: $e');
@@ -383,10 +398,11 @@ class EventProvider extends ChangeNotifier {
     }
   }
 
-  // ─── Achievements ─────────────────────────────────────────────────────────
+  // ─── Achievements (with fallback for missing player_achievements table) ───
 
   Future<void> _loadAchievements(String userId) async {
     try {
+      // First try: load with inner join (if player_achievements table exists)
       final response = await _supabase
           .from('achievements')
           .select('*, player_achievements!inner(progress, is_completed, is_claimed)')
@@ -414,8 +430,25 @@ class EventProvider extends ChangeNotifier {
           .map((row) => Achievement.fromJson(row as Map<String, dynamic>));
 
       _achievements = [..._achievements, ...allAchievements];
+      _achievementsAvailable = true;
     } catch (e) {
-      debugPrint('Error loading achievements: $e');
+      debugPrint('Error loading achievements with join, trying fallback: $e');
+      // Fallback: load achievements without join (player_achievements table may not exist)
+      try {
+        final allResponse = await _supabase
+            .from('achievements')
+            .select()
+            .order('sort_order');
+
+        _achievements = (allResponse as List)
+            .map((row) => Achievement.fromJson(row as Map<String, dynamic>))
+            .toList();
+        _achievementsAvailable = true;
+      } catch (e2) {
+        debugPrint('Error loading achievements (fallback also failed): $e2');
+        _achievements = [];
+        _achievementsAvailable = false;
+      }
     }
   }
 
@@ -442,5 +475,4 @@ class EventProvider extends ChangeNotifier {
     ]);
     notifyListeners();
   }
-
 }
