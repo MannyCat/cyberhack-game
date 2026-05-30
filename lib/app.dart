@@ -21,9 +21,11 @@ import 'screens/game/achievement_screen.dart';
 import 'screens/game/notifications_screen.dart';
 import 'providers/event_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/tutorial_provider.dart';
 import 'screens/settings_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/main_menu_screen.dart';
+import 'screens/game/tutorial_screen.dart';
 
 class CyberHackApp extends StatefulWidget {
   const CyberHackApp({super.key});
@@ -39,6 +41,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
   late final GameProvider _gameProvider;
   late final EventProvider _eventProvider;
   late final NotificationProvider _notificationProvider;
+  late final TutorialProvider _tutorialProvider;
 
   @override
   void initState() {
@@ -47,6 +50,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
     _gameProvider = GameProvider();
     _eventProvider = EventProvider();
     _notificationProvider = NotificationProvider();
+    _tutorialProvider = TutorialProvider();
     _router = GoRouter(
       initialLocation: '/game/map',
       refreshListenable: _authProvider,
@@ -78,6 +82,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
           GoRoute(path: '/game/daily-reward', pageBuilder: (context, state) => const NoTransitionPage(child: DailyRewardScreen())),
           GoRoute(path: '/game/achievements', pageBuilder: (context, state) => const NoTransitionPage(child: AchievementScreen())),
           GoRoute(path: '/game/notifications', pageBuilder: (context, state) => const NoTransitionPage(child: NotificationsScreen())),
+          GoRoute(path: '/game/tutorial', pageBuilder: (context, state) => const NoTransitionPage(child: TutorialScreen())),
         ]),
         GoRoute(path: '/settings', builder: (context, state) => ChangeNotifierProvider.value(value: _gameProvider, child: const SettingsScreen())),
         GoRoute(path: '/profile', builder: (context, state) => ChangeNotifierProvider.value(value: _gameProvider, child: const ProfileScreen())),
@@ -105,6 +110,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
     _gameProvider.dispose();
     _eventProvider.dispose();
     _notificationProvider.dispose();
+    _tutorialProvider.dispose();
     super.dispose();
   }
 
@@ -116,6 +122,7 @@ class _CyberHackAppState extends State<CyberHackApp> {
         ChangeNotifierProvider.value(value: _gameProvider),
         ChangeNotifierProvider.value(value: _eventProvider),
         ChangeNotifierProvider.value(value: _notificationProvider),
+        ChangeNotifierProvider.value(value: _tutorialProvider),
       ],
       child: MaterialApp.router(
         title: 'CyberHack',
@@ -247,3 +254,4 @@ class _CyberHackAppState extends State<CyberHackApp> {
     );
   }
 }
+
