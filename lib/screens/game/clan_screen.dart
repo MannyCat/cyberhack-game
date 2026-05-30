@@ -924,7 +924,6 @@ class _ClanScreenState extends State<ClanScreen> {
         color: _kSurface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _kBorder),
-        clipBehavior: Clip.antiAlias,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
