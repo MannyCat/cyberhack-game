@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-/// Cyberpunk-styled button with glowing border, pulse animation,
-/// multiple variants, loading state, and optional icon.
+/// Cyberpunk-styled button for PC desktop — glowing border, pulse animation,
+/// multiple variants, loading state, optional icon.
+/// Wider defaults, hover glow, pointer cursor.
 enum CyberButtonVariant { primary, danger, secondary }
 
 class CyberButton extends StatefulWidget {
@@ -26,10 +27,10 @@ class CyberButton extends StatefulWidget {
     this.isLoading = false,
     this.icon,
     this.width,
-    this.height = 48.0,
-    this.borderRadius = 6.0,
-    this.padding = const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-    this.fontSize = 14,
+    this.height = 52.0,
+    this.borderRadius = 8.0,
+    this.padding = const EdgeInsets.symmetric(horizontal: 32, vertical: 0),
+    this.fontSize = 15.0,
     this.enabled = true,
   });
 
@@ -101,6 +102,9 @@ class _CyberButtonState extends State<CyberButton>
       listenable: _pulseAnimation,
       builder: (context, _) {
         return MouseRegion(
+          cursor: isDisabled
+              ? SystemMouseCursors.basic
+              : SystemMouseCursors.click,
           onEnter: (_) => setState(() => _isHovered = true),
           onExit: (_) => setState(() => _isHovered = false),
           child: AnimatedScale(
@@ -111,22 +115,33 @@ class _CyberButtonState extends State<CyberButton>
               width: widget.width,
               height: widget.height,
               decoration: BoxDecoration(
-                color: isDisabled ? const Color(0xFF12162A) : _bg,
+                color: isDisabled
+                    ? const Color(0xFF12162A)
+                    : _isHovered
+                        ? _bg.withValues(alpha: 1.0)
+                        : _bg,
                 borderRadius: BorderRadius.circular(widget.borderRadius),
                 border: Border.all(
                   color: isDisabled
                       ? const Color(0xFF2A2F45)
-                      : _border.withValues(alpha: _isHovered ? 1.0 : 0.6),
-                  width: 1.5,
+                      : _border.withValues(
+                          alpha: _isHovered ? 1.0 : 0.6),
+                  width: _isHovered ? 2.0 : 1.5,
                 ),
                 boxShadow: [
                   if (_isHovered && !isDisabled)
                     BoxShadow(
-                      color: _glow.withValues(alpha: 0.35),
-                      blurRadius: 18,
-                      spreadRadius: 1,
+                      color: _glow.withValues(alpha: 0.45),
+                      blurRadius: 24,
+                      spreadRadius: 2,
                     ),
-                  if (!isDisabled)
+                  if (_isHovered && !isDisabled)
+                    BoxShadow(
+                      color: _glow.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      spreadRadius: 0,
+                    ),
+                  if (!isDisabled && !_isHovered)
                     BoxShadow(
                       color: _glow.withValues(alpha: 0.08),
                       blurRadius: 8,
@@ -137,15 +152,17 @@ class _CyberButtonState extends State<CyberButton>
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: _handleTap,
-                  borderRadius: BorderRadius.circular(widget.borderRadius),
+                  borderRadius:
+                      BorderRadius.circular(widget.borderRadius),
                   child: Center(
                     child: widget.isLoading
                         ? SizedBox(
-                            height: widget.fontSize + 4,
-                            width: widget.fontSize + 4,
+                            height: widget.fontSize + 6,
+                            width: widget.fontSize + 6,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(_glow),
+                              strokeWidth: 2.5,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(_glow),
                             ),
                           )
                         : Row(
@@ -154,18 +171,22 @@ class _CyberButtonState extends State<CyberButton>
                               if (widget.icon != null) ...[
                                 Icon(
                                   widget.icon,
-                                  color: isDisabled ? Colors.white24 : _glow,
-                                  size: widget.fontSize + 4,
+                                  color: isDisabled
+                                      ? Colors.white24
+                                      : _glow,
+                                  size: widget.fontSize + 6,
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 10),
                               ],
                               Text(
                                 widget.label,
                                 style: TextStyle(
-                                  color: isDisabled ? Colors.white24 : _glow,
+                                  color: isDisabled
+                                      ? Colors.white24
+                                      : _glow,
                                   fontSize: widget.fontSize,
                                   fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.2,
+                                  letterSpacing: 1.4,
                                 ),
                               ),
                             ],
