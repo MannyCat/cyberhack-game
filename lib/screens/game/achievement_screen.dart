@@ -17,7 +17,6 @@ class _AchievementScreenState extends State<AchievementScreen> {
   @override
   Widget build(BuildContext context) {
     final eventProvider = context.watch<EventProvider>();
-    final theme = Theme.of(context);
     final achievements = eventProvider.achievements;
     final completedCount = eventProvider.completedAchievements;
 
@@ -26,120 +25,163 @@ class _AchievementScreenState extends State<AchievementScreen> {
         : achievements.where((a) => a.categoryLabel == _selectedCategory).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('ДОСТИЖЕНИЯ'),
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFa855f7).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFa855f7).withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.emoji_events, color: Color(0xFFa855f7), size: 14),
-                const SizedBox(width: 4),
-                Text(
-                  '$completedCount/${achievements.length}',
-                  style: const TextStyle(color: Color(0xFFa855f7), fontWeight: FontWeight.bold, fontSize: 12),
+      backgroundColor: const Color(0xFF0a0e17),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Column(
+            children: [
+              // ── Header ──
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.emoji_events, color: Color(0xFFa855f7), size: 28),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'ДОСТИЖЕНИЯ',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFa855f7).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFa855f7).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.emoji_events, color: Color(0xFFa855f7), size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$completedCount/${achievements.length}',
+                            style: const TextStyle(color: Color(0xFFa855f7), fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // ── Category Filter ──
-          Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _categories.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final cat = _categories[index];
-                final isSelected = cat == _selectedCategory;
-                return FilterChip(
-                  label: Text(cat, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold,
-                    color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface)),
-                  selected: isSelected,
-                  onSelected: (_) => setState(() => _selectedCategory = cat),
-                  selectedColor: theme.colorScheme.primary,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                  side: BorderSide(color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline.withValues(alpha: 0.3)),
-                  showCheckmark: false,
-                );
-              },
-            ),
-          ),
-          const Divider(height: 1),
+              ),
 
-          // ── Achievement List ──
-          Expanded(
-            child: filtered.isEmpty
-                ? _buildEmptyState(theme)
-                : ListView.builder(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      return _AchievementCard(
-                        achievement: filtered[index],
-                        onClaim: filtered[index].isCompleted && !filtered[index].isClaimed
-                            ? () async {
-                                final auth = context.read<AuthProvider>();
-                                if (auth.userId == null) return;
-                                await eventProvider.claimAchievement(auth.userId!, filtered[index].id);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Награда за достижение получена!'),
-                                    backgroundColor: Color(0xFFa855f7),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              }
-                            : null,
-                      );
-                    },
-                  ),
+              // ── Category Filter ──
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+                child: Row(
+                  children: List.generate(_categories.length, (index) {
+                    final cat = _categories[index];
+                    final isSelected = cat == _selectedCategory;
+                    return Padding(
+                      padding: EdgeInsets.only(left: index == 0 ? 0 : 8),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedCategory = cat),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFFa855f7).withValues(alpha: 0.2) : const Color(0xFF0d1220),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isSelected ? const Color(0xFFa855f7).withValues(alpha: 0.5) : const Color(0xFF1e293b),
+                              ),
+                            ),
+                            child: Text(
+                              cat,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? const Color(0xFFa855f7) : const Color(0xFF4a5568),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              const Divider(height: 1, color: Color(0xFF1e293b)),
+
+              // ── Achievement List ──
+              Expanded(
+                child: filtered.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final a = filtered[index];
+                          return _AchievementCard(
+                            achievement: a,
+                            onClaim: a.isCompleted && !a.isClaimed
+                                ? () async {
+                                    final auth = context.read<AuthProvider>();
+                                    if (auth.userId == null) return;
+                                    await eventProvider.claimAchievement(auth.userId!, a.id);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Награда за достижение получена!'),
+                                          backgroundColor: Color(0xFFa855f7),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                : null,
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme) {
+  Widget _buildEmptyState() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.emoji_events_outlined, size: 56, color: theme.colorScheme.outline.withValues(alpha: 0.4)),
-            const SizedBox(height: 16),
-            Text('Нет достижений', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.outline)),
-            const SizedBox(height: 8),
-            Text('Начните играть, чтобы открывать достижения!', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline.withValues(alpha: 0.7))),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.emoji_events_outlined, size: 72, color: Color(0xFF1e293b)),
+          const SizedBox(height: 20),
+          const Text('Нет достижений', style: TextStyle(color: Color(0xFF4a5568), fontSize: 18, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          const Text('Начните играть, чтобы открывать достижения!', style: TextStyle(color: Color(0xFF3a4060), fontSize: 13)),
+        ],
       ),
     );
   }
 }
 
-class _AchievementCard extends StatelessWidget {
+class _AchievementCard extends StatefulWidget {
   final Achievement achievement;
   final VoidCallback? onClaim;
 
   const _AchievementCard({required this.achievement, this.onClaim});
 
   @override
+  State<_AchievementCard> createState() => _AchievementCardState();
+}
+
+class _AchievementCardState extends State<_AchievementCard> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final a = achievement;
+    final a = widget.achievement;
 
     final iconMap = {
       'dns': Icons.dns,
@@ -165,117 +207,125 @@ class _AchievementCard extends StatelessWidget {
 
     final color = categoryColors[a.category] ?? const Color(0xFF4a5568);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: a.isCompleted
-            ? color.withValues(alpha: 0.06)
-            : const Color(0xFF111827),
-        border: Border.all(
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: widget.onClaim != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
           color: a.isCompleted
-              ? color.withValues(alpha: 0.3)
-              : a.isClaimed
-                  ? const Color(0xFF2a2f40)
-                  : const Color(0xFF1e293b),
-          width: a.isCompleted ? 1.5 : 0.5,
+              ? color.withValues(alpha: _isHovered ? 0.1 : 0.06)
+              : const Color(0xFF0d1220),
+          border: Border.all(
+            color: a.isCompleted
+                ? color.withValues(alpha: 0.3)
+                : a.isClaimed
+                    ? const Color(0xFF1e293b)
+                    : const Color(0xFF111827),
+            width: a.isCompleted ? 1.5 : 0.5,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          // Icon
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: a.isCompleted
-                  ? color.withValues(alpha: 0.15)
-                  : const Color(0xFF1a1f2e),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: a.isCompleted ? color.withValues(alpha: 0.4) : const Color(0xFF2a2f40),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: a.isCompleted
+                    ? color.withValues(alpha: 0.15)
+                    : const Color(0xFF111827),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: a.isCompleted ? color.withValues(alpha: 0.4) : const Color(0xFF1e293b),
+                ),
+              ),
+              child: Icon(
+                iconMap[a.icon] ?? Icons.star,
+                color: a.isCompleted ? color : const Color(0xFF4a5568),
+                size: 24,
               ),
             ),
-            child: Icon(
-              iconMap[a.icon] ?? Icons.star,
-              color: a.isCompleted ? color : const Color(0xFF4a5568),
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 14),
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      a.name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: a.isCompleted ? color : Colors.white.withValues(alpha: 0.85),
-                        fontSize: 14,
+            const SizedBox(width: 18),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        a.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: a.isCompleted ? color : Colors.white.withValues(alpha: 0.85),
+                          fontSize: 15,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          a.categoryLabel,
+                          style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                      child: Text(
-                        a.categoryLabel,
-                        style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 9, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  a.description,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    if (a.rewardCredits > 0) ...[
-                      const Icon(Icons.monetization_on, color: Color(0xFFFFD700), size: 12),
-                      const SizedBox(width: 2),
-                      Text('+${a.rewardCredits}', style: const TextStyle(color: Color(0xFFFFD700), fontSize: 10, fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 8),
                     ],
-                    if (a.rewardXp > 0) ...[
-                      const Icon(Icons.star, color: Color(0xFFa855f7), size: 12),
-                      const SizedBox(width: 2),
-                      Text('+${a.rewardXp} XP', style: const TextStyle(color: Color(0xFFa855f7), fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    a.description,
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      if (a.rewardCredits > 0) ...[
+                        const Icon(Icons.monetization_on, color: Color(0xFFFFD700), size: 14),
+                        const SizedBox(width: 4),
+                        Text('+${a.rewardCredits}', style: const TextStyle(color: Color(0xFFFFD700), fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 12),
+                      ],
+                      if (a.rewardXp > 0) ...[
+                        const Icon(Icons.star, color: Color(0xFFa855f7), size: 14),
+                        const SizedBox(width: 4),
+                        Text('+${a.rewardXp} XP', style: const TextStyle(color: Color(0xFFa855f7), fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
                     ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-          // Status / Claim
-          if (a.isClaimed)
-            const Icon(Icons.check_circle, color: Color(0xFF00ff41), size: 24)
-          else if (a.isCompleted && onClaim != null)
-            GestureDetector(
-              onTap: onClaim,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: color.withValues(alpha: 0.4)),
-                ),
-                child: Text('ЗАБРАТЬ', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+                ],
               ),
-            )
-          else
-            const Icon(Icons.lock_outline, color: Color(0xFF3a4060), size: 20),
-        ],
+            ),
+            // Status / Claim
+            const SizedBox(width: 12),
+            if (a.isClaimed)
+              const Icon(Icons.check_circle, color: Color(0xFF00ff41), size: 28)
+            else if (a.isCompleted && widget.onClaim != null)
+              GestureDetector(
+                onTap: widget.onClaim,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _isHovered ? color.withValues(alpha: 0.25) : color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color.withValues(alpha: 0.4)),
+                  ),
+                  child: Text('ЗАБРАТЬ', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              )
+            else
+              const Icon(Icons.lock_outline, color: Color(0xFF3a4060), size: 24),
+          ],
+        ),
       ),
     );
   }
