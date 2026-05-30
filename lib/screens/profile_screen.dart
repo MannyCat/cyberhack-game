@@ -46,10 +46,12 @@ class _ProfileScreenState extends State<ProfileScreen>
       final level = game.level;
       final xp = game.xp;
       final xpNeeded = ProgressionConfig.xpRequiredForLevel(level);
-      final target = xpNeeded > 0 ? (xp / xpNeeded).clamp(0.0, 1.0) : 0.0;
+      final target =
+          xpNeeded > 0 ? (xp / xpNeeded).clamp(0.0, 1.0) : 0.0;
       if (mounted) {
         setState(() {
-          _xpAnim = Tween<double>(begin: 0, end: target).animate(CurvedAnimation(
+          _xpAnim = Tween<double>(begin: 0, end: target)
+              .animate(CurvedAnimation(
             parent: _xpController,
             curve: Curves.easeOutCubic,
           ));
@@ -95,7 +97,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             : 'Хакер');
     final level = widget.profile?.level ?? game.level;
     final xp = widget.profile?.currentXp ?? game.xp;
-    final xpNeeded = widget.profile?.xpToNextLevel ?? ProgressionConfig.xpRequiredForLevel(level);
+    final xpNeeded = widget.profile?.xpToNextLevel ??
+        ProgressionConfig.xpRequiredForLevel(level);
     final ranking = widget.profile?.ranking ?? 0;
 
     return Scaffold(
@@ -114,7 +117,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                     _cyberBackButton(() => context.pop()),
                     const SizedBox(width: 16),
                     const Text('ПРОФИЛЬ ХАКЕРА',
-                      style: TextStyle(color: Color(0xFF00F0FF), fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 4, fontFamily: 'monospace')),
+                        style: TextStyle(
+                            color: Color(0xFF00F0FF),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 4,
+                            fontFamily: 'monospace')),
                     const Spacer(),
                     CyberButton(
                       label: 'РЕДАКТИРОВАТЬ',
@@ -208,14 +216,21 @@ class _ProfileScreenState extends State<ProfileScreen>
           decoration: BoxDecoration(
             color: const Color(0xFF111827),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF00ff41).withValues(alpha: 0.25)),
+            border: Border.all(
+                color: const Color(0xFF00ff41).withValues(alpha: 0.25)),
           ),
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.arrow_back, color: Color(0xFF00ff41), size: 18),
               SizedBox(width: 6),
-              Text('НАЗАД', style: TextStyle(color: Color(0xFF00ff41), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, fontFamily: 'monospace')),
+              Text('НАЗАД',
+                  style: TextStyle(
+                      color: Color(0xFF00ff41),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                      fontFamily: 'monospace')),
             ],
           ),
         ),
@@ -234,7 +249,8 @@ class _ProfileScreenState extends State<ProfileScreen>
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: Color(0xFF00E5FF)),
         ),
-        title: const Text('Редактировать профиль', style: TextStyle(color: Color(0xFF00E5FF))),
+        title: const Text('Редактировать профиль',
+            style: TextStyle(color: Color(0xFF00E5FF))),
         content: TextField(
           controller: ctrl,
           style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -243,9 +259,12 @@ class _ProfileScreenState extends State<ProfileScreen>
             labelStyle: const TextStyle(color: Color(0xFF00E5FF)),
             filled: true,
             fillColor: const Color(0xFF12162A),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: const Color(0xFF2A2F45))),
-            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF00E5FF))),
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: const Color(0xFF2A2F45))),
+            focusedBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF00E5FF))),
           ),
         ),
         actions: [
@@ -254,7 +273,8 @@ class _ProfileScreenState extends State<ProfileScreen>
               ctrl.dispose();
               Navigator.pop(ctx);
             },
-            child: const Text('ОТМЕНА', style: TextStyle(color: Colors.white54)),
+            child:
+                const Text('ОТМЕНА', style: TextStyle(color: Colors.white54)),
           ),
           CyberButton(
             label: 'СОХРАНИТЬ',
@@ -273,13 +293,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                 await auth.refreshProfile();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Профиль обновлён'), backgroundColor: Color(0xFF00FF41)),
+                    const SnackBar(
+                        content: Text('Профиль обновлён'),
+                        backgroundColor: Color(0xFF00FF41)),
                   );
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Ошибка: $e'), backgroundColor: Color(0xFFFF0040)),
+                    SnackBar(
+                        content: Text('Ошибка: $e'),
+                        backgroundColor: Color(0xFFFF0040)),
                   );
                 }
               }
@@ -320,20 +344,25 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accountAge = createdAt != null ? DateTime.now().difference(createdAt!).inDays : 0;
+    final accountAge = createdAt != null
+        ? DateTime.now().difference(createdAt!).inDays
+        : 0;
 
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [const Color(0xFF111827), const Color(0xFF0d1220)],
+          colors: [Color(0xFF111827), Color(0xFF0d1220)],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: rankColor.withValues(alpha: 0.2)),
         boxShadow: [
-          BoxShadow(color: rankColor.withValues(alpha: 0.06), blurRadius: 32, spreadRadius: 2),
+          BoxShadow(
+              color: rankColor.withValues(alpha: 0.06),
+              blurRadius: 32,
+              spreadRadius: 2),
         ],
       ),
       child: Column(
@@ -342,21 +371,35 @@ class _HeroCard extends StatelessWidget {
             children: [
               // Avatar
               Container(
-                width: 88, height: 88,
+                width: 88,
+                height: 88,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(colors: [rankColor, rankColor.withValues(alpha: 0.4)]),
-                  border: Border.all(color: rankColor.withValues(alpha: 0.5), width: 3),
+                  gradient: LinearGradient(
+                      colors: [rankColor, rankColor.withValues(alpha: 0.4)]),
+                  border: Border.all(
+                      color: rankColor.withValues(alpha: 0.5), width: 3),
                   boxShadow: [
-                    BoxShadow(color: rankColor.withValues(alpha: 0.25), blurRadius: 24, spreadRadius: 4),
+                    BoxShadow(
+                        color: rankColor.withValues(alpha: 0.25),
+                        blurRadius: 24,
+                        spreadRadius: 4),
                   ],
                 ),
                 child: CircleAvatar(
                   radius: 40,
                   backgroundColor: const Color(0xFF0a0e17),
                   child: Text(
-                    username.isNotEmpty ? username.substring(0, min(2, username.length)).toUpperCase() : '?',
-                    style: TextStyle(color: rankColor, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 2),
+                    username.isNotEmpty
+                        ? username
+                            .substring(0, min(2, username.length))
+                            .toUpperCase()
+                        : '?',
+                    style: TextStyle(
+                        color: rankColor,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2),
                   ),
                 ),
               ),
@@ -367,42 +410,69 @@ class _HeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(username,
-                      style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1)),
                     const SizedBox(height: 6),
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
                             color: rankColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: rankColor.withValues(alpha: 0.3)),
+                            border: Border.all(
+                                color: rankColor.withValues(alpha: 0.3)),
                           ),
                           child: Text('УРОВЕНЬ $level',
-                            style: TextStyle(color: rankColor, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1, fontFamily: 'monospace')),
+                              style: TextStyle(
+                                  color: rankColor,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1,
+                                  fontFamily: 'monospace')),
                         ),
                         const SizedBox(width: 10),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
                             color: rankColor.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: rankColor.withValues(alpha: 0.2)),
+                            border: Border.all(
+                                color: rankColor.withValues(alpha: 0.2)),
                           ),
                           child: Text(rankTitle,
-                            style: TextStyle(color: rankColor.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1, fontFamily: 'monospace')),
+                              style: TextStyle(
+                                  color: rankColor.withValues(alpha: 0.8),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1,
+                                  fontFamily: 'monospace')),
                         ),
                         if (clanId != null) ...[
                           const SizedBox(width: 10),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 3),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFa855f7).withValues(alpha: 0.1),
+                              color: const Color(0xFFa855f7)
+                                  .withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFa855f7).withValues(alpha: 0.3)),
+                              border: Border.all(
+                                  color: const Color(0xFFa855f7)
+                                      .withValues(alpha: 0.3)),
                             ),
                             child: const Text('В КЛАНЕ',
-                              style: TextStyle(color: Color(0xFFa855f7), fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1, fontFamily: 'monospace')),
+                                style: TextStyle(
+                                    color: Color(0xFFa855f7),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1,
+                                    fontFamily: 'monospace')),
                           ),
                         ],
                       ],
@@ -417,14 +487,26 @@ class _HeroCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFF00ff41).withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFF00ff41).withValues(alpha: 0.2)),
+                    border: Border.all(
+                        color: const Color(0xFF00ff41).withValues(alpha: 0.2)),
                   ),
                   child: Column(
                     children: [
-                      const Icon(Icons.emoji_events, color: Color(0xFFFFD700), size: 28),
+                      const Icon(Icons.emoji_events,
+                          color: Color(0xFFFFD700), size: 28),
                       const SizedBox(height: 4),
-                      const Text('РЕЙТИНГ', style: TextStyle(color: Color(0xFF4a5568), fontSize: 9, letterSpacing: 1, fontFamily: 'monospace')),
-                      Text('#$ranking', style: const TextStyle(color: Color(0xFFFFD700), fontSize: 20, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
+                      const Text('РЕЙТИНГ',
+                          style: TextStyle(
+                              color: Color(0xFF4a5568),
+                              fontSize: 9,
+                              letterSpacing: 1,
+                              fontFamily: 'monospace')),
+                      Text('#$ranking',
+                          style: const TextStyle(
+                              color: Color(0xFFFFD700),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              fontFamily: 'monospace')),
                     ],
                   ),
                 ),
@@ -438,7 +520,12 @@ class _HeroCard extends StatelessWidget {
           // XP Bar
           Row(
             children: [
-              const Text('ОПЫТ', style: TextStyle(color: Color(0xFF4a5568), fontSize: 11, letterSpacing: 2, fontFamily: 'monospace')),
+              const Text('ОПЫТ',
+                  style: TextStyle(
+                      color: Color(0xFF4a5568),
+                      fontSize: 11,
+                      letterSpacing: 2,
+                      fontFamily: 'monospace')),
               const SizedBox(width: 12),
               Expanded(
                 child: ClipRRect(
@@ -449,13 +536,18 @@ class _HeroCard extends StatelessWidget {
                       value: xpAnim.value,
                       minHeight: 12,
                       backgroundColor: const Color(0xFF0d1117),
-                      valueColor: AlwaysStoppedAnimation<Color>(rankColor),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(rankColor),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
-              Text('$xp / $xpNeeded', style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 12, fontFamily: 'monospace')),
+              Text('$xp / $xpNeeded',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      fontSize: 12,
+                      fontFamily: 'monospace')),
             ],
           ),
 
@@ -463,9 +555,11 @@ class _HeroCard extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              _miniStat(Icons.schedule, '$accountAge ДНЕЙ В ИГРЕ', const Color(0xFF00E5FF)),
+              _miniStat(Icons.schedule,
+                  '$accountAge ДНЕЙ В ИГРЕ', const Color(0xFF00E5FF)),
               const SizedBox(width: 24),
-              _miniStat(Icons.dns, 'УЗЛОВ В СЕТИ', const Color(0xFF00ff41)),
+              _miniStat(
+                  Icons.dns, 'УЗЛОВ В СЕТИ', const Color(0xFF00ff41)),
             ],
           ),
         ],
@@ -479,7 +573,12 @@ class _HeroCard extends StatelessWidget {
       children: [
         Icon(icon, color: color.withValues(alpha: 0.5), size: 14),
         const SizedBox(width: 6),
-        Text(label, style: TextStyle(color: color.withValues(alpha: 0.4), fontSize: 10, letterSpacing: 1, fontFamily: 'monospace')),
+        Text(label,
+            style: TextStyle(
+                color: color.withValues(alpha: 0.4),
+                fontSize: 10,
+                letterSpacing: 1,
+                fontFamily: 'monospace')),
       ],
     );
   }
@@ -505,7 +604,9 @@ class _RankCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final xpPercent = ProgressionConfig.xpRequiredForLevel(level) > 0
-        ? (game.xp / ProgressionConfig.xpRequiredForLevel(level)).clamp(0.0, 1.0) : 0.0;
+        ? (game.xp / ProgressionConfig.xpRequiredForLevel(level))
+            .clamp(0.0, 1.0)
+        : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -522,32 +623,50 @@ class _RankCard extends StatelessWidget {
               Icon(Icons.shield, color: rankColor, size: 22),
               const SizedBox(width: 10),
               const Text('КЛАССИФИКАЦИЯ',
-                style: TextStyle(color: Color(0xFF4a5568), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2, fontFamily: 'monospace')),
+                  style: TextStyle(
+                      color: Color(0xFF4a5568),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                      fontFamily: 'monospace')),
             ],
           ),
           const SizedBox(height: 16),
           // Rank icon
           Center(
             child: Container(
-              width: 64, height: 64,
+              width: 64,
+              height: 64,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: rankColor.withValues(alpha: 0.08),
-                border: Border.all(color: rankColor.withValues(alpha: 0.3), width: 2),
+                border: Border.all(
+                    color: rankColor.withValues(alpha: 0.3), width: 2),
                 boxShadow: [
-                  BoxShadow(color: rankColor.withValues(alpha: 0.15), blurRadius: 16),
+                  BoxShadow(
+                      color: rankColor.withValues(alpha: 0.15),
+                      blurRadius: 16),
                 ],
               ),
               child: Center(
                 child: Text('$level',
-                  style: TextStyle(color: rankColor, fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
+                    style: TextStyle(
+                        color: rankColor,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'monospace')),
               ),
             ),
           ),
           const SizedBox(height: 12),
           Center(
             child: Text(rankTitle,
-              style: TextStyle(color: rankColor, fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 2, fontFamily: 'monospace')),
+                style: TextStyle(
+                    color: rankColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                    fontFamily: 'monospace')),
           ),
           const SizedBox(height: 16),
           const Divider(color: Color(0xFF1e2535), height: 1),
@@ -556,9 +675,17 @@ class _RankCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Прогресс ранга', style: TextStyle(color: Color(0xFF4a5568), fontSize: 10, fontFamily: 'monospace')),
+              const Text('Прогресс ранга',
+                  style: TextStyle(
+                      color: Color(0xFF4a5568),
+                      fontSize: 10,
+                      fontFamily: 'monospace')),
               Text('${(xpPercent * 100).toStringAsFixed(0)}%',
-                style: TextStyle(color: rankColor, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                  style: TextStyle(
+                      color: rankColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace')),
             ],
           ),
           const SizedBox(height: 8),
@@ -578,7 +705,8 @@ class _RankCard extends StatelessWidget {
             children: [
               _quickStat('XP', _formatNum(game.xp), const Color(0xFFFFD700)),
               _quickStat('УР', '$level', const Color(0xFF00E5FF)),
-              _quickStat('КР', _formatNum(game.credits), const Color(0xFFFFD700)),
+              _quickStat(
+                  'КР', _formatNum(game.credits), const Color(0xFFFFD700)),
             ],
           ),
         ],
@@ -596,8 +724,18 @@ class _RankCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800, fontFamily: 'monospace')),
-          Text(label, style: TextStyle(color: color.withValues(alpha: 0.4), fontSize: 9, letterSpacing: 1, fontFamily: 'monospace')),
+          Text(value,
+              style: TextStyle(
+                  color: color,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'monospace')),
+          Text(label,
+              style: TextStyle(
+                  color: color.withValues(alpha: 0.4),
+                  fontSize: 9,
+                  letterSpacing: 1,
+                  fontFamily: 'monospace')),
         ],
       ),
     );
@@ -614,12 +752,19 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalAttacks = game.attackHistory.where((a) => a.attackerId == auth.userId).length;
-    final successfulAttacks = game.attackHistory.where((a) => a.attackerId == auth.userId && a.status == 'success').length;
+    final totalAttacks = game.attackHistory
+        .where((a) => a.attackerId == auth.userId)
+        .length;
+    final successfulAttacks = game.attackHistory
+        .where(
+            (a) => a.attackerId == auth.userId && a.status == 'success')
+        .length;
     final creditsEarned = game.attackHistory
-        .where((a) => a.attackerId == auth.userId && a.status == 'success')
+        .where(
+            (a) => a.attackerId == auth.userId && a.status == 'success')
         .fold<int>(0, (sum, a) => sum + a.creditsStolen);
-    final onlineNodes = game.networkNodes.where((n) => n.isOnline).length;
+    final onlineNodes =
+        game.networkNodes.where((n) => n.isOnline).length;
 
     return Row(
       children: [
@@ -629,10 +774,26 @@ class _StatsRow extends StatelessWidget {
             title: 'РЕСУРСЫ',
             titleColor: const Color(0xFFFFD700),
             stats: [
-              _StatItem(label: 'Кредиты', value: _formatNum(game.credits), icon: Icons.monetization_on, color: const Color(0xFFFFD700)),
-              _StatItem(label: 'ЦПУ', value: '${game.cpu} THz', icon: Icons.memory, color: const Color(0xFF00E5FF)),
-              _StatItem(label: 'Канал', value: '${game.bandwidth} MB/s', icon: Icons.wifi_tethering, color: const Color(0xFFFF9800)),
-              _StatItem(label: 'Доход', value: '+${game.passiveIncomePerTick} ¢/30с', icon: Icons.trending_up, color: const Color(0xFF00ff41)),
+              _StatItem(
+                  label: 'Кредиты',
+                  value: _formatNum(game.credits),
+                  icon: Icons.monetization_on,
+                  color: const Color(0xFFFFD700)),
+              _StatItem(
+                  label: 'ЦПУ',
+                  value: '${game.cpu} THz',
+                  icon: Icons.memory,
+                  color: const Color(0xFF00E5FF)),
+              _StatItem(
+                  label: 'Канал',
+                  value: '${game.bandwidth} MB/s',
+                  icon: Icons.wifi_tethering,
+                  color: const Color(0xFFFF9800)),
+              _StatItem(
+                  label: 'Доход',
+                  value: '+${game.passiveIncomePerTick} ¢/30с',
+                  icon: Icons.trending_up,
+                  color: const Color(0xFF00ff41)),
             ],
             columns: 4,
           ),
@@ -644,10 +805,26 @@ class _StatsRow extends StatelessWidget {
             title: 'БОЕВАЯ СТАТИСТИКА',
             titleColor: const Color(0xFFFF1744),
             stats: [
-              _StatItem(label: 'Всего атак', value: '$totalAttacks', icon: Icons.gps_fixed, color: const Color(0xFFFF1744)),
-              _StatItem(label: 'Успешных', value: '$successfulAttacks', icon: Icons.check_circle_outline, color: const Color(0xFF39FF14)),
-              _StatItem(label: 'Заработано', value: _formatNum(creditsEarned), icon: Icons.monetization_on, color: const Color(0xFFFFD700)),
-              _StatItem(label: 'Узлов онлайн', value: '$onlineNodes/${game.networkNodes.length}', icon: Icons.dns, color: const Color(0xFF00E5FF)),
+              _StatItem(
+                  label: 'Всего атак',
+                  value: '$totalAttacks',
+                  icon: Icons.gps_fixed,
+                  color: const Color(0xFFFF1744)),
+              _StatItem(
+                  label: 'Успешных',
+                  value: '$successfulAttacks',
+                  icon: Icons.check_circle_outline,
+                  color: const Color(0xFF39FF14)),
+              _StatItem(
+                  label: 'Заработано',
+                  value: _formatNum(creditsEarned),
+                  icon: Icons.monetization_on,
+                  color: const Color(0xFFFFD700)),
+              _StatItem(
+                  label: 'Узлов онлайн',
+                  value: '$onlineNodes/${game.networkNodes.length}',
+                  icon: Icons.dns,
+                  color: const Color(0xFF00E5FF)),
             ],
             columns: 4,
           ),
@@ -686,19 +863,31 @@ class _StatsSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(width: 3, height: 14, decoration: BoxDecoration(color: titleColor, borderRadius: BorderRadius.circular(2))),
+              Container(
+                  width: 3,
+                  height: 14,
+                  decoration: BoxDecoration(
+                      color: titleColor,
+                      borderRadius: BorderRadius.circular(2))),
               const SizedBox(width: 8),
               Text(title,
-                style: TextStyle(color: titleColor, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 2, fontFamily: 'monospace')),
+                  style: TextStyle(
+                      color: titleColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 2,
+                      fontFamily: 'monospace')),
             ],
           ),
           const SizedBox(height: 14),
           Row(
             children: List.generate(stats.length, (i) {
-              if (i > 0) return Padding(
-                padding: const EdgeInsets.only(left: 10),
-                child: Expanded(child: _PCStatCard(stat: stats[i])),
-              );
+              if (i > 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Expanded(child: _PCStatCard(stat: stats[i])),
+                );
+              }
               return Expanded(child: _PCStatCard(stat: stats[i]));
             }),
           ),
@@ -726,11 +915,13 @@ class _PCStatCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 38, height: 38,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
               color: stat.color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: stat.color.withValues(alpha: 0.2)),
+              border:
+                  Border.all(color: stat.color.withValues(alpha: 0.2)),
             ),
             child: Icon(stat.icon, color: stat.color, size: 18),
           ),
@@ -740,11 +931,22 @@ class _PCStatCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(stat.value,
-                  style: TextStyle(color: stat.color, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5, fontFamily: 'monospace'),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                    style: TextStyle(
+                        color: stat.color,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                        fontFamily: 'monospace'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
                 Text(stat.label,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -767,7 +969,8 @@ class _NetworkPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF111827),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.12)),
+        border: Border.all(
+            color: const Color(0xFF00E5FF).withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -776,20 +979,38 @@ class _NetworkPanel extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                Container(width: 3, height: 14, decoration: BoxDecoration(color: const Color(0xFF00E5FF), borderRadius: BorderRadius.circular(2))),
+                Container(
+                    width: 3,
+                    height: 14,
+                    decoration: BoxDecoration(
+                        color: const Color(0xFF00E5FF),
+                        borderRadius: BorderRadius.circular(2))),
                 const SizedBox(width: 8),
                 const Text('ВАША СЕТЬ',
-                  style: TextStyle(color: Color(0xFF00E5FF), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 2, fontFamily: 'monospace')),
+                    style: TextStyle(
+                        color: Color(0xFF00E5FF),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2,
+                        fontFamily: 'monospace')),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00ff41).withValues(alpha: 0.08),
+                    color:
+                        const Color(0xFF00ff41).withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: const Color(0xFF00ff41).withValues(alpha: 0.2)),
+                    border: Border.all(
+                        color: const Color(0xFF00ff41)
+                            .withValues(alpha: 0.2)),
                   ),
                   child: Text('${nodes.length} УЗЛОВ',
-                    style: const TextStyle(color: const Color(0xFF00ff41), fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                      style: const TextStyle(
+                          color: Color(0xFF00ff41),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace')),
                 ),
               ],
             ),
@@ -800,10 +1021,14 @@ class _NetworkPanel extends StatelessWidget {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.dns_outlined, color: const Color(0xFF4a5568).withValues(alpha: 0.3), size: 48),
+                    Icon(Icons.dns_outlined,
+                        color:
+                            const Color(0xFF4a5568).withValues(alpha: 0.3),
+                        size: 48),
                     const SizedBox(height: 12),
                     const Text('Сеть пуста. Разверните первый узел!',
-                      style: TextStyle(color: Color(0xFF4a5568), fontSize: 13)),
+                        style: TextStyle(
+                            color: Color(0xFF4a5568), fontSize: 13)),
                   ],
                 ),
               ),
@@ -812,49 +1037,83 @@ class _NetworkPanel extends StatelessWidget {
             ...nodes.take(8).map((node) {
               final isOnline = node.isOnline == true;
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: const Color(0xFF1e2535).withValues(alpha: 0.5))),
+                  border: Border(
+                      bottom: BorderSide(
+                          color: const Color(0xFF1e2535)
+                              .withValues(alpha: 0.5))),
                 ),
                 child: Row(
                   children: [
                     // Status dot
                     Container(
-                      width: 8, height: 8,
+                      width: 8,
+                      height: 8,
                       decoration: BoxDecoration(
-                        color: isOnline ? const Color(0xFF00ff41) : const Color(0xFF4a5568),
+                        color: isOnline
+                            ? const Color(0xFF00ff41)
+                            : const Color(0xFF4a5568),
                         shape: BoxShape.circle,
                         boxShadow: isOnline
-                            ? [BoxShadow(color: const Color(0xFF00ff41).withValues(alpha: 0.5), blurRadius: 6)]
+                            ? [
+                                BoxShadow(
+                                    color: const Color(0xFF00ff41)
+                                        .withValues(alpha: 0.5),
+                                    blurRadius: 6)
+                              ]
                             : [],
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Icon(Icons.dns, color: isOnline ? const Color(0xFF00E5FF) : const Color(0xFF4a5568), size: 18),
+                    Icon(Icons.dns,
+                        color: isOnline
+                            ? const Color(0xFF00E5FF)
+                            : const Color(0xFF4a5568),
+                        size: 18),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         '${_nodeTypeLabel(node.nodeType ?? '')} #${node.id.length >= 8 ? node.id.substring(0, 8) : node.id}',
-                        style: TextStyle(color: isOnline ? Colors.white.withValues(alpha: 0.8) : const Color(0xFF4a5568), fontSize: 13, fontFamily: 'monospace'),
+                        style: TextStyle(
+                            color: isOnline
+                                ? Colors.white.withValues(alpha: 0.8)
+                                : const Color(0xFF4a5568),
+                            fontSize: 13,
+                            fontFamily: 'monospace'),
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: (isOnline ? const Color(0xFF00ff41) : const Color(0xFF4a5568)).withValues(alpha: 0.1),
+                        color: (isOnline
+                                ? const Color(0xFF00ff41)
+                                : const Color(0xFF4a5568))
+                            .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         isOnline ? 'ОНЛАЙН' : 'ОФФЛАЙН',
                         style: TextStyle(
-                          color: isOnline ? const Color(0xFF00ff41) : const Color(0xFF4a5568),
-                          fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5, fontFamily: 'monospace',
+                          color: isOnline
+                              ? const Color(0xFF00ff41)
+                              : const Color(0xFF4a5568),
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                          fontFamily: 'monospace',
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Text('УР ${node.nodeLevel ?? 1}',
-                      style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                        style: const TextStyle(
+                            color: Color(0xFF00E5FF),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace')),
                   ],
                 ),
               );
@@ -864,7 +1123,10 @@ class _NetworkPanel extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Center(
                 child: Text('+ ещё ${nodes.length - 8} узлов',
-                  style: const TextStyle(color: Color(0xFF4a5568), fontSize: 11, fontFamily: 'monospace')),
+                    style: const TextStyle(
+                        color: Color(0xFF4a5568),
+                        fontSize: 11,
+                        fontFamily: 'monospace')),
               ),
             ),
         ],
@@ -898,36 +1160,64 @@ class _AccountInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final createdAt = auth.profile?.createdAt;
-    final accountAge = createdAt != null ? DateTime.now().difference(createdAt).inDays : 0;
+    final accountAge = createdAt != null
+        ? DateTime.now().difference(createdAt).inDays
+        : 0;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF111827),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFa855f7).withValues(alpha: 0.12)),
+        border: Border.all(
+            color: const Color(0xFFa855f7).withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(width: 3, height: 14, decoration: BoxDecoration(color: const Color(0xFFa855f7), borderRadius: BorderRadius.circular(2))),
+              Container(
+                  width: 3,
+                  height: 14,
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFa855f7),
+                      borderRadius: BorderRadius.circular(2))),
               const SizedBox(width: 8),
               const Text('ИНФОРМАЦИЯ АККАУНТА',
-                style: TextStyle(color: Color(0xFFa855f7), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 2, fontFamily: 'monospace')),
+                  style: TextStyle(
+                      color: Color(0xFFa855f7),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 2,
+                      fontFamily: 'monospace')),
             ],
           ),
           const SizedBox(height: 16),
-          _infoRow(Icons.person, 'Имя', auth.displayName.isEmpty ? 'Хакер' : auth.displayName, const Color(0xFF00E5FF)),
+          _infoRow(Icons.person, 'Имя',
+              auth.displayName.isEmpty ? 'Хакер' : auth.displayName,
+              const Color(0xFF00E5FF)),
           const SizedBox(height: 10),
-          _infoRow(Icons.email, 'Email', (auth.user?.email ?? '').isEmpty ? '---' : auth.user!.email!, const Color(0xFF78909c)),
+          _infoRow(
+              Icons.email,
+              'Email',
+              (auth.user?.email ?? '').isEmpty
+                  ? '---'
+                  : auth.user!.email!,
+              const Color(0xFF78909c)),
           const SizedBox(height: 10),
-          _infoRow(Icons.calendar_today, 'В игре', '$accountAge дней', const Color(0xFFFFD700)),
+          _infoRow(Icons.calendar_today, 'В игре', '$accountAge дней',
+              const Color(0xFFFFD700)),
           const SizedBox(height: 10),
-          _infoRow(Icons.groups, 'Банда', auth.profile?.clanId != null ? 'В клане' : 'Нет', const Color(0xFFa855f7)),
+          _infoRow(Icons.groups, 'Банда',
+              auth.profile?.clanId != null ? 'В клане' : 'Нет',
+              const Color(0xFFa855f7)),
           const SizedBox(height: 10),
-          _infoRow(Icons.shield, 'Уровень', '${game.level} (${_rankTitle(game.level)})', _rankColor(game.level)),
+          _infoRow(
+              Icons.shield,
+              'Уровень',
+              '${game.level} (${_rankTitle(game.level)})',
+              _rankColor(game.level)),
           const SizedBox(height: 16),
           const Divider(color: Color(0xFF1e2535), height: 1),
           const SizedBox(height: 14),
@@ -940,13 +1230,25 @@ class _AccountInfoCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFF00ff41).withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF00ff41).withValues(alpha: 0.12)),
+                    border: Border.all(
+                        color: const Color(0xFF00ff41)
+                            .withValues(alpha: 0.12)),
                   ),
                   child: Column(
                     children: [
                       Text(_formatNum(game.xp),
-                        style: const TextStyle(color: Color(0xFF00ff41), fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'monospace')),
-                      Text('ВСЕГО XP', style: TextStyle(color: const Color(0xFF00ff41).withValues(alpha: 0.4), fontSize: 9, letterSpacing: 1, fontFamily: 'monospace')),
+                          style: const TextStyle(
+                              color: Color(0xFF00ff41),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'monospace')),
+                      Text('ВСЕГО XP',
+                          style: TextStyle(
+                              color: const Color(0xFF00ff41)
+                                  .withValues(alpha: 0.4),
+                              fontSize: 9,
+                              letterSpacing: 1,
+                              fontFamily: 'monospace')),
                     ],
                   ),
                 ),
@@ -958,13 +1260,25 @@ class _AccountInfoCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFD700).withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.12)),
+                    border: Border.all(
+                        color: const Color(0xFFFFD700)
+                            .withValues(alpha: 0.12)),
                   ),
                   child: Column(
                     children: [
                       Text(_formatNum(game.credits),
-                        style: const TextStyle(color: Color(0xFFFFD700), fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'monospace')),
-                      Text('КРЕДИТЫ', style: TextStyle(color: const Color(0xFFFFD700).withValues(alpha: 0.4), fontSize: 9, letterSpacing: 1, fontFamily: 'monospace')),
+                          style: const TextStyle(
+                              color: Color(0xFFFFD700),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'monospace')),
+                      Text('КРЕДИТЫ',
+                          style: TextStyle(
+                              color: const Color(0xFFFFD700)
+                                  .withValues(alpha: 0.4),
+                              fontSize: 9,
+                              letterSpacing: 1,
+                              fontFamily: 'monospace')),
                     ],
                   ),
                 ),
@@ -974,15 +1288,28 @@ class _AccountInfoCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00E5FF).withValues(alpha: 0.04),
+                    color:
+                        const Color(0xFF00E5FF).withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.12)),
+                    border: Border.all(
+                        color: const Color(0xFF00E5FF)
+                            .withValues(alpha: 0.12)),
                   ),
                   child: Column(
                     children: [
                       Text('+${game.passiveIncomePerTick}',
-                        style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'monospace')),
-                      Text('¢/30С', style: TextStyle(color: const Color(0xFF00E5FF).withValues(alpha: 0.4), fontSize: 9, letterSpacing: 1, fontFamily: 'monospace')),
+                          style: const TextStyle(
+                              color: Color(0xFF00E5FF),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'monospace')),
+                      Text('¢/30С',
+                          style: TextStyle(
+                              color: const Color(0xFF00E5FF)
+                                  .withValues(alpha: 0.4),
+                              fontSize: 9,
+                              letterSpacing: 1,
+                              fontFamily: 'monospace')),
                     ],
                   ),
                 ),
@@ -994,14 +1321,24 @@ class _AccountInfoCard extends StatelessWidget {
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value, Color color) {
+  Widget _infoRow(
+      IconData icon, String label, String value, Color color) {
     return Row(
       children: [
         Icon(icon, color: color.withValues(alpha: 0.5), size: 16),
         const SizedBox(width: 10),
-        Text(label, style: const TextStyle(color: Color(0xFF4a5568), fontSize: 12, fontFamily: 'monospace')),
+        Text(label,
+            style: const TextStyle(
+                color: Color(0xFF4a5568),
+                fontSize: 12,
+                fontFamily: 'monospace')),
         const Spacer(),
-        Text(value, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'monospace')),
+        Text(value,
+            style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'monospace')),
       ],
     );
   }
@@ -1078,4 +1415,3 @@ String _formatNum(int n) {
   if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
   return n.toString();
 }
-
