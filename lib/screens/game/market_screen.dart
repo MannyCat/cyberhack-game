@@ -105,20 +105,20 @@ class _MarketScreenState extends State<MarketScreen> {
     });
   }
 
-  Future<void> _switchToInventory() {
+  Future<void> _switchToInventory() async {
     setState(() {
       _showInventory = true;
       _selectedItem = null;
     });
-    _loadInventory();
+    await _loadInventory();
   }
 
-  Future<void> _switchToShop() {
+  Future<void> _switchToShop() async {
     setState(() {
       _showInventory = false;
       _selectedItem = null;
     });
-    _loadMarketItems();
+    await _loadMarketItems();
   }
 
   // ═════════════════════════════════════════════════════════════════════════════
@@ -1289,7 +1289,7 @@ class _InventoryCardState extends State<_InventoryCard> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      cursor: SystemMouseCursors.default,
+      cursor: SystemMouseCursors.basic,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
