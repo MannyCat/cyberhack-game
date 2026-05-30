@@ -48,14 +48,14 @@ class TutorialProvider extends ChangeNotifier {
   }
 
   void goToStep(int step) {
-    if (step >= 0 && step < _tutorialSteps.length) {
+    if (step >= 0 && step < tutorialSteps.length) {
       _currentStep = step;
       notifyListeners();
     }
   }
 
   void nextStep() {
-    if (_currentStep < _tutorialSteps.length - 1) {
+    if (_currentStep < tutorialSteps.length - 1) {
       _currentStep++;
       notifyListeners();
     } else {
@@ -107,7 +107,7 @@ class TutorialStep {
   });
 }
 
-const List<TutorialStep> _tutorialSteps = [
+const List<TutorialStep> tutorialSteps = [
   TutorialStep(
     id: 'welcome',
     title: 'ДОБРО ПОЖАЛОВАТЬ В CYBERHACK',
@@ -181,3 +181,4 @@ const List<TutorialStep> _tutorialSteps = [
     tip: 'Если забыли что-то — обучение всегда доступно в главном меню.',
   ),
 ];
+
