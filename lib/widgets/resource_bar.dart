@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Displays Credits / CPU / Bandwidth in a horizontal bar.
-/// Supports compact and expanded modes with animated value transitions.
+/// Displays Credits / CPU / Bandwidth in a horizontal desktop top bar.
+/// PC-sized, no mobile sizing, hover effects on each resource tile.
 enum ResourceBarMode { compact, expanded }
 
 class ResourceEntry {
@@ -43,8 +43,8 @@ class ResourceBar extends StatefulWidget {
     this.bandwidth = 0,
     this.maxBandwidth = 1024,
     this.mode = ResourceBarMode.compact,
-    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    this.height = 44.0,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    this.height = 56.0,
   });
 
   @override
@@ -87,15 +87,16 @@ class _ResourceBarState extends State<ResourceBar>
     if (oldWidget.credits != widget.credits ||
         oldWidget.cpu != widget.cpu ||
         oldWidget.bandwidth != widget.bandwidth) {
-      // Dispose old CurvedAnimations to prevent memory leaks
       _curvedCredits?.dispose();
       _curvedCpu?.dispose();
       _curvedBandwidth?.dispose();
 
-      // Create new CurvedAnimations
-      _curvedCredits = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
-      _curvedCpu = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
-      _curvedBandwidth = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+      _curvedCredits = CurvedAnimation(
+          parent: _controller, curve: Curves.easeOutCubic);
+      _curvedCpu = CurvedAnimation(
+          parent: _controller, curve: Curves.easeOutCubic);
+      _curvedBandwidth = CurvedAnimation(
+          parent: _controller, curve: Curves.easeOutCubic);
 
       _creditsAnim = Tween<double>(
         begin: _prevCredits.toDouble(),
@@ -143,7 +144,7 @@ class _ResourceBarState extends State<ResourceBar>
   Widget build(BuildContext context) {
     final resources = [
       ResourceEntry(
-        label: 'КРЕД',
+        label: 'КРЕДИТЫ',
         value: widget.credits,
         maxValue: widget.maxCredits,
         icon: Icons.monetization_on,
@@ -151,7 +152,7 @@ class _ResourceBarState extends State<ResourceBar>
         dimColor: const Color(0xFF5C4D1A),
       ),
       ResourceEntry(
-        label: 'CPU',
+        label: 'ЦПУ',
         value: widget.cpu,
         maxValue: widget.maxCpu,
         icon: Icons.memory,
@@ -176,6 +177,7 @@ class _ResourceBarState extends State<ResourceBar>
     return _buildExpanded(resources, animations);
   }
 
+  /// Compact: single horizontal bar with icon + label + thin progress.
   Widget _buildCompact(
       List<ResourceEntry> resources, List<Animation<double>> animations) {
     return Container(
@@ -183,114 +185,178 @@ class _ResourceBarState extends State<ResourceBar>
       padding: widget.padding,
       decoration: BoxDecoration(
         color: const Color(0xFF1A1F2E),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFF2A2F45), width: 1),
       ),
       child: Row(
         children: List.generate(resources.length, (i) {
           final r = resources[i];
           final anim = animations[i];
-          return Expanded(
-            child: ListenableBuilder(
-              listenable: anim,
-              builder: (context, _) {
-                final ratio = r.maxValue > 0
-                    ? math.min(anim.value / r.maxValue, 1.0)
-                    : 0.0;
-                return Row(
-                  children: [
-                    Icon(r.icon, color: r.activeColor, size: 16),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${r.label}: ${_formatNumber(anim.value)}',
-                            style: TextStyle(
-                              color: r.activeColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(2),
-                            child: LinearProgressIndicator(
-                              value: ratio,
-                              minHeight: 3,
-                              backgroundColor: r.dimColor,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(r.activeColor),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          );
+          if (i > 0) {
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: _buildCompactTile(r, anim),
+              ),
+            );
+          }
+          return Expanded(child: _buildCompactTile(r, anim));
         }),
       ),
     );
   }
 
+  Widget _buildCompactTile(ResourceEntry r, Animation<double> anim) {
+    return _HoverTile(
+      activeColor: r.activeColor,
+      builder: (isHovered, _) {
+        return ListenableBuilder(
+          listenable: anim,
+          builder: (context, _) {
+            final ratio = r.maxValue > 0
+                ? math.min(anim.value / r.maxValue, 1.0)
+                : 0.0;
+            return Row(
+              children: [
+                // Icon
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: r.activeColor.withValues(alpha: isHovered ? 0.15 : 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: r.activeColor.withValues(alpha: isHovered ? 0.4 : 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(r.icon, color: r.activeColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                // Label + Value
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            r.label,
+                            style: TextStyle(
+                              color: r.activeColor.withValues(alpha: 0.5),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.0,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            _formatNumber(anim.value),
+                            style: TextStyle(
+                              color: r.activeColor,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: LinearProgressIndicator(
+                          value: ratio,
+                          minHeight: 4,
+                          backgroundColor: r.dimColor,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(r.activeColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Expanded: horizontal row of wider cards with label, value, max, progress bar.
   Widget _buildExpanded(
       List<ResourceEntry> resources, List<Animation<double>> animations) {
     return Container(
       padding: widget.padding,
       decoration: BoxDecoration(
         color: const Color(0xFF1A1F2E),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF2A2F45), width: 1),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: List.generate(resources.length, (i) {
           final r = resources[i];
           final anim = animations[i];
           if (i > 0) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: _buildExpandedRow(r, anim),
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: _buildExpandedTile(r, anim),
+              ),
             );
           }
-          return _buildExpandedRow(r, anim);
+          return Expanded(child: _buildExpandedTile(r, anim));
         }),
       ),
     );
   }
 
-  Widget _buildExpandedRow(ResourceEntry r, Animation<double> anim) {
-    return ListenableBuilder(
-      listenable: anim,
-      builder: (context, _) {
-        final ratio = r.maxValue > 0
-            ? math.min(anim.value / r.maxValue, 1.0)
-            : 0.0;
-        return Row(
-          children: [
-            Icon(r.icon, color: r.activeColor, size: 20),
-            const SizedBox(width: 10),
-            SizedBox(
-              width: 40,
-              child: Text(
-                r.label,
-                style: TextStyle(
-                  color: r.activeColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1,
+  Widget _buildExpandedTile(ResourceEntry r, Animation<double> anim) {
+    return _HoverTile(
+      activeColor: r.activeColor,
+      builder: (isHovered, _) {
+        return ListenableBuilder(
+          listenable: anim,
+          builder: (context, _) {
+            final ratio = r.maxValue > 0
+                ? math.min(anim.value / r.maxValue, 1.0)
+                : 0.0;
+            return Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: r.activeColor.withValues(alpha: isHovered ? 0.08 : 0.03),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color:
+                      r.activeColor.withValues(alpha: isHovered ? 0.35 : 0.15),
+                  width: 1,
                 ),
               ),
-            ),
-            Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Icon(r.icon, color: r.activeColor, size: 22),
+                      const SizedBox(width: 10),
+                      Text(
+                        r.label,
+                        style: TextStyle(
+                          color: r.activeColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -298,8 +364,9 @@ class _ResourceBarState extends State<ResourceBar>
                         _formatNumber(anim.value),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
+                          fontFamily: 'monospace',
                         ),
                       ),
                       Text(
@@ -307,26 +374,57 @@ class _ResourceBarState extends State<ResourceBar>
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.35),
                           fontSize: 11,
+                          fontFamily: 'monospace',
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
+                    borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: ratio,
                       minHeight: 6,
                       backgroundColor: r.dimColor,
-                      valueColor: AlwaysStoppedAnimation<Color>(r.activeColor),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(r.activeColor),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+            );
+          },
         );
       },
+    );
+  }
+}
+
+/// Reusable hover wrapper — applies MouseRegion with cursor + optional
+/// animated border glow on mouse enter / exit.
+class _HoverTile extends StatefulWidget {
+  final Color activeColor;
+  final Widget Function(bool isHovered, Color color) builder;
+
+  const _HoverTile({
+    required this.activeColor,
+    required this.builder,
+  });
+
+  @override
+  State<_HoverTile> createState() => _HoverTileState();
+}
+
+class _HoverTileState extends State<_HoverTile> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.basic,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: widget.builder(_isHovered, widget.activeColor),
     );
   }
 }
