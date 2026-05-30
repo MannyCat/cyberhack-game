@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/auth_provider.dart';
 
-// ─── Campaign / PvE Missions Screen ────────────────────────────────────────────
+// ─── Campaign / PvE Missions Screen — PC Desktop ──────────────────────────────
 
 class CampaignScreen extends StatefulWidget {
   const CampaignScreen({super.key});
@@ -125,7 +125,6 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
     final playerLevel = context.read<GameProvider>().level;
     final enemyStrength = (campaign['enemy_strength'] as num?)?.toInt() ?? 50;
 
-    // Player power = level * 20 + random(0, 50)
     final playerPower = playerLevel * 20 + Random().nextInt(51);
 
     setState(() {
@@ -139,21 +138,18 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
       };
     });
 
-    // Animated progress over 3 seconds
     for (int i = 0; i <= 100; i += 2) {
       await Future.delayed(const Duration(milliseconds: 60));
       if (!mounted) return;
       setState(() => _battleProgress = i / 100);
     }
 
-    // Success if player_power > enemy_strength * 0.7
     final success = playerPower > (enemyStrength * 0.7);
     setState(() {
       _battleResult = success;
     });
 
     if (success) {
-      // Record completion in DB
       try {
         final userId = auth.userId!;
         final progress = campaign['campaign_progress'] as List?;
@@ -162,7 +158,6 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
             : null;
 
         if (existingStatus != 'completed') {
-          // Upsert campaign progress
           if (existingStatus != null) {
             await _supabase
                 .from('campaign_progress')
@@ -188,7 +183,6 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
             });
           }
 
-          // Award rewards via RPC
           try {
             await _supabase.rpc('complete_campaign', params: {
               'p_player_id': userId,
@@ -198,7 +192,6 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
             });
           } catch (rpcErr) {
             debugPrint('RPC complete_campaign failed, applying manually: $rpcErr');
-            // Manual fallback: directly update profile
             final rewardCredits = (campaign['reward_credits'] as num?)?.toInt() ?? 0;
             final rewardXp = (campaign['reward_xp'] as num?)?.toInt() ?? 0;
             if (rewardCredits > 0 || rewardXp > 0) {
@@ -210,7 +203,6 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
             }
           }
 
-          // Refresh game resources
           await context.read<GameProvider>().refreshResources(userId);
         }
       } catch (e) {
@@ -223,116 +215,180 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final game = context.watch<GameProvider>();
     final auth = context.watch<AuthProvider>();
 
     if (auth.userId == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('МИССИИ')),
+        backgroundColor: const Color(0xFF0a0e17),
         body: Center(
-          child: Text('Не авторизован', style: theme.textTheme.bodyLarge),
+          child: Text('Не авторизован', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 16)),
         ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('МИССИИ'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Обновить',
-            onPressed: _isLoading ? null : _loadCampaigns,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // ── Header Info ──
-          _buildHeader(game, theme),
-          const SizedBox(height: 8),
+      backgroundColor: const Color(0xFF0a0e17),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Column(
+            children: [
+              // ── Header ──
+              _buildHeader(game),
+              const SizedBox(height: 16),
 
-          // ── Campaign List ──
-          Expanded(
-            child: _isLoading
-                ? _buildLoadingState(theme)
-                : _errorMessage != null
-                    ? _buildErrorState(theme)
-                    : _campaigns.isEmpty
-                        ? _buildEmptyState(theme)
-                        : _buildCampaignList(game, theme),
+              // ── Content ──
+              Expanded(
+                child: _isLoading
+                    ? _buildLoadingState()
+                    : _errorMessage != null
+                        ? _buildErrorState()
+                        : _campaigns.isEmpty
+                            ? _buildEmptyState()
+                            : _buildCampaignList(game),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildHeader(GameProvider game, ThemeData theme) {
+  Widget _buildHeader(GameProvider game) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF0d1220),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: const Color(0xFFFFD700).withValues(alpha: 0.3),
           width: 1,
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _headerChip(Icons.shield, 'УР', '${game.level}', const Color(0xFF00F0FF), theme),
-          _headerChip(Icons.bolt, 'АТАКА', '${game.level * 20}', const Color(0xFFFF0040), theme),
-          _headerChip(Icons.monetization_on, 'CR', '${game.credits}', const Color(0xFFFFD700), theme),
-          _headerChip(Icons.star, 'XP', '${game.xp}', const Color(0xFF00ff41), theme),
+          const Icon(Icons.shield, color: Color(0xFFFF0040), size: 24),
+          const SizedBox(width: 12),
+          const Text(
+            'МИССИИ',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2,
+            ),
+          ),
+          const Spacer(),
+          _headerChip(Icons.shield, 'УРОВЕНЬ', '${game.level}', const Color(0xFF00F0FF)),
+          const SizedBox(width: 28),
+          _headerChip(Icons.bolt, 'АТАКА', '${game.level * 20}', const Color(0xFFFF0040)),
+          const SizedBox(width: 28),
+          _headerChip(Icons.monetization_on, 'КРЕДИТЫ', '${game.credits}', const Color(0xFFFFD700)),
+          const SizedBox(width: 28),
+          _headerChip(Icons.star, 'ОПЫТ', '${game.xp}', const Color(0xFF00ff41)),
+          const SizedBox(width: 16),
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: _isLoading ? null : _loadCampaigns,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF111827),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF1e293b)),
+                ),
+                child: const Icon(Icons.refresh, color: Color(0xFF4a5568), size: 20),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _headerChip(IconData icon, String label, String value, Color color, ThemeData theme) {
+  Widget _headerChip(IconData icon, String label, String value, Color color) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: theme.textTheme.titleSmall?.copyWith(
-            color: color,
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              value,
+              style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
+        const SizedBox(height: 2),
         Text(
           label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          style: const TextStyle(color: Color(0xFF4a5568), fontSize: 10, letterSpacing: 1),
         ),
       ],
     );
   }
 
-  Widget _buildLoadingState(ThemeData theme) {
+  Widget _buildLoadingState() {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             child: CircularProgressIndicator(
               strokeWidth: 3,
               color: Color(0xFFFFD700),
             ),
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Загрузка миссий...',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.outline,
+            style: TextStyle(color: Color(0xFF4a5568), fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.wifi_off, size: 56, color: Color(0xFFFF0040)),
+          const SizedBox(height: 16),
+          Text(
+            _errorMessage!,
+            style: const TextStyle(color: Color(0xFFFF0040), fontSize: 15, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 20),
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: _loadCampaigns,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF0040).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFF0040).withValues(alpha: 0.4)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.refresh, color: Color(0xFFFF0040), size: 18),
+                    SizedBox(width: 8),
+                    Text('ПОВТОРИТЬ', style: TextStyle(color: Color(0xFFFF0040), fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -340,75 +396,36 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildErrorState(ThemeData theme) {
+  Widget _buildEmptyState() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.wifi_off, size: 48, color: theme.colorScheme.error.withValues(alpha: 0.6)),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage!,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.error,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _loadCampaigns,
-              icon: const Icon(Icons.refresh),
-              label: const Text('ПОВТОРИТЬ'),
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.military_tech, size: 72, color: Color(0xFFFFD700)),
+          const SizedBox(height: 20),
+          const Text(
+            'Миссий пока нет',
+            style: TextStyle(color: Color(0xFF4a5568), fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Скоро здесь появятся новые задания',
+            style: TextStyle(color: Color(0xFF3a4060), fontSize: 13),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.military_tech, size: 64, color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
-            const SizedBox(height: 16),
-            Text(
-              'Миссий пока нет',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Скоро здесь появятся новые задания',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCampaignList(GameProvider game, ThemeData theme) {
-    return RefreshIndicator(
-      color: const Color(0xFFFFD700),
-      backgroundColor: const Color(0xFF111827),
-      onRefresh: _loadCampaigns,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        itemCount: _campaigns.length,
-        itemBuilder: (context, index) {
-          final campaign = _campaigns[index];
-          final status = _getCampaignStatus(campaign);
-          return _buildCampaignCard(campaign, status, game, theme, index);
-        },
-      ),
+  Widget _buildCampaignList(GameProvider game) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      itemCount: _campaigns.length,
+      itemBuilder: (context, index) {
+        final campaign = _campaigns[index];
+        final status = _getCampaignStatus(campaign);
+        return _buildCampaignCard(campaign, status, game, index);
+      },
     );
   }
 
@@ -416,7 +433,6 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
     Map<String, dynamic> campaign,
     String status,
     GameProvider game,
-    ThemeData theme,
     int index,
   ) {
     final difficulty = (campaign['difficulty'] as num?)?.toInt() ?? 1;
@@ -432,11 +448,10 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
     final isLocked = _isLocked(status);
     final isCompleted = _isCompleted(status);
     final isAvailable = _isAvailable(status);
-
     final difficultyColor = _getDifficultyColor(difficulty);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: AnimatedBuilder(
         animation: _pulseAnimation,
         builder: (context, child) {
@@ -445,279 +460,171 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
             child: child,
           );
         },
-        child: GestureDetector(
-          onTap: isAvailable
-              ? () => _showAttackDialog(campaign, game, theme)
-              : isCompleted
-                  ? () => _showCompletedInfo(campaign, theme)
-                  : null,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              gradient: isCompleted
-                  ? LinearGradient(
-                      colors: [
-                        const Color(0xFF111827),
-                        const Color(0xFF00ff41).withValues(alpha: 0.08),
-                      ],
-                    )
-                  : isAvailable
-                      ? LinearGradient(
-                          colors: [
-                            const Color(0xFF111827),
-                            const Color(0xFF00F0FF).withValues(alpha: 0.05),
-                          ],
-                        )
-                      : null,
-              color: isAvailable || isCompleted ? null : const Color(0xFF111827),
-              border: Border.all(
-                color: isCompleted
-                    ? const Color(0xFF00ff41).withValues(alpha: 0.4)
+        child: MouseRegion(
+          cursor: (isAvailable || isCompleted) ? SystemMouseCursors.click : SystemMouseCursors.basic,
+          child: GestureDetector(
+            onTap: isAvailable
+                ? () => _showAttackDialog(campaign, game)
+                : isCompleted
+                    ? () => _showCompletedInfo(campaign)
+                    : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: isCompleted
+                    ? LinearGradient(
+                        colors: [
+                          const Color(0xFF0d1220),
+                          const Color(0xFF00ff41).withValues(alpha: 0.08),
+                        ],
+                      )
                     : isAvailable
-                        ? const Color(0xFF00F0FF).withValues(alpha: 0.3)
-                        : theme.colorScheme.outline.withValues(alpha: 0.15),
-                width: isAvailable ? 1.5 : 1,
-              ),
-              boxShadow: isAvailable
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF00F0FF).withValues(alpha: 0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Stack(
-                children: [
-                  // ── Main Content ──
-                  Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(
-                      children: [
-                        // ── Left: Difficulty ──
-                        _buildDifficultyIndicator(difficulty, difficultyColor),
-                        const SizedBox(width: 14),
-
-                        // ── Center: Info ──
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Mission name
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      missionName,
-                                      style: theme.textTheme.titleSmall?.copyWith(
-                                        color: isLocked
-                                            ? theme.colorScheme.outline
-                                            : Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  if (isCompleted)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF00ff41).withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: const Color(0xFF00ff41).withValues(alpha: 0.4),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.check_circle, color: Color(0xFF00ff41), size: 14),
-                                          const SizedBox(width: 4),
-                                          const Text(
-                                            'СДАНО',
-                                            style: TextStyle(
-                                              color: Color(0xFF00ff41),
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                ],
-                              ),
-
-                              if (missionDesc.isNotEmpty) ...[
-                                const SizedBox(height: 3),
-                                Text(
-                                  missionDesc,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: isLocked
-                                        ? theme.colorScheme.outline.withValues(alpha: 0.5)
-                                        : theme.colorScheme.onSurfaceVariant,
-                                    fontSize: 12,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-
-                              const SizedBox(height: 8),
-
-                              // Enemy info
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.report_problem,
-                                    color: isLocked
-                                        ? theme.colorScheme.outline.withValues(alpha: 0.4)
-                                        : const Color(0xFFFF0040),
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    enemyName,
-                                    style: theme.textTheme.labelMedium?.copyWith(
-                                      color: isLocked
-                                          ? theme.colorScheme.outline.withValues(alpha: 0.4)
-                                          : const Color(0xFFFF0040),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    'СИЛ',
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  SizedBox(
-                                    width: 60,
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(3),
-                                      child: LinearProgressIndicator(
-                                        value: (enemyStrength / 200).clamp(0.0, 1.0),
-                                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          enemyStrength > 150
-                                              ? const Color(0xFFFF0040)
-                                              : enemyStrength > 100
-                                                  ? Colors.orangeAccent
-                                                  : const Color(0xFFFFD700),
-                                        ),
-                                        minHeight: 5,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$enemyStrength',
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              // Rewards row
-                              Row(
-                                children: [
-                                  if (rewardCredits > 0)
-                                    _rewardChip(Icons.monetization_on, '+$rewardCredits CR', const Color(0xFFFFD700)),
-                                  if (rewardCredits > 0 && rewardXp > 0)
-                                    const SizedBox(width: 10),
-                                  if (rewardXp > 0)
-                                    _rewardChip(Icons.star, '+$rewardXp XP', const Color(0xFF00ff41)),
-                                  const Spacer(),
-                                  if (isLocked)
-                                    _lockedIndicator(requiredLevel, theme),
-                                  if (isCompleted && attempts > 0)
-                                    Text(
-                                      'Попыток: $attempts',
-                                      style: theme.textTheme.labelSmall?.copyWith(
-                                        color: theme.colorScheme.onSurfaceVariant,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                ],
-                              ),
+                        ? LinearGradient(
+                            colors: [
+                              const Color(0xFF0d1220),
+                              const Color(0xFF00F0FF).withValues(alpha: 0.05),
                             ],
-                          ),
+                          )
+                        : null,
+                color: isAvailable || isCompleted ? null : const Color(0xFF0d1220),
+                border: Border.all(
+                  color: isCompleted
+                      ? const Color(0xFF00ff41).withValues(alpha: 0.4)
+                      : isAvailable
+                          ? const Color(0xFF00F0FF).withValues(alpha: 0.3)
+                          : const Color(0xFF1e293b),
+                  width: isAvailable ? 1.5 : 1,
+                ),
+                boxShadow: isAvailable
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF00F0FF).withValues(alpha: 0.08),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
                         ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                children: [
+                  // ── Left: Difficulty ──
+                  _buildDifficultyIndicator(difficulty, difficultyColor),
+                  const SizedBox(width: 20),
 
-                        // ── Right: Action ──
-                        const SizedBox(width: 8),
-                        if (isAvailable)
-                          AnimatedBuilder(
-                            animation: _glowAnimation,
-                            builder: (context, child) {
-                              return Container(
-                                width: 48,
-                                height: 48,
+                  // ── Center: Info ──
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                missionName,
+                                style: TextStyle(
+                                  color: isLocked
+                                      ? const Color(0xFF4a5568)
+                                      : Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (isCompleted)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFFFF0040).withValues(
-                                    alpha: 0.15 + _glowAnimation.value * 0.1,
-                                  ),
-                                  border: Border.all(
-                                    color: const Color(0xFFFF0040).withValues(
-                                      alpha: 0.4 + _glowAnimation.value * 0.3,
-                                    ),
-                                    width: 2,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFFFF0040).withValues(
-                                        alpha: _glowAnimation.value * 0.25,
-                                      ),
-                                      blurRadius: 12,
-                                    ),
+                                  color: const Color(0xFF00ff41).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFF00ff41).withValues(alpha: 0.4)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.check_circle, color: Color(0xFF00ff41), size: 14),
+                                    SizedBox(width: 4),
+                                    Text('СДАНО', style: TextStyle(color: Color(0xFF00ff41), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                                   ],
                                 ),
-                                child: const Icon(
-                                  Icons.bolt,
-                                  color: Color(0xFFFF0040),
-                                  size: 22,
-                                ),
-                              );
-                            },
+                              ),
+                          ],
+                        ),
+                        if (missionDesc.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            missionDesc,
+                            style: TextStyle(color: isLocked ? const Color(0xFF3a4060) : Colors.white.withValues(alpha: 0.5), fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
+                        ],
+                        const SizedBox(height: 10),
+                        // Enemy info row
+                        Row(
+                          children: [
+                            Icon(Icons.report_problem, color: isLocked ? const Color(0xFF3a4060) : const Color(0xFFFF0040), size: 16),
+                            const SizedBox(width: 6),
+                            Text(enemyName, style: TextStyle(color: isLocked ? const Color(0xFF3a4060) : const Color(0xFFFF0040), fontWeight: FontWeight.w600, fontSize: 13)),
+                            const SizedBox(width: 16),
+                            Text('СИЛА:', style: const TextStyle(color: Color(0xFF4a5568), fontSize: 11)),
+                            const SizedBox(width: 6),
+                            SizedBox(
+                              width: 80,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: (enemyStrength / 200).clamp(0.0, 1.0),
+                                  backgroundColor: const Color(0xFF111827),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    enemyStrength > 150 ? const Color(0xFFFF0040) : enemyStrength > 100 ? Colors.orangeAccent : const Color(0xFFFFD700),
+                                  ),
+                                  minHeight: 6,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text('$enemyStrength', style: const TextStyle(color: Color(0xFF4a5568), fontSize: 12, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        // Rewards row
+                        Row(
+                          children: [
+                            if (rewardCredits > 0) _rewardChip(Icons.monetization_on, '+$rewardCredits CR', const Color(0xFFFFD700)),
+                            if (rewardCredits > 0 && rewardXp > 0) const SizedBox(width: 16),
+                            if (rewardXp > 0) _rewardChip(Icons.star, '+$rewardXp XP', const Color(0xFF00ff41)),
+                            const Spacer(),
+                            if (isLocked) _lockedIndicator(requiredLevel),
+                            if (isCompleted && attempts > 0)
+                              Text('Попыток: $attempts', style: const TextStyle(color: Color(0xFF4a5568), fontSize: 12)),
+                          ],
+                        ),
                       ],
                     ),
                   ),
 
-                  // ── Completed overlay checkmark ──
-                  if (isCompleted)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFF00ff41).withValues(alpha: 0.15),
-                          border: Border.all(
-                            color: const Color(0xFF00ff41).withValues(alpha: 0.4),
+                  // ── Right: Action ──
+                  if (isAvailable)
+                    AnimatedBuilder(
+                      animation: _glowAnimation,
+                      builder: (context, child) {
+                        return Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFFF0040).withValues(alpha: 0.15 + _glowAnimation.value * 0.1),
+                            border: Border.all(color: const Color(0xFFFF0040).withValues(alpha: 0.4 + _glowAnimation.value * 0.3), width: 2),
+                            boxShadow: [
+                              BoxShadow(color: const Color(0xFFFF0040).withValues(alpha: _glowAnimation.value * 0.25), blurRadius: 14),
+                            ],
                           ),
-                        ),
-                        child: const Icon(
-                          Icons.check,
-                          color: Color(0xFF00ff41),
-                          size: 16,
-                        ),
-                      ),
+                          child: const Icon(Icons.bolt, color: Color(0xFFFF0040), size: 24),
+                        );
+                      },
                     ),
                 ],
               ),
@@ -733,11 +640,11 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 6,
-          height: 64,
+          width: 8,
+          height: 56,
           decoration: BoxDecoration(
             color: const Color(0xFF1A2030),
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(4),
           ),
           child: Align(
             alignment: Alignment.bottomCenter,
@@ -746,14 +653,8 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
               child: Container(
                 decoration: BoxDecoration(
                   color: color,
-                  borderRadius: BorderRadius.circular(3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 0),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(4),
+                  boxShadow: [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8)],
                 ),
               ),
             ),
@@ -761,20 +662,13 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
         ),
         const SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
-          child: Text(
-            '$difficulty',
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          child: Text('$difficulty', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -784,42 +678,27 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 14),
-        const SizedBox(width: 3),
-        Text(
-          text,
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Icon(icon, color: color, size: 15),
+        const SizedBox(width: 4),
+        Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
       ],
     );
   }
 
-  Widget _lockedIndicator(int requiredLevel, ThemeData theme) {
+  Widget _lockedIndicator(int requiredLevel) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: theme.colorScheme.outline.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.2),
-        ),
+        color: const Color(0xFF111827),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF1e293b)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.lock, color: Color(0xFF3a4060), size: 12),
+          const Icon(Icons.lock, color: Color(0xFF3a4060), size: 14),
           const SizedBox(width: 4),
-          Text(
-            'УР $requiredLevel',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.outline,
-              fontSize: 11,
-            ),
-          ),
+          Text('УР $requiredLevel', style: const TextStyle(color: Color(0xFF4a5568), fontSize: 12)),
         ],
       ),
     );
@@ -850,7 +729,7 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
 
   // ── Attack Dialog ──
 
-  void _showAttackDialog(Map<String, dynamic> campaign, GameProvider game, ThemeData theme) {
+  void _showAttackDialog(Map<String, dynamic> campaign, GameProvider game) {
     final difficulty = (campaign['difficulty'] as num?)?.toInt() ?? 1;
     final enemyName = campaign['enemy_name'] as String? ?? 'Неизвестный';
     final enemyStrength = (campaign['enemy_strength'] as num?)?.toInt() ?? 50;
@@ -868,113 +747,108 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
               backgroundColor: const Color(0xFF111827),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: const Color(0xFF00F0FF).withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
+                side: BorderSide(color: const Color(0xFF00F0FF).withValues(alpha: 0.3), width: 1.5),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // ── Title ──
-                    const Icon(Icons.shield, color: Color(0xFFFF0040), size: 36),
-                    const SizedBox(height: 12),
-                    Text(
-                      campaign['name'] as String? ?? 'МИССИЯ',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: const Color(0xFF00F0FF),
-                        fontSize: 20,
-                        letterSpacing: 2,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      campaign['description'] as String? ?? '',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-
-                    // ── Enemy Info ──
-                    _buildEnemyBlock(enemyName, enemyStrength, difficulty, theme),
-                    const SizedBox(height: 16),
-
-                    // ── Player Power ──
-                    _buildPlayerPowerBlock(playerPower, game.level, theme),
-                    const SizedBox(height: 20),
-
-                    // ── Battle Progress ──
-                    if (_isBattleInProgress) ...[
-                      _buildBattleProgressBar(theme),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // ── Battle Result ──
-                    if (_battleResult != null && !_isBattleInProgress) ...[
-                      _buildBattleResult(_battleResult!, rewardCredits, rewardXp, theme),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // ── Action Buttons ──
-                    if (!_isBattleInProgress && _battleResult == null)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(dialogContext);
-                            _startBattle(campaign);
-                          },
-                          icon: const Icon(Icons.bolt),
-                          label: const Text(
-                            'НАЧАТЬ АТАКУ',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFF0040),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    if (_battleResult != null && !_isBattleInProgress)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(dialogContext),
-                          child: const Text(
-                            'ЗАКРЫТЬ',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    if (_isBattleInProgress)
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.shield, color: Color(0xFFFF0040), size: 40),
+                      const SizedBox(height: 14),
                       Text(
-                        'Взлом в процессе...',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          letterSpacing: 1,
-                        ),
+                        campaign['name'] as String? ?? 'МИССИЯ',
+                        style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 2),
+                        textAlign: TextAlign.center,
                       ),
-                  ],
+                      if ((campaign['description'] as String?)?.isNotEmpty == true) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          campaign['description'] as String? ?? '',
+                          style: const TextStyle(color: Color(0xFF4a5568), fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+
+                      // Enemy + Player side by side
+                      Row(
+                        children: [
+                          Expanded(child: _buildEnemyBlock(enemyName, enemyStrength, difficulty)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildPlayerPowerBlock(playerPower, game.level)),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Battle Progress
+                      if (_isBattleInProgress) ...[
+                        _buildBattleProgressBar(),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Battle Result
+                      if (_battleResult != null && !_isBattleInProgress) ...[
+                        _buildBattleResult(_battleResult!, rewardCredits, rewardXp),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Action Buttons
+                      if (!_isBattleInProgress && _battleResult == null)
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pop(dialogContext);
+                              _startBattle(campaign);
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: const Color(0xFFFF0040),
+                                boxShadow: [BoxShadow(color: const Color(0xFFFF0040).withValues(alpha: 0.3), blurRadius: 16)],
+                              ),
+                              child: const Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.bolt, color: Colors.white, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('НАЧАТЬ АТАКУ', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      if (_battleResult != null && !_isBattleInProgress)
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(dialogContext),
+                            child: Container(
+                              width: double.infinity,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFF1e293b)),
+                              ),
+                              child: const Center(
+                                child: Text('ЗАКРЫТЬ', style: TextStyle(color: Color(0xFF4a5568), fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      if (_isBattleInProgress)
+                        const Text('Взлом в процессе...', style: TextStyle(color: Color(0xFFFFD700), fontSize: 13, letterSpacing: 1)),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -982,7 +856,6 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
         );
       },
     ).then((_) {
-      // Reset state when dialog closes
       setState(() {
         _isBattleInProgress = false;
         _battleProgress = 0.0;
@@ -993,33 +866,23 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
     });
   }
 
-  Widget _buildEnemyBlock(String enemyName, int enemyStrength, int difficulty, ThemeData theme) {
+  Widget _buildEnemyBlock(String enemyName, int enemyStrength, int difficulty) {
     final difficultyColor = _getDifficultyColor(difficulty);
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFF0040).withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFFF0040).withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: const Color(0xFFFF0040).withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.report_problem, color: Color(0xFFFF0040), size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'ЦЕЛЬ',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFFFF0040),
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-              ),
+              const Icon(Icons.report_problem, color: Color(0xFFFF0040), size: 18),
+              const SizedBox(width: 6),
+              const Text('ЦЕЛЬ', style: TextStyle(color: Color(0xFFFF0040), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1028,53 +891,29 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: difficultyColor.withValues(alpha: 0.4)),
                 ),
-                child: Text(
-                  'СЛОЖ. $difficulty/10',
-                  style: TextStyle(
-                    color: difficultyColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: Text('СЛОЖ. $difficulty/10', style: TextStyle(color: difficultyColor, fontSize: 11, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            enemyName,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          const SizedBox(height: 10),
+          Text(enemyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 8),
           Row(
             children: [
-              Text(
-                'Защита: ',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
+              const Text('Защита: ', style: TextStyle(color: Color(0xFF4a5568), fontSize: 12)),
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: (enemyStrength / 200).clamp(0.0, 1.0),
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    backgroundColor: const Color(0xFF111827),
                     valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF0040)),
                     minHeight: 8,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                '$enemyStrength',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFFFF0040),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text('$enemyStrength', style: const TextStyle(color: Color(0xFFFF0040), fontWeight: FontWeight.bold, fontSize: 13)),
             ],
           ),
         ],
@@ -1082,105 +921,60 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildPlayerPowerBlock(int playerPower, int playerLevel, ThemeData theme) {
+  Widget _buildPlayerPowerBlock(int playerPower, int playerLevel) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF00F0FF).withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF00F0FF).withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: const Color(0xFF00F0FF).withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.person, color: Color(0xFF00F0FF), size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'ВАША МОЩЬ',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF00F0FF),
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-              ),
+              const Icon(Icons.person, color: Color(0xFF00F0FF), size: 18),
+              const SizedBox(width: 6),
+              const Text('ВАША МОЩЬ', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
               const Spacer(),
-              Text(
-                'УР $playerLevel',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                ),
-              ),
+              Text('УР $playerLevel', style: const TextStyle(color: Color(0xFF4a5568), fontSize: 12)),
             ],
           ),
+          const SizedBox(height: 10),
+          Text('~$playerPower урона', style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 8),
           Row(
             children: [
-              Text(
-                'Атака: ',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
+              const Text('Атака: ', style: TextStyle(color: Color(0xFF4a5568), fontSize: 12)),
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: (playerPower / 200).clamp(0.0, 1.0),
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    backgroundColor: const Color(0xFF111827),
                     valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00F0FF)),
                     minHeight: 8,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                '~$playerPower',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF00F0FF),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            '+ случайный бонус (0-50)',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              fontSize: 11,
-            ),
-          ),
+          const Text('+ случайный бонус (0-50)', style: TextStyle(color: Color(0xFF3a4060), fontSize: 11)),
         ],
       ),
     );
   }
 
-  Widget _buildBattleProgressBar(ThemeData theme) {
+  Widget _buildBattleProgressBar() {
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'ВЗЛОМ СИСТЕМЫ',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: const Color(0xFFFFD700),
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
-            ),
-            Text(
-              '${(_battleProgress * 100).toInt()}%',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: const Color(0xFFFFD700),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            const Text('ВЗЛОМ СИСТЕМЫ', style: TextStyle(color: Color(0xFFFFD700), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
+            Text('${(_battleProgress * 100).toInt()}%', style: const TextStyle(color: Color(0xFFFFD700), fontSize: 12, fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 8),
@@ -1189,7 +983,7 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
           child: LinearProgressIndicator(
             value: _battleProgress,
             minHeight: 10,
-            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            backgroundColor: const Color(0xFF111827),
             valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFFD700)),
           ),
         ),
@@ -1197,17 +991,15 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildBattleResult(bool success, int rewardCredits, int rewardXp, ThemeData theme) {
+  Widget _buildBattleResult(bool success, int rewardCredits, int rewardXp) {
     final icon = success ? Icons.verified : Icons.cancel;
     final color = success ? const Color(0xFF00ff41) : const Color(0xFFFF0040);
     final title = success ? 'ВЗЛОМ УДАЛСЯ!' : 'ЗАЩИТА ОТБОЙ!';
-    final subtitle = success
-        ? 'Система успешно взломана'
-        : 'Слишком сильная защита';
+    final subtitle = success ? 'Система успешно взломана' : 'Слишком сильная защита';
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
@@ -1217,93 +1009,40 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
         children: [
           Icon(icon, color: color, size: 44),
           const SizedBox(height: 10),
-          Text(
-            title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
-            ),
-          ),
+          Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 2)),
           const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
+          Text(subtitle, style: const TextStyle(color: Color(0xFF4a5568), fontSize: 12)),
           if (success && _currentBattle != null) ...[
             const SizedBox(height: 12),
-            Divider(color: color.withValues(alpha: 0.2)),
+            const Divider(color: Color(0xFF1e293b)),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 Column(
                   children: [
-                    Text(
-                      'Урон',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                    const Text('Урон', style: TextStyle(color: Color(0xFF4a5568), fontSize: 11)),
                     const SizedBox(height: 2),
-                    Text(
-                      '${_currentBattle!['playerPower']}',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: const Color(0xFF00F0FF),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text('${_currentBattle!['playerPower']}', style: const TextStyle(color: Color(0xFF00F0FF), fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
-                Container(
-                  width: 1,
-                  height: 32,
-                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                ),
+                Container(width: 1, height: 32, color: const Color(0xFF1e293b)),
                 if (rewardCredits > 0)
                   Column(
                     children: [
-                      Text(
-                        'Кредиты',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                      const Text('Кредиты', style: TextStyle(color: Color(0xFF4a5568), fontSize: 11)),
                       const SizedBox(height: 2),
-                      Text(
-                        '+$rewardCredits',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: const Color(0xFFFFD700),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text('+$rewardCredits', style: const TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.bold, fontSize: 16)),
                     ],
                   ),
                 if (rewardCredits > 0 && rewardXp > 0)
-                  Container(
-                    width: 1,
-                    height: 32,
-                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                  ),
+                  Container(width: 1, height: 32, color: const Color(0xFF1e293b)),
                 if (rewardXp > 0)
                   Column(
                     children: [
-                      Text(
-                        'Опыт',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                      const Text('Опыт', style: TextStyle(color: Color(0xFF4a5568), fontSize: 11)),
                       const SizedBox(height: 2),
-                      Text(
-                        '+$rewardXp',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: const Color(0xFF00ff41),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text('+$rewardXp', style: const TextStyle(color: Color(0xFF00ff41), fontWeight: FontWeight.bold, fontSize: 16)),
                     ],
                   ),
               ],
@@ -1316,13 +1055,11 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
 
   // ── Completed Info Dialog ──
 
-  void _showCompletedInfo(Map<String, dynamic> campaign, ThemeData theme) {
+  void _showCompletedInfo(Map<String, dynamic> campaign) {
     final attempts = _getAttempts(campaign);
     final bestDamage = _getBestDamage(campaign);
     final progress = campaign['campaign_progress'] as List?;
-    final completedAt = progress?.isNotEmpty == true
-        ? progress!.first['completed_at'] as String?
-        : null;
+    final completedAt = progress?.isNotEmpty == true ? progress!.first['completed_at'] as String? : null;
 
     String formattedDate = '';
     if (completedAt != null) {
@@ -1339,48 +1076,44 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
           backgroundColor: const Color(0xFF111827),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
-              color: const Color(0xFF00ff41).withValues(alpha: 0.3),
-            ),
+            side: BorderSide(color: const Color(0xFF00ff41).withValues(alpha: 0.3)),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.verified, color: Color(0xFF00ff41), size: 44),
-                const SizedBox(height: 12),
-                Text(
-                  'МИССИЯ ВЫПОЛНЕНА',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: const Color(0xFF00ff41),
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _infoRow('Миссия', campaign['name'] as String? ?? '-', theme),
-                _infoRow('Враг', campaign['enemy_name'] as String? ?? '-', theme),
-                _infoRow('Попыток', '$attempts', theme),
-                _infoRow('Лучший урон', '$bestDamage', theme),
-                if (formattedDate.isNotEmpty) _infoRow('Завершена', formattedDate, theme),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text(
-                      'ЗАКРЫТЬ',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.verified, color: Color(0xFF00ff41), size: 48),
+                  const SizedBox(height: 14),
+                  const Text('МИССИЯ ВЫПОЛНЕНА', style: TextStyle(color: Color(0xFF00ff41), fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 2)),
+                  const SizedBox(height: 20),
+                  _infoRow('Миссия', campaign['name'] as String? ?? '-'),
+                  _infoRow('Враг', campaign['enemy_name'] as String? ?? '-'),
+                  _infoRow('Попыток', '$attempts'),
+                  _infoRow('Лучший урон', '$bestDamage'),
+                  if (formattedDate.isNotEmpty) _infoRow('Завершена', formattedDate),
+                  const SizedBox(height: 24),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(dialogContext),
+                      child: Container(
+                        width: double.infinity,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF1e293b)),
+                        ),
+                        child: const Center(
+                          child: Text('ЗАКРЫТЬ', style: TextStyle(color: Color(0xFF4a5568), fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -1388,25 +1121,14 @@ class _CampaignScreenState extends State<CampaignScreen> with TickerProviderStat
     );
   }
 
-  Widget _infoRow(String label, String value, ThemeData theme) {
+  Widget _infoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(label, style: const TextStyle(color: Color(0xFF4a5568), fontSize: 14)),
+          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
         ],
       ),
     );
