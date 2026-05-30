@@ -234,10 +234,11 @@ class _PCPrimaryActionCardState extends State<_PCPrimaryActionCard> {
             ),
             border: Border.all(color: widget.color.withValues(alpha: _hover ? 0.6 : 0.3), width: _hover ? 2 : 1.5),
             boxShadow: [
-              if (_hover)
-                BoxShadow(color: widget.glowColor, blurRadius: 30, spreadRadius: 4),
-              else
-                BoxShadow(color: widget.glowColor, blurRadius: 20, spreadRadius: 2),
+              BoxShadow(
+                color: widget.glowColor,
+                blurRadius: _hover ? 30.0 : 20.0,
+                spreadRadius: _hover ? 4.0 : 2.0,
+              ),
             ],
           ),
           child: Row(
@@ -659,3 +660,4 @@ class _ActiveEventsBanner extends StatelessWidget {
     );
   }
 }
+
