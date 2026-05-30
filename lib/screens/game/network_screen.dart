@@ -1346,7 +1346,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Следующий уровень: УР ${_nextLevel()}',
                           style: TextStyle(
                             color: _Theme.accentCyan,
@@ -1543,7 +1543,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 720,
-              maxHeight: 560,
+              constraints: const BoxConstraints(maxHeight: 560),
               decoration: BoxDecoration(
                 color: _Theme.card,
                 borderRadius: BorderRadius.circular(20),
