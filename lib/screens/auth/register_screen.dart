@@ -12,11 +12,9 @@ class _ScanlinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Base background
     final bgPaint = Paint()..color = const Color(0xFF0a0e17);
     canvas.drawRect(Offset.zero & size, bgPaint);
 
-    // Horizontal scanlines
     final linePaint = Paint()
       ..color = const Color(0xFF00ff41).withValues(alpha: 0.03)
       ..strokeWidth = 1;
@@ -25,7 +23,6 @@ class _ScanlinePainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
     }
 
-    // Moving scan bar
     final scanY = offset % size.height;
     final scanPaint = Paint()
       ..color = const Color(0xFF00ff41).withValues(alpha: 0.06)
@@ -36,7 +33,6 @@ class _ScanlinePainter extends CustomPainter {
       scanPaint,
     );
 
-    // Corner decorations
     const cornerColor = Color(0xFF00e5ff);
     final cornerPaint = Paint()
       ..color = cornerColor.withValues(alpha: 0.15)
@@ -44,20 +40,16 @@ class _ScanlinePainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     const cornerSize = 30.0;
-    // Top-left
     canvas.drawLine(const Offset(10, 10), const Offset(10 + cornerSize, 10), cornerPaint);
     canvas.drawLine(const Offset(10, 10), const Offset(10, 10 + cornerSize), cornerPaint);
-    // Top-right
     canvas.drawLine(
         Offset(size.width - 10, 10), Offset(size.width - 10 - cornerSize, 10), cornerPaint);
     canvas.drawLine(
         Offset(size.width - 10, 10), Offset(size.width - 10, 10 + cornerSize), cornerPaint);
-    // Bottom-left
     canvas.drawLine(Offset(10, size.height - 10),
         Offset(10 + cornerSize, size.height - 10), cornerPaint);
     canvas.drawLine(Offset(10, size.height - 10),
         Offset(10, size.height - 10 - cornerSize), cornerPaint);
-    // Bottom-right
     canvas.drawLine(Offset(size.width - 10, size.height - 10),
         Offset(size.width - 10 - cornerSize, size.height - 10), cornerPaint);
     canvas.drawLine(Offset(size.width - 10, size.height - 10),
@@ -68,15 +60,152 @@ class _ScanlinePainter extends CustomPainter {
   bool shouldRepaint(covariant _ScanlinePainter oldDelegate) => true;
 }
 
-// ─── Cyberpunk Text Field ─────────────────────────────────────────────────
+// ─── Glitch Text (shared visual identity) ─────────────────────────────────
 
-class _CyberTextField extends StatelessWidget {
+class _GlitchTitle extends StatefulWidget {
+  const _GlitchTitle();
+
+  @override
+  State<_GlitchTitle> createState() => _GlitchTitleState();
+}
+
+class _GlitchTitleState extends State<_GlitchTitle>
+    with TickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = _controller.value;
+        final glitchOffset = (t * 2 * 3.14159 * 5).abs() * 2;
+        final showGlitch = (t * 30).toInt() % 7 == 0;
+
+        return Stack(
+          children: [
+            if (showGlitch)
+              Text(
+                'CYBERHACK',
+                style: TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.red.withValues(alpha: 0.7),
+                  letterSpacing: 8,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            if (showGlitch)
+              Text(
+                'CYBERHACK',
+                style: TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF00e5ff).withValues(alpha: 0.7),
+                  letterSpacing: 8,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            Transform.translate(
+              offset: Offset(showGlitch ? glitchOffset : 0, 0),
+              child: ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [Color(0xFF00e5ff), Color(0xFF00ff41)],
+                ).createShader(bounds),
+                child: const Text(
+                  'CYBERHACK',
+                  style: TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 8,
+                    fontFamily: 'monospace',
+                    shadows: [
+                      Shadow(color: Color(0xFF00e5ff), blurRadius: 20),
+                      Shadow(color: Color(0xFF00ff41), blurRadius: 10),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ─── Neon Title ──────────────────────────────────────────────────────────
+
+class _NeonTitle extends StatelessWidget {
+  const _NeonTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const _GlitchTitle(),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: const Color(0xFF00e5ff).withValues(alpha: 0.25),
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(4),
+            color: const Color(0xFF00e5ff).withValues(alpha: 0.04),
+          ),
+          child: const Text(
+            '// СОЗДАТЬ ОПЕРАТОРА',
+            style: TextStyle(
+              color: Color(0xFF00e5ff),
+              fontSize: 12,
+              letterSpacing: 3,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
+        const Text(
+          '// ИНИЦИАЛИЗАЦИЯ НОВОЙ ЛИЧНОСТИ',
+          style: TextStyle(
+            color: Color(0xFF4a5568),
+            fontSize: 11,
+            letterSpacing: 2,
+            fontFamily: 'monospace',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Cyberpunk Desktop Text Field ────────────────────────────────────────
+
+class _CyberTextField extends StatefulWidget {
   final String label;
   final String hintText;
   final bool obscureText;
   final TextEditingController controller;
   final IconData icon;
   final String? errorText;
+  final Widget? suffixIcon;
 
   const _CyberTextField({
     required this.label,
@@ -85,78 +214,286 @@ class _CyberTextField extends StatelessWidget {
     this.obscureText = false,
     required this.icon,
     this.errorText,
+    this.suffixIcon,
   });
 
   @override
+  State<_CyberTextField> createState() => _CyberTextFieldState();
+}
+
+class _CyberTextFieldState extends State<_CyberTextField> {
+  bool _isHovered = false;
+  bool _isFocused = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF00ff41),
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-            fontFamily: 'monospace',
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF0d1117),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: errorText != null
-                  ? const Color(0xFFFF4444)
-                  : const Color(0xFF1a3a2a),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: errorText != null
-                    ? const Color(0xFFFF4444).withValues(alpha: 0.15)
-                    : const Color(0xFF00ff41).withValues(alpha: 0.08),
-                blurRadius: 6,
-                spreadRadius: 1,
+    final hasError = widget.errorText != null;
+    final borderColor = hasError
+        ? const Color(0xFFFF4444)
+        : _isFocused
+            ? const Color(0xFF00e5ff)
+            : _isHovered
+                ? const Color(0xFF00e5ff).withValues(alpha: 0.6)
+                : const Color(0xFF1a3a2a);
+
+    final glowColor = _isFocused
+        ? const Color(0xFF00e5ff).withValues(alpha: 0.2)
+        : const Color(0xFF00e5ff).withValues(alpha: 0.08);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(widget.icon, color: const Color(0xFF00e5ff), size: 14),
+              const SizedBox(width: 6),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  color: hasError
+                      ? const Color(0xFFFF4444)
+                      : const Color(0xFF00ff41),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                  fontFamily: 'monospace',
+                ),
               ),
             ],
           ),
-          child: TextField(
-            controller: controller,
-            obscureText: obscureText,
-            style: const TextStyle(
-              color: Color(0xFF00ff41),
-              fontFamily: 'monospace',
-              fontSize: 14,
+          const SizedBox(height: 8),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0d1117),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: borderColor, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: hasError
+                      ? const Color(0xFFFF4444).withValues(alpha: 0.15)
+                      : glowColor,
+                  blurRadius: _isFocused ? 12 : 6,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: TextStyle(
-                color: const Color(0xFF00ff41).withValues(alpha: 0.3),
-                fontFamily: 'monospace',
+            child: Focus(
+              onFocusChange: (v) => setState(() => _isFocused = v),
+              child: TextField(
+                controller: widget.controller,
+                obscureText: widget.obscureText,
+                style: const TextStyle(
+                  color: Color(0xFF00ff41),
+                  fontFamily: 'monospace',
+                  fontSize: 15,
+                ),
+                decoration: InputDecoration(
+                  hintText: widget.hintText,
+                  hintStyle: TextStyle(
+                    color: const Color(0xFF00ff41).withValues(alpha: 0.25),
+                    fontFamily: 'monospace',
+                    fontSize: 15,
+                  ),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 16, right: 8),
+                    child: Icon(
+                      widget.icon,
+                      color: const Color(0xFF00e5ff).withValues(alpha: 0.6),
+                      size: 20,
+                    ),
+                  ),
+                  prefixIconConstraints:
+                      const BoxConstraints(minWidth: 44, minHeight: 24),
+                  suffixIcon: widget.suffixIcon,
+                  border: InputBorder.none,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                ),
               ),
-              prefixIcon: Icon(icon, color: const Color(0xFF00e5ff), size: 18),
-              border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
+          ),
+          if (hasError)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline,
+                      color: Color(0xFFFF4444), size: 12),
+                  const SizedBox(width: 4),
+                  Text(
+                    widget.errorText!,
+                    style: const TextStyle(
+                      color: Color(0xFFFF4444),
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Hover Button ─────────────────────────────────────────────────────────
+
+class _CyberHoverButton extends StatefulWidget {
+  final VoidCallback? onPressed;
+  final String text;
+  final Color baseColor;
+  final Color glowColor;
+  final bool isLoading;
+
+  const _CyberHoverButton({
+    required this.onPressed,
+    required this.text,
+    this.baseColor = const Color(0xFF00e5ff),
+    this.glowColor = const Color(0xFF00e5ff),
+    this.isLoading = false,
+  });
+
+  @override
+  State<_CyberHoverButton> createState() => _CyberHoverButtonState();
+}
+
+class _CyberHoverButtonState extends State<_CyberHoverButton> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) {
+        setState(() {
+          _isHovered = false;
+          _isPressed = false;
+        });
+      },
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: widget.isLoading ? null : widget.onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                _isPressed
+                    ? widget.baseColor.withValues(alpha: 0.6)
+                    : widget.baseColor.withValues(alpha: _isHovered ? 1.0 : 0.85),
+                widget.baseColor.withValues(alpha: _isPressed ? 0.4 : 0.7),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: [
+              BoxShadow(
+                color: widget.glowColor
+                    .withValues(alpha: _isHovered ? 0.5 : 0.25),
+                blurRadius: _isHovered ? 24 : 12,
+                spreadRadius: _isHovered ? 3 : 1,
+              ),
+            ],
+          ),
+          child: Center(
+            child: widget.isLoading
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF0a0e17),
+                    ),
+                  )
+                : Text(
+                    widget.text,
+                    style: TextStyle(
+                      color: const Color(0xFF0a0e17),
+                      fontSize: _isHovered ? 15 : 14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 4,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
           ),
         ),
-        if (errorText != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              errorText!,
-              style: const TextStyle(
-                color: Color(0xFFFF4444),
-                fontSize: 11,
-                fontFamily: 'monospace',
-              ),
+      ),
+    );
+  }
+}
+
+// ─── Hoverable Link ──────────────────────────────────────────────────────
+
+class _CyberLink extends StatefulWidget {
+  final String text;
+  final String? label;
+  final VoidCallback onTap;
+
+  const _CyberLink({
+    required this.text,
+    this.label,
+    required this.onTap,
+  });
+
+  @override
+  State<_CyberLink> createState() => _CyberLinkState();
+}
+
+class _CyberLinkState extends State<_CyberLink> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: RichText(
+          text: TextSpan(
+            style: const TextStyle(
+              color: Color(0xFF4a5568),
+              fontSize: 13,
+              letterSpacing: 1,
+              fontFamily: 'monospace',
             ),
+            children: [
+              if (widget.label != null) TextSpan(text: widget.label),
+              TextSpan(
+                text: widget.text,
+                style: TextStyle(
+                  color: _isHovered
+                      ? const Color(0xFF00ff41)
+                      : const Color(0xFF00ff41).withValues(alpha: 0.8),
+                  fontWeight: FontWeight.bold,
+                  decoration:
+                      _isHovered ? TextDecoration.underline : TextDecoration.none,
+                  decorationColor: const Color(0xFF00ff41),
+                  shadows: _isHovered
+                      ? const [
+                          Shadow(
+                              color: Color(0xFF00ff41),
+                              blurRadius: 8,
+                              offset: Offset(0, 0))
+                        ]
+                      : null,
+                ),
+              ),
+            ],
           ),
-      ],
+        ),
+      ),
     );
   }
 }
@@ -175,63 +512,156 @@ class _CyberCheckbox extends StatefulWidget {
 
 class _CyberCheckboxState extends State<_CyberCheckbox> {
   bool _checked = false;
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        setState(() => _checked = !_checked);
-        widget.onChanged(_checked);
-      },
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 20,
-            height: 20,
-            margin: const EdgeInsets.only(top: 2),
-            decoration: BoxDecoration(
-              color: _checked
-                  ? const Color(0xFF00ff41).withValues(alpha: 0.2)
-                  : const Color(0xFF0d1117),
-              borderRadius: BorderRadius.circular(3),
-              border: Border.all(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: () {
+          setState(() => _checked = !_checked);
+          widget.onChanged(_checked);
+        },
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 22,
+              height: 22,
+              margin: const EdgeInsets.only(top: 1),
+              decoration: BoxDecoration(
                 color: _checked
-                    ? const Color(0xFF00ff41)
-                    : const Color(0xFF1a3a2a),
-                width: 1.5,
-              ),
-            ),
-            child: _checked
-                ? const Icon(Icons.check, size: 14, color: Color(0xFF00ff41))
-                : null,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                text: widget.label,
-                style: const TextStyle(
-                  color: Color(0xFF4a5568),
-                  fontSize: 11,
-                  letterSpacing: 0.5,
-                  fontFamily: 'monospace',
+                    ? const Color(0xFF00e5ff).withValues(alpha: 0.2)
+                    : const Color(0xFF0d1117),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: _checked
+                      ? const Color(0xFF00e5ff)
+                      : _isHovered
+                          ? const Color(0xFF00e5ff).withValues(alpha: 0.5)
+                          : const Color(0xFF1a3a2a),
+                  width: 1.5,
                 ),
-                children: [
-                  TextSpan(
-                    text: ' УСЛОВИЯ ИСПОЛЬЗОВАНИЯ',
-                    style: TextStyle(
-                      color: const Color(0xFF00e5ff).withValues(alpha: 0.7),
-                      decoration: TextDecoration.underline,
-                    ),
+                boxShadow: _checked
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF00e5ff)
+                              .withValues(alpha: 0.15),
+                          blurRadius: 8,
+                        ),
+                      ]
+                    : [],
+              ),
+              child: _checked
+                  ? const Icon(Icons.check, size: 14, color: Color(0xFF00e5ff))
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  text: widget.label,
+                  style: TextStyle(
+                    color: const Color(0xFF4a5568).withValues(
+                        alpha: _isHovered ? 1.0 : 0.8),
+                    fontSize: 12,
+                    letterSpacing: 0.5,
+                    fontFamily: 'monospace',
                   ),
-                ],
+                  children: [
+                    TextSpan(
+                      text: ' УСЛОВИЯ ИСПОЛЬЗОВАНИЯ',
+                      style: TextStyle(
+                        color: const Color(0xFF00e5ff).withValues(alpha: 0.7),
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+}
+
+// ─── Password Strength Indicator ─────────────────────────────────────────
+
+class _PasswordStrengthIndicator extends StatelessWidget {
+  final String password;
+
+  const _PasswordStrengthIndicator({required this.password});
+
+  @override
+  Widget build(BuildContext context) {
+    if (password.isEmpty) return const SizedBox.shrink();
+
+    int strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
+    if (RegExp(r'[0-9]').hasMatch(password)) strength++;
+    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
+
+    final String strengthLevel;
+    if (strength == 0) {
+      strengthLevel = 'НЕТ';
+    } else if (strength <= 1) {
+      strengthLevel = 'СЛАБЫЙ';
+    } else if (strength <= 3) {
+      strengthLevel = 'СРЕДНИЙ';
+    } else {
+      strengthLevel = 'СИЛЬНЫЙ';
+    }
+
+    final color = strength == 0
+        ? const Color(0xFF4a5568)
+        : strength <= 1
+            ? const Color(0xFFff4444)
+            : strength <= 3
+                ? const Color(0xFFffaa00)
+                : const Color(0xFF00ff41);
+
+    return Row(
+      children: [
+        const Text(
+          'НАДЁЖНОСТЬ КЛЮЧА: ',
+          style: TextStyle(
+            color: Color(0xFF4a5568),
+            fontSize: 11,
+            letterSpacing: 1,
+            fontFamily: 'monospace',
+          ),
+        ),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: strength / 5,
+              backgroundColor: const Color(0xFF0d1117),
+              color: color,
+              minHeight: 4,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          strengthLevel,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1,
+            fontFamily: 'monospace',
+          ),
+        ),
+      ],
     );
   }
 }
@@ -248,7 +678,6 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen>
     with TickerProviderStateMixin {
   late AnimationController _scanController;
-  late AnimationController _glowController;
   final _aliasController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -256,6 +685,8 @@ class _RegisterScreenState extends State<RegisterScreen>
   bool _termsAccepted = false;
   bool _isSubmitting = false;
   String? _fieldError;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   @override
   void initState() {
@@ -264,17 +695,11 @@ class _RegisterScreenState extends State<RegisterScreen>
       vsync: this,
       duration: const Duration(seconds: 4),
     )..repeat();
-
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
     _scanController.dispose();
-    _glowController.dispose();
     _aliasController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -327,9 +752,9 @@ class _RegisterScreenState extends State<RegisterScreen>
       );
 
       if (!success && mounted) {
-        setState(() => _fieldError = authProvider.errorMessage ?? 'Ошибка регистрации');
+        setState(
+            () => _fieldError = authProvider.errorMessage ?? 'Ошибка регистрации');
       }
-      // Если успех — GoRouter автоматически перенаправит
     } catch (e) {
       if (mounted) {
         setState(() => _fieldError = 'Ошибка подключения: $e');
@@ -343,6 +768,8 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0a0e17),
       body: Stack(
@@ -352,385 +779,246 @@ class _RegisterScreenState extends State<RegisterScreen>
             animation: _scanController,
             builder: (context, _) {
               return CustomPaint(
-                painter: _ScanlinePainter(offset: _scanController.value * 400),
-                size: MediaQuery.of(context).size,
+                painter: _ScanlinePainter(
+                    offset: _scanController.value * 400),
+                size: size,
               );
             },
           ),
 
-          // Content
+          // ─── Centered Card ───────────────────────────────────────────────
           Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-              child: Container(
-                width: 400,
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1a1f2e).withValues(alpha: 0.94),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFF00e5ff).withValues(alpha: 0.3),
-                    width: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 32, vertical: 40),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(40, 40, 40, 32),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1a1f2e).withValues(alpha: 0.94),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF00e5ff).withValues(alpha: 0.25),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color:
+                            const Color(0xFF00e5ff).withValues(alpha: 0.12),
+                        blurRadius: 40,
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color:
+                            const Color(0xFF00ff41).withValues(alpha: 0.08),
+                        blurRadius: 50,
+                      ),
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00e5ff).withValues(alpha: 0.12),
-                      blurRadius: 30,
-                      spreadRadius: 2,
-                    ),
-                    BoxShadow(
-                      color: const Color(0xFF00ff41).withValues(alpha: 0.08),
-                      blurRadius: 40,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header icon
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF00e5ff),
-                          width: 2,
-                        ),
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Color(0xFF00e5ff),
-                            Color(0xFF00ff41),
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF00e5ff).withValues(alpha: 0.4),
-                            blurRadius: 20,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.person_add_alt_1,
-                        color: Color(0xFF0a0e17),
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Title
-                    ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        colors: [Color(0xFF00e5ff), Color(0xFF00ff41)],
-                      ).createShader(bounds),
-                      child: const Text(
-                        'СОЗДАТЬ ОПЕРАТОРА',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 4,
-                          fontFamily: 'monospace',
-                          shadows: [
-                            Shadow(color: Color(0xFF00e5ff), blurRadius: 20),
-                            Shadow(color: Color(0xFF00ff41), blurRadius: 10),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      '// ИНИЦИАЛИЗАЦИЯ НОВОЙ ЛИЧНОСТИ',
-                      style: TextStyle(
-                        color: Color(0xFF4a5568),
-                        fontSize: 11,
-                        letterSpacing: 2,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // Error message
-                    if (_fieldError != null)
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header icon
                       Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        margin: const EdgeInsets.only(bottom: 16),
+                        width: 72,
+                        height: 72,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFF4444).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
+                          shape: BoxShape.circle,
                           border: Border.all(
-                            color: const Color(0xFFFF4444).withValues(alpha: 0.4),
+                            color: const Color(0xFF00e5ff),
+                            width: 2,
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.error_outline,
-                                color: Color(0xFFFF4444), size: 16),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _fieldError!,
-                                style: const TextStyle(
-                                  color: Color(0xFFFF4444),
-                                  fontSize: 12,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF00e5ff),
+                              Color(0xFF00ff41),
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF00e5ff)
+                                  .withValues(alpha: 0.4),
+                              blurRadius: 24,
                             ),
                           ],
                         ),
+                        child: const Icon(
+                          Icons.person_add_alt_1,
+                          color: Color(0xFF0a0e17),
+                          size: 34,
+                        ),
                       ),
+                      const SizedBox(height: 20),
 
-                    // Hacker alias field
-                    _CyberTextField(
-                      label: '[ ПСЕВДОНИМ ХАКЕРА ]',
-                      hintText: 'shadow_byte',
-                      controller: _aliasController,
-                      icon: Icons.hub_outlined,
-                    ),
-                    const SizedBox(height: 16),
+                      // Title with neon glow
+                      const _NeonTitle(),
+                      const SizedBox(height: 32),
 
-                    // Email field
-                    _CyberTextField(
-                      label: '[ ЭЛ. ПОЧТА ]',
-                      hintText: 'operator@darknet.io',
-                      controller: _emailController,
-                      icon: Icons.alternate_email,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Password field
-                    _CyberTextField(
-                      label: '[ ПАРОЛЬ ]',
-                      hintText: '••••••••••••',
-                      controller: _passwordController,
-                      icon: Icons.lock_outline,
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Confirm password
-                    _CyberTextField(
-                      label: '[ ПОДТВЕРДИТЕ ПАРОЛЬ ]',
-                      hintText: '••••••••••••',
-                      controller: _confirmPasswordController,
-                      icon: Icons.lock_reset,
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Password strength indicator
-                    _PasswordStrengthIndicator(
-                      password: _passwordController.text,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Terms checkbox
-                    _CyberCheckbox(
-                      label: 'Я ПРИНИМАЮ',
-                      onChanged: (v) => setState(() => _termsAccepted = v),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Register button
-                    AnimatedBuilder(
-                      animation: _glowController,
-                      builder: (context, _) {
-                        final glow = _glowController.value;
-                        final isEnabled = _termsAccepted && !_isSubmitting;
-                        return GestureDetector(
-                          onTap: isEnabled ? _handleRegister : null,
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 200),
-                            opacity: isEnabled ? 1.0 : 0.4,
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    const Color(0xFF00e5ff)
-                                        .withValues(alpha: 0.8 + glow * 0.2),
-                                    const Color(0xFF009eb8),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(4),
-                                boxShadow: isEnabled
-                                    ? [
-                                        BoxShadow(
-                                          color: const Color(0xFF00e5ff)
-                                              .withValues(alpha: 0.3 + glow * 0.4),
-                                          blurRadius: 15 + glow * 10,
-                                          spreadRadius: 1 + glow * 2,
-                                        ),
-                                      ]
-                                    : [],
-                              ),
-                              child: Center(
-                                child: _isSubmitting
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Color(0xFF0a0e17),
-                                        ),
-                                      )
-                                    : const Text(
-                                        '⚡ ПОДКЛЮЧИТЬСЯ',
-                                        style: TextStyle(
-                                          color: Color(0xFF0a0e17),
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 4,
-                                          fontFamily: 'monospace',
-                                        ),
-                                      ),
-                              ),
+                      // Error banner
+                      if (_fieldError != null)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          margin: const EdgeInsets.only(bottom: 20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF4444).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: const Color(0xFFFF4444).withValues(alpha: 0.4),
                             ),
                           ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline,
+                                  color: Color(0xFFFF4444), size: 18),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _fieldError!,
+                                  style: const TextStyle(
+                                    color: Color(0xFFFF4444),
+                                    fontSize: 13,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
 
-                    // Back to login
-                    GestureDetector(
-                      onTap: () => context.go('/login'),
-                      child: RichText(
-                        text: const TextSpan(
-                          text: 'УЖЕ ПОДКЛЮЧЕНЫ? ',
+                      // Hacker alias
+                      _CyberTextField(
+                        label: '[ ПСЕВДОНИМ ХАКЕРА ]',
+                        hintText: 'shadow_byte',
+                        controller: _aliasController,
+                        icon: Icons.hub_outlined,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Email
+                      _CyberTextField(
+                        label: '[ ЭЛ. ПОЧТА ]',
+                        hintText: 'operator@darknet.io',
+                        controller: _emailController,
+                        icon: Icons.alternate_email,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Password
+                      _CyberTextField(
+                        label: '[ ПАРОЛЬ ]',
+                        hintText: '••••••••••••',
+                        controller: _passwordController,
+                        icon: Icons.lock_outline,
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: const Color(0xFF00e5ff),
+                            size: 20,
+                          ),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Confirm password
+                      _CyberTextField(
+                        label: '[ ПОДТВЕРДИТЕ ПАРОЛЬ ]',
+                        hintText: '••••••••••••',
+                        controller: _confirmPasswordController,
+                        icon: Icons.lock_reset,
+                        obscureText: _obscureConfirm,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirm
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: const Color(0xFF00e5ff),
+                            size: 20,
+                          ),
+                          onPressed: () => setState(
+                              () => _obscureConfirm = !_obscureConfirm),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Password strength
+                      _PasswordStrengthIndicator(
+                        password: _passwordController.text,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Terms
+                      _CyberCheckbox(
+                        label: 'Я ПРИНИМАЮ',
+                        onChanged: (v) => setState(() => _termsAccepted = v),
+                      ),
+                      const SizedBox(height: 28),
+
+                      // Register button
+                      AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity:
+                            (_termsAccepted && !_isSubmitting) ? 1.0 : 0.35,
+                        child: _CyberHoverButton(
+                          onPressed: (_termsAccepted && !_isSubmitting)
+                              ? _handleRegister
+                              : null,
+                          text: '⚡  ПОДКЛЮЧИТЬСЯ',
+                          isLoading: _isSubmitting,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Back to login
+                      _CyberLink(
+                        label: 'УЖЕ ПОДКЛЮЧЕНЫ?  ',
+                        text: 'ВОЙТИ',
+                        onTap: () => context.go('/login'),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // System info
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0a0e17),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFF00ff41)
+                                .withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: const Text(
+                          '> ЗАШИФРОВАННОЕ СОЕДИНЕНИЕ УСТАНОВЛЕНО\n'
+                          '> ПРОТОКОЛ: TLS 1.3 | ШИФР: AES-256-GCM\n'
+                          '> АНОНИМИЗАЦИЯ ЛИЧНОСТИ: АКТИВНА',
                           style: TextStyle(
-                            color: Color(0xFF4a5568),
-                            fontSize: 12,
-                            letterSpacing: 1,
+                            color: Color(0xFF00ff41),
+                            fontSize: 10,
+                            letterSpacing: 0.5,
                             fontFamily: 'monospace',
+                            height: 1.6,
                           ),
-                          children: [
-                            TextSpan(
-                              text: 'ВОЙТИ',
-                              style: TextStyle(
-                                color: Color(0xFF00ff41),
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
-                                decorationColor: Color(0xFF00ff41),
-                              ),
-                            ),
-                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // System info
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0a0e17),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: const Color(0xFF00ff41).withValues(alpha: 0.1),
-                        ),
-                      ),
-                      child: const Text(
-                        '> ЗАШИФРОВАННОЕ СОЕДИНЕНИЕ УСТАНОВЛЕНО\n'
-                        '> ПРОТОКОЛ: TLS 1.3 | ШИФР: AES-256-GCM\n'
-                        '> АНОНИМИЗАЦИЯ ЛИЧНОСТИ: АКТИВНА',
-                        style: TextStyle(
-                          color: Color(0xFF00ff41),
-                          fontSize: 9,
-                          letterSpacing: 0.5,
-                          fontFamily: 'monospace',
-                          height: 1.6,
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-// ─── Password Strength Indicator ─────────────────────────────────────────
-
-class _PasswordStrengthIndicator extends StatelessWidget {
-  final String password;
-
-  const _PasswordStrengthIndicator({required this.password});
-
-  @override
-  Widget build(BuildContext context) {
-    if (password.isEmpty) return const SizedBox.shrink();
-
-    int strength = 0;
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
-    if (RegExp(r'[0-9]').hasMatch(password)) strength++;
-    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
-
-    final String strengthLevel;
-    if (strength == 0) {
-      strengthLevel = 'НЕТ';
-    } else if (strength <= 1) {
-      strengthLevel = 'СЛАБЫЙ';
-    } else if (strength <= 3) {
-      strengthLevel = 'СРЕДНИЙ';
-    } else {
-      strengthLevel = 'СИЛЬНЫЙ';
-    }
-
-    final color = strength == 0
-        ? const Color(0xFF4a5568)
-        : strength <= 1
-            ? const Color(0xFFff4444)
-            : strength <= 3
-                ? const Color(0xFFffaa00)
-                : const Color(0xFF00ff41);
-
-    return Row(
-      children: [
-        const Text(
-          'НАДЁЖНОСТЬ КЛЮЧА: ',
-          style: TextStyle(
-            color: Color(0xFF4a5568),
-            fontSize: 10,
-            letterSpacing: 1,
-            fontFamily: 'monospace',
-          ),
-        ),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: strength / 5,
-              backgroundColor: const Color(0xFF0d1117),
-              color: color,
-              minHeight: 4,
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          strengthLevel,
-          style: TextStyle(
-            color: color,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
-            fontFamily: 'monospace',
-          ),
-        ),
-      ],
     );
   }
 }
