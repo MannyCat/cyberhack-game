@@ -850,8 +850,6 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
             color: isPlayerConn
                 ? const Color(0xFF00ff41).withValues(alpha: 0.35)
                 : const Color(0xFF3a4060).withValues(alpha: 0.4),
-            borderWidth: isPlayerConn ? 0 : 1,
-            borderColor: isPlayerConn ? Colors.transparent : const Color(0xFF00e5ff).withValues(alpha: 0.1),
           ));
         }
       }
