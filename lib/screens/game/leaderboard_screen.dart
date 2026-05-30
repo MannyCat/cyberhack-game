@@ -44,7 +44,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   // ── Category config ──
   static const List<_LeaderboardTab> _tabs = [
-    _LeaderboardTab(label: 'ХАКЕРЫ', icon: Icons.hack_rounded, color: Color(0xFF39FF14)),
+    _LeaderboardTab(label: 'ХАКЕРЫ', icon: Icons.security_rounded, color: Color(0xFF39FF14)),
     _LeaderboardTab(label: 'БОГАТЫЕ', icon: Icons.monetization_on_rounded, color: Color(0xFFFFD700)),
     _LeaderboardTab(label: 'РАЗРУШИТЕЛИ', icon: Icons.bug_report_rounded, color: Color(0xFFFF0040)),
     _LeaderboardTab(label: 'БАНДЫ', icon: Icons.groups_rounded, color: Color(0xFFa855f7)),
@@ -136,7 +136,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         ...List.generate(_tabs.length, (index) {
           if (index > 0) const SizedBox(width: 8);
           return Padding(
-            padding: const EdgeInsets.only(right: index < _tabs.length - 1 ? 8 : 0),
+            padding: EdgeInsets.only(right: index < _tabs.length - 1 ? 8 : 0),
             child: _TabToggle(
               tab: _tabs[index],
               isSelected: _activeTabIndex == index,
