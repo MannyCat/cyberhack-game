@@ -36,11 +36,10 @@ class _GameShellState extends State<GameShell> {
     try {
       final result = await Supabase.instance.client
           .from('profiles')
-          .select('id', count: 'exact')
-          .limit(1);
+          .select('id');
       if (mounted) {
         setState(() {
-          _totalPlayers = result.count;
+          _totalPlayers = result.length;
           _fetchedPlayers = true;
         });
       }
@@ -436,3 +435,4 @@ class _NavItem {
     required this.color,
   });
 }
+
