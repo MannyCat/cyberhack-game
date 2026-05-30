@@ -512,7 +512,7 @@ class _GameShellState extends State<GameShell> {
       final auth = context.watch<AuthProvider>();
       final notificationProvider = context.watch<NotificationProvider>();
 
-      final playerName = auth.username ?? 'Хакер';
+      final playerName = auth.displayName;
       final playerLevel = game.level;
 
       return Container(
