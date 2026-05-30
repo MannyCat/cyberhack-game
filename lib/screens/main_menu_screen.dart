@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../providers/event_provider.dart';
+import '../providers/tutorial_provider.dart';
 import '../config/game_config.dart';
 
 // ─── PC Layout — Командный центр в стиле Vikings ────────────────────────────
@@ -95,6 +96,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
               const SizedBox(height: 12),
 
+              // ── Tutorial Banner for new players ──
+              _TutorialBanner(),
+
+              const SizedBox(height: 12),
+
               // ── Hints ──
               if (totalNodes == 0) _NewPlayerHint(),
               if (totalNodes > 0 && onlineNodes == 0) _OfflineNodesWarning(nodeCount: totalNodes),
@@ -138,6 +144,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
               const SizedBox(height: 12),
               _PCActionGrid(children: [
+                _PCActionCard(icon: Icons.school, label: 'Обучение', subtitle: 'Как играть', color: const Color(0xFF00F0FF), onTap: () => context.go('/game/tutorial')),
                 _PCActionCard(icon: Icons.leaderboard, label: 'Рейтинг', subtitle: 'Лучшие хакеры мира', color: const Color(0xFFe91e63), onTap: () => context.go('/game/leaderboard')),
                 _PCActionCard(icon: Icons.storefront, label: 'Чёрный рынок', subtitle: 'Снаряжение и софт', color: const Color(0xFFff9800), onTap: () => context.go('/game/market')),
                 _PCActionCard(icon: Icons.shield, label: 'Оборона', subtitle: 'Защита базы', color: const Color(0xFFFF0040), onTap: () => context.go('/game/network')),
@@ -484,6 +491,61 @@ class _PCActionCardState extends State<_PCActionCard> {
                 maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Tutorial Banner ─────────────────────────────────────────────────────
+
+class _TutorialBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final tutorial = context.watch<TutorialProvider>();
+    if (tutorial.isCompleted) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () => context.go('/game/tutorial'),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [const Color(0xFF00F0FF).withValues(alpha: 0.1), const Color(0xFF00ff41).withValues(alpha: 0.04)]),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF00F0FF).withValues(alpha: 0.35)),
+          boxShadow: [BoxShadow(color: const Color(0xFF00F0FF).withValues(alpha: 0.1), blurRadius: 20)],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFF00F0FF).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF00F0FF).withValues(alpha: 0.3)),
+              ),
+              child: const Icon(Icons.school, color: Color(0xFF00F0FF), size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('ПРОЙДИТЕ ОБУЧЕНИЕ', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                  Text('Узнайте как строить базу, атаковать и зарабатывать кредиты.', style: TextStyle(color: Colors.white38, fontSize: 11)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00F0FF).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF00F0FF).withValues(alpha: 0.4)),
+              ),
+              child: const Text('НАЧАТЬ', style: TextStyle(color: Color(0xFF00F0FF), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1, fontFamily: 'monospace')),
+            ),
+          ],
         ),
       ),
     );
