@@ -642,7 +642,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFF00F0FF).withValues(alpha: 0.15)),
             ),
-            child: const Icon(Icons.crosshairs_rounded, size: 36, color: Color(0xFF3a4555)),
+            child: const Icon(Icons.gps_fixed_rounded, size: 36, color: Color(0xFF3a4555)),
           ),
           const SizedBox(height: 16),
           const Text(
