@@ -13,7 +13,13 @@ class _MatrixColumn {
   final String chars;
   int charIndex;
 
-  _MatrixColumn({required this.x, required this.y, required this.speed, required this.chars, this.charIndex = 0});
+  _MatrixColumn({
+    required this.x,
+    required this.y,
+    required this.speed,
+    required this.chars,
+    this.charIndex = 0,
+  });
 }
 
 class MatrixRainPainter extends CustomPainter {
@@ -36,7 +42,6 @@ class MatrixRainPainter extends CustomPainter {
     );
 
     for (final col in columns) {
-      // Draw fading trail
       for (int i = 0; i < 20; i++) {
         final trailY = col.y - i * 18;
         if (trailY < -20 || trailY > size.height + 20) continue;
@@ -109,7 +114,6 @@ class _GlitchTextState extends State<GlitchText> with TickerProviderStateMixin {
 
         return Stack(
           children: [
-            // Red shadow layer
             if (showGlitch)
               Text(
                 widget.text,
@@ -121,7 +125,6 @@ class _GlitchTextState extends State<GlitchText> with TickerProviderStateMixin {
                   fontFamily: 'monospace',
                 ),
               ),
-            // Cyan shadow layer
             if (showGlitch)
               Text(
                 widget.text,
@@ -133,7 +136,6 @@ class _GlitchTextState extends State<GlitchText> with TickerProviderStateMixin {
                   fontFamily: 'monospace',
                 ),
               ),
-            // Main text
             Transform.translate(
               offset: Offset(showGlitch ? glitchOffset : 0, 0),
               child: ShaderMask(
@@ -163,9 +165,45 @@ class _GlitchTextState extends State<GlitchText> with TickerProviderStateMixin {
   }
 }
 
-// ─── Cyberpunk Text Field ─────────────────────────────────────────────────
+// ─── Neon Title with persistent glow ───────────────────────────────────────
 
-class CyberTextField extends StatelessWidget {
+class _NeonTitle extends StatelessWidget {
+  const _NeonTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const GlitchText(text: 'CYBERHACK', fontSize: 42),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: const Color(0xFF00e5ff).withValues(alpha: 0.25),
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(4),
+            color: const Color(0xFF00e5ff).withValues(alpha: 0.04),
+          ),
+          child: const Text(
+            '// НЕЙРО-ИНТЕРФЕЙС v2.0.77',
+            style: TextStyle(
+              color: Color(0xFF00e5ff),
+              fontSize: 12,
+              letterSpacing: 3,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Cyberpunk Desktop Text Field ────────────────────────────────────────
+
+class CyberTextField extends StatefulWidget {
   final String label;
   final String hintText;
   final bool obscureText;
@@ -186,77 +224,219 @@ class CyberTextField extends StatelessWidget {
   });
 
   @override
+  State<CyberTextField> createState() => _CyberTextFieldState();
+}
+
+class _CyberTextFieldState extends State<CyberTextField> {
+  bool _isHovered = false;
+  bool _isFocused = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF00ff41),
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-            fontFamily: 'monospace',
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF0d1117),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: errorText != null
-                  ? const Color(0xFFFF4444)
-                  : const Color(0xFF1a3a2a),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: errorText != null
-                    ? const Color(0xFFFF4444).withValues(alpha: 0.15)
-                    : const Color(0xFF00ff41).withValues(alpha: 0.1),
-                blurRadius: 8,
-                spreadRadius: 1,
+    final hasError = widget.errorText != null;
+    final borderColor = hasError
+        ? const Color(0xFFFF4444)
+        : _isFocused
+            ? const Color(0xFF00ff41)
+            : _isHovered
+                ? const Color(0xFF00ff41).withValues(alpha: 0.6)
+                : const Color(0xFF1a3a2a);
+
+    final glowColor = _isFocused
+        ? const Color(0xFF00ff41).withValues(alpha: 0.2)
+        : const Color(0xFF00ff41).withValues(alpha: 0.08);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(widget.icon, color: const Color(0xFF00e5ff), size: 14),
+              const SizedBox(width: 6),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  color: hasError
+                      ? const Color(0xFFFF4444)
+                      : const Color(0xFF00ff41),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                  fontFamily: 'monospace',
+                ),
               ),
             ],
           ),
-          child: TextField(
-            controller: controller,
-            obscureText: obscureText,
-            style: const TextStyle(
-              color: Color(0xFF00ff41),
-              fontFamily: 'monospace',
-              fontSize: 14,
+          const SizedBox(height: 8),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0d1117),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: borderColor, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: hasError
+                      ? const Color(0xFFFF4444).withValues(alpha: 0.15)
+                      : glowColor,
+                  blurRadius: _isFocused ? 12 : 6,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: TextStyle(
-                color: const Color(0xFF00ff41).withValues(alpha: 0.3),
-                fontFamily: 'monospace',
+            child: Focus(
+              onFocusChange: (v) => setState(() => _isFocused = v),
+              child: TextField(
+                controller: widget.controller,
+                obscureText: widget.obscureText,
+                style: const TextStyle(
+                  color: Color(0xFF00ff41),
+                  fontFamily: 'monospace',
+                  fontSize: 15,
+                ),
+                decoration: InputDecoration(
+                  hintText: widget.hintText,
+                  hintStyle: TextStyle(
+                    color: const Color(0xFF00ff41).withValues(alpha: 0.25),
+                    fontFamily: 'monospace',
+                    fontSize: 15,
+                  ),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 16, right: 8),
+                    child: Icon(
+                      widget.icon,
+                      color: const Color(0xFF00e5ff).withValues(alpha: 0.6),
+                      size: 20,
+                    ),
+                  ),
+                  prefixIconConstraints:
+                      const BoxConstraints(minWidth: 44, minHeight: 24),
+                  suffixIcon: widget.suffixIcon,
+                  border: InputBorder.none,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                  errorText: null,
+                ),
               ),
-              prefixIcon: Icon(icon, color: const Color(0xFF00e5ff), size: 18),
-              suffixIcon: suffixIcon,
-              border: InputBorder.none,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              errorText: null,
             ),
+          ),
+          if (hasError)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline,
+                      color: Color(0xFFFF4444), size: 12),
+                  const SizedBox(width: 4),
+                  Text(
+                    widget.errorText!,
+                    style: const TextStyle(
+                      color: Color(0xFFFF4444),
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Hover Button ─────────────────────────────────────────────────────────
+
+class _CyberHoverButton extends StatefulWidget {
+  final VoidCallback? onPressed;
+  final String text;
+  final Color baseColor;
+  final Color glowColor;
+  final bool isLoading;
+  final Widget? loadingWidget;
+
+  const _CyberHoverButton({
+    required this.onPressed,
+    required this.text,
+    this.baseColor = const Color(0xFF00ff41),
+    this.glowColor = const Color(0xFF00ff41),
+    this.isLoading = false,
+    this.loadingWidget,
+  });
+
+  @override
+  State<_CyberHoverButton> createState() => _CyberHoverButtonState();
+}
+
+class _CyberHoverButtonState extends State<_CyberHoverButton> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) {
+        setState(() {
+          _isHovered = false;
+          _isPressed = false;
+        });
+      },
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: widget.isLoading ? null : widget.onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                _isPressed
+                    ? widget.baseColor.withValues(alpha: 0.6)
+                    : widget.baseColor.withValues(alpha: _isHovered ? 1.0 : 0.85),
+                widget.baseColor.withValues(alpha: _isPressed ? 0.4 : 0.7),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: [
+              BoxShadow(
+                color: widget.glowColor
+                    .withValues(alpha: _isHovered ? 0.5 : 0.25),
+                blurRadius: _isHovered ? 24 : 12,
+                spreadRadius: _isHovered ? 3 : 1,
+              ),
+            ],
+          ),
+          child: Center(
+            child: widget.isLoading
+                ? widget.loadingWidget ??
+                    const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF0a0e17),
+                      ),
+                    )
+                : Text(
+                    widget.text,
+                    style: TextStyle(
+                      color: const Color(0xFF0a0e17),
+                      fontSize: _isHovered ? 15 : 14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 3,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
           ),
         ),
-        if (errorText != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              errorText!,
-              style: const TextStyle(
-                color: Color(0xFFFF4444),
-                fontSize: 11,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-      ],
+      ),
     );
   }
 }
@@ -270,11 +450,9 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with TickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   late AnimationController _matrixController;
   late List<_MatrixColumn> _matrixColumns;
-  late AnimationController _glowController;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -288,17 +466,12 @@ class _LoginScreenState extends State<LoginScreen>
       vsync: this,
       duration: const Duration(seconds: 1),
     )..repeat();
-
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-
     _initMatrixColumns();
   }
 
   void _initMatrixColumns() {
-    final chars = List.generate(96, (i) => String.fromCharCode(0x30A0 + i)).join();
+    final chars =
+        List.generate(96, (i) => String.fromCharCode(0x30A0 + i)).join();
     _matrixColumns = List.generate(60, (i) {
       return _MatrixColumn(
         x: i * 12.0 + 6,
@@ -313,7 +486,6 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void dispose() {
     _matrixController.dispose();
-    _glowController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -323,7 +495,6 @@ class _LoginScreenState extends State<LoginScreen>
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // Валидация
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Введите адрес электронной почты')),
@@ -360,8 +531,6 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         );
       }
-      // Если успех — GoRouter автоматически перенаправит на /main-menu
-      // через refreshListenable + redirect
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -380,6 +549,8 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0a0e17),
       body: Stack(
@@ -391,19 +562,20 @@ class _LoginScreenState extends State<LoginScreen>
               for (final col in _matrixColumns) {
                 col.y += col.speed;
                 col.charIndex = (col.charIndex + 1) % 96;
-                if (col.y > 1200) {
+                if (col.y > size.height) {
                   col.y = Random().nextDouble() * -300;
                   col.speed = 1.5 + Random().nextDouble() * 3;
                 }
               }
               return CustomPaint(
-                painter: MatrixRainPainter(columns: _matrixColumns, opacity: 0.3),
-                size: MediaQuery.of(context).size,
+                painter:
+                    MatrixRainPainter(columns: _matrixColumns, opacity: 0.3),
+                size: size,
               );
             },
           ),
 
-          // Overlay gradient for readability
+          // Overlay gradient
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -418,312 +590,309 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
 
-          // Main content
+          // ─── Centered Card ───────────────────────────────────────────────
           Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Container(
-                width: 380,
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1a1f2e).withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFF00ff41).withValues(alpha: 0.3),
-                    width: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 32, vertical: 40),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(40, 40, 40, 32),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1a1f2e).withValues(alpha: 0.94),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF00ff41).withValues(alpha: 0.25),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color:
+                            const Color(0xFF00ff41).withValues(alpha: 0.12),
+                        blurRadius: 40,
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color:
+                            const Color(0xFF00e5ff).withValues(alpha: 0.08),
+                        blurRadius: 50,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00ff41).withValues(alpha: 0.15),
-                      blurRadius: 30,
-                      spreadRadius: 2,
-                    ),
-                    BoxShadow(
-                      color: const Color(0xFF00e5ff).withValues(alpha: 0.1),
-                      blurRadius: 40,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Logo icon
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF00ff41),
-                          width: 2,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Logo icon
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF00ff41),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF00ff41)
+                                  .withValues(alpha: 0.4),
+                              blurRadius: 24,
+                            ),
+                          ],
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF00ff41).withValues(alpha: 0.4),
-                            blurRadius: 20,
+                        child: const Icon(
+                          Icons.shield,
+                          color: Color(0xFF00ff41),
+                          size: 36,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Title with neon glow
+                      const _NeonTitle(),
+                      const SizedBox(height: 36),
+
+                      // Email field
+                      CyberTextField(
+                        label: '[ ЭЛ. ПОЧТА ]',
+                        hintText: 'operator@darknet.io',
+                        controller: _emailController,
+                        icon: Icons.alternate_email,
+                      ),
+                      const SizedBox(height: 22),
+
+                      // Password field
+                      CyberTextField(
+                        label: '[ ПАРОЛЬ ]',
+                        hintText: '••••••••••••••••',
+                        controller: _passwordController,
+                        icon: Icons.lock_outline,
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: const Color(0xFF00e5ff),
+                            size: 20,
+                          ),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Forgot password
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: _CyberLink(
+                          text: 'ЗАБЫЛ ПАРОЛЬ?',
+                          onTap: () async {
+                            final email = _emailController.text.trim();
+                            if (email.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content:
+                                      Text('Введите email для сброса пароля'),
+                                ),
+                              );
+                              return;
+                            }
+                            final auth = context.read<AuthProvider>();
+                            final ok = await auth.resetPassword(email: email);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(ok
+                                      ? 'Инструкции отправлены на $email'
+                                      : auth.errorMessage ??
+                                          'Ошибка сброса пароля'),
+                                  backgroundColor: ok
+                                      ? const Color(0xFF00ff41)
+                                      : const Color(0xFFFF4444),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Login button
+                      _CyberHoverButton(
+                        onPressed: _isSubmitting ? null : _handleLogin,
+                        text: '▶  ПОДКЛЮЧИТЬСЯ К СЕТИ',
+                        isLoading: _isSubmitting,
+                      ),
+                      const SizedBox(height: 28),
+
+                      // Divider
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 1,
+                              color:
+                                  const Color(0xFF00ff41).withValues(alpha: 0.15),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                            child: Text(
+                              'ИЛИ',
+                              style: TextStyle(
+                                color: Color(0xFF00ff41).withValues(alpha: 0.5),
+                                fontSize: 11,
+                                letterSpacing: 2,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Container(
+                              height: 1,
+                              color:
+                                  const Color(0xFF00ff41).withValues(alpha: 0.15),
+                            ),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.shield,
-                        color: Color(0xFF00ff41),
-                        size: 32,
+                      const SizedBox(height: 24),
+
+                      // Register link
+                      _CyberLink(
+                        label: 'НОВЫЙ ХАКЕР?  ',
+                        text: 'РЕГИСТРАЦИЯ',
+                        onTap: () => context.go('/register'),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 20),
 
-                    // Title
-                    const GlitchText(text: 'CYBERHACK', fontSize: 36),
-                    const SizedBox(height: 4),
-                    const Text(
-                      '// НЕЙРО-ИНТЕРФЕЙС v2.0.77',
-                      style: TextStyle(
-                        color: Color(0xFF00e5ff),
-                        fontSize: 11,
-                        letterSpacing: 3,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Email field
-                    CyberTextField(
-                      label: '[ ЭЛ. ПОЧТА ]',
-                      hintText: 'operator@darknet.io',
-                      controller: _emailController,
-                      icon: Icons.alternate_email,
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Password field
-                    CyberTextField(
-                      label: '[ ПАРОЛЬ ]',
-                      hintText: '••••••••••••••••',
-                      controller: _passwordController,
-                      icon: Icons.lock_outline,
-                      obscureText: _obscurePassword,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                          color: const Color(0xFF00e5ff),
-                          size: 18,
-                        ),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Forgot password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () async {
-                          final email = _emailController.text.trim();
-                          if (email.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Введите email для сброса пароля'),
-                              ),
-                            );
-                            return;
-                          }
-                          final auth = context.read<AuthProvider>();
-                          final ok = await auth.resetPassword(email: email);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(ok
-                                    ? 'Инструкции отправлены на $email'
-                                    : auth.errorMessage ?? 'Ошибка сброса пароля'),
-                                backgroundColor: ok
-                                    ? const Color(0xFF00ff41)
-                                    : const Color(0xFFFF4444),
-                              ),
-                            );
-                          }
-                        },
-                        child: const Text(
-                          'ЗАБЫЛ ПАРОЛЬ?',
-                          style: TextStyle(
-                            color: Color(0xFF00e5ff),
-                            fontSize: 11,
-                            letterSpacing: 1,
-                            fontFamily: 'monospace',
+                      // Status bar
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0a0e17),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFF00ff41)
+                                .withValues(alpha: 0.12),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Login button
-                    AnimatedBuilder(
-                      animation: _glowController,
-                      builder: (context, _) {
-                        final glow = _glowController.value;
-                        return GestureDetector(
-                          onTap: _isSubmitting ? null : _handleLogin,
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  const Color(0xFF00ff41).withValues(alpha: 0.8 + glow * 0.2),
-                                  const Color(0xFF00cc33),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF00ff41)
-                                      .withValues(alpha: 0.3 + glow * 0.4),
-                                  blurRadius: 15 + glow * 10,
-                                  spreadRadius: 1 + glow * 2,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF00ff41),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'СИСТЕМА В СЕТИ',
+                                  style: TextStyle(
+                                    color: Color(0xFF00ff41),
+                                    fontSize: 10,
+                                    letterSpacing: 1,
+                                    fontFamily: 'monospace',
+                                  ),
                                 ),
                               ],
                             ),
-                            child: Center(
-                              child: _isSubmitting
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Color(0xFF0a0e17),
-                                      ),
-                                    )
-                                  : const Text(
-                                      '▶ ПОДКЛЮЧИТЬСЯ К СЕТИ',
-                                      style: TextStyle(
-                                        color: Color(0xFF0a0e17),
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 3,
-                                        fontFamily: 'monospace',
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Divider
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 1,
-                            color: const Color(0xFF00ff41).withValues(alpha: 0.2),
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'ИЛИ',
-                            style: TextStyle(
-                              color: Color(0xFF00ff41),
-                              fontSize: 11,
-                              letterSpacing: 2,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Container(
-                            height: 1,
-                            color: const Color(0xFF00ff41).withValues(alpha: 0.2),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Register link
-                    GestureDetector(
-                      onTap: () => context.go('/register'),
-                      child: RichText(
-                        text: const TextSpan(
-                          text: 'НОВЫЙ ХАКЕР? ',
-                          style: TextStyle(
-                            color: Color(0xFF4a5568),
-                            fontSize: 13,
-                            letterSpacing: 1,
-                            fontFamily: 'monospace',
-                          ),
-                          children: [
-                            TextSpan(
-                              text: 'РЕГИСТРАЦИЯ',
+                            const Text(
+                              'ЗАДЕРЖКА: 12мс',
                               style: TextStyle(
                                 color: Color(0xFF00e5ff),
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
-                                decorationColor: Color(0xFF00e5ff),
+                                fontSize: 10,
+                                letterSpacing: 1,
+                                fontFamily: 'monospace',
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Status bar
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0a0e17),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: const Color(0xFF00ff41).withValues(alpha: 0.15),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF00ff41),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'СИСТЕМА В СЕТИ',
-                                style: TextStyle(
-                                  color: Color(0xFF00ff41),
-                                  fontSize: 10,
-                                  letterSpacing: 1,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Text(
-                            'ЗАДЕРЖКА: 12мс',
-                            style: TextStyle(
-                              color: Color(0xFF00e5ff),
-                              fontSize: 10,
-                              letterSpacing: 1,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Hoverable Link ──────────────────────────────────────────────────────
+
+class _CyberLink extends StatefulWidget {
+  final String text;
+  final String? label;
+  final VoidCallback onTap;
+
+  const _CyberLink({
+    required this.text,
+    this.label,
+    required this.onTap,
+  });
+
+  @override
+  State<_CyberLink> createState() => _CyberLinkState();
+}
+
+class _CyberLinkState extends State<_CyberLink> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: RichText(
+          text: TextSpan(
+            style: const TextStyle(
+              color: Color(0xFF4a5568),
+              fontSize: 13,
+              letterSpacing: 1,
+              fontFamily: 'monospace',
+            ),
+            children: [
+              if (widget.label != null) TextSpan(text: widget.label),
+              TextSpan(
+                text: widget.text,
+                style: TextStyle(
+                  color: _isHovered
+                      ? const Color(0xFF00e5ff)
+                      : const Color(0xFF00e5ff).withValues(alpha: 0.8),
+                  fontWeight: FontWeight.bold,
+                  decoration:
+                      _isHovered ? TextDecoration.underline : TextDecoration.none,
+                  decorationColor: const Color(0xFF00e5ff),
+                  shadows: _isHovered
+                      ? const [
+                          Shadow(
+                              color: Color(0xFF00e5ff),
+                              blurRadius: 8,
+                              offset: Offset(0, 0))
+                        ]
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
