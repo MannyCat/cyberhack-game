@@ -739,12 +739,12 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   const Color(0xFF00ff41).withValues(alpha: 0.15),
                             ),
                           ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Text(
                               'ИЛИ',
                               style: TextStyle(
-                                color: Color(0xFF00ff41).withValues(alpha: 0.5),
+                                color: const Color(0xFF00ff41).withValues(alpha: 0.5),
                                 fontSize: 11,
                                 letterSpacing: 2,
                                 fontFamily: 'monospace',
