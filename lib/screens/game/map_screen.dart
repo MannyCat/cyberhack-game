@@ -445,7 +445,7 @@ class _MissionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text(mission.description, style: const TextStyle(color: Color(0xFF6a7080), fontSize: 9, fontFamily: 'monospace'),
+          Text(mission.description, style: const TextStyle(color: Color(0xFF6a7080), fontSize: 9, fontFamily: 'monospace')),
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(3),
@@ -823,7 +823,7 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
                 final mission = missions[index];
                 return _MissionCard(
                   mission: mission,
-                  onClaim: () => game.claimMission(mission.id),
+                  onClaim: () => game.claimMission(mission),
                 );
               },
             ),
@@ -850,7 +850,8 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
             color: isPlayerConn
                 ? const Color(0xFF00ff41).withValues(alpha: 0.35)
                 : const Color(0xFF3a4060).withValues(alpha: 0.4),
-            bordering: isPlayerConn ? null : PolylineBorder(borderWidth: 1, borderColor: const Color(0xFF00e5ff).withValues(alpha: 0.1)),
+            borderWidth: isPlayerConn ? 0 : 1,
+            borderColor: isPlayerConn ? Colors.transparent : const Color(0xFF00e5ff).withValues(alpha: 0.1),
           ));
         }
       }
@@ -927,3 +928,4 @@ class _GameMapScreenState extends State<GameMapScreen> with TickerProviderStateM
     );
   }
 }
+
