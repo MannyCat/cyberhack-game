@@ -921,7 +921,7 @@ class _AccountInfoCard extends StatelessWidget {
           const SizedBox(height: 16),
           _infoRow(Icons.person, 'Имя', auth.displayName.isEmpty ? 'Хакер' : auth.displayName, const Color(0xFF00E5FF)),
           const SizedBox(height: 10),
-          _infoRow(Icons.email, 'Email', auth.email.isEmpty ? '---' : auth.email, const Color(0xFF78909c)),
+          _infoRow(Icons.email, 'Email', (auth.user?.email ?? '').isEmpty ? '---' : auth.user!.email!, const Color(0xFF78909c)),
           const SizedBox(height: 10),
           _infoRow(Icons.calendar_today, 'В игре', '$accountAge дней', const Color(0xFFFFD700)),
           const SizedBox(height: 10),
@@ -1078,3 +1078,4 @@ String _formatNum(int n) {
   if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
   return n.toString();
 }
+
