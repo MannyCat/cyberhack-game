@@ -62,7 +62,7 @@ class _TutorialScreenState extends State<TutorialScreen>
 
   void _nextStep() {
     final tutorial = context.read<TutorialProvider>();
-    if (_currentStep < _tutorialSteps.length - 1) {
+    if (_currentStep < tutorialSteps.length - 1) {
       _goToStep(_currentStep + 1);
     } else {
       tutorial.completeTutorial();
@@ -81,10 +81,10 @@ class _TutorialScreenState extends State<TutorialScreen>
 
   @override
   Widget build(BuildContext context) {
-    final step = _tutorialSteps[_currentStep];
-    final isLast = _currentStep == _tutorialSteps.length - 1;
+    final step = tutorialSteps[_currentStep];
+    final isLast = _currentStep == tutorialSteps.length - 1;
     final isFirst = _currentStep == 0;
-    final progress = (_currentStep + 1) / _tutorialSteps.length;
+    final progress = (_currentStep + 1) / tutorialSteps.length;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0a0e17),
@@ -134,7 +134,7 @@ class _TutorialScreenState extends State<TutorialScreen>
               border: Border.all(color: step.color.withValues(alpha: 0.2)),
             ),
             child: Text(
-              'ШАГ ${_currentStep + 1} / ${_tutorialSteps.length}',
+              'ШАГ ${_currentStep + 1} / ${tutorialSteps.length}',
               style: TextStyle(color: step.color, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 2, fontFamily: 'monospace'),
             ),
           ),
@@ -283,7 +283,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                 ),
 
                 // Quick navigation cards for relevant screens
-                if (_currentStep > 0 && _currentStep < _tutorialSteps.length - 1) ...[
+                if (_currentStep > 0 && _currentStep < tutorialSteps.length - 1) ...[
                   const SizedBox(height: 16),
                   _buildQuickNav(step),
                 ],
@@ -384,10 +384,10 @@ class _TutorialScreenState extends State<TutorialScreen>
           // Step dots
           Row(
             mainAxisSize: MainAxisSize.min,
-            children: List.generate(_tutorialSteps.length, (i) {
+            children: List.generate(tutorialSteps.length, (i) {
               final isActive = i == _currentStep;
               final isPassed = i < _currentStep;
-              final dotStep = _tutorialSteps[i];
+              final dotStep = tutorialSteps[i];
 
               return GestureDetector(
                 onTap: () => _goToStep(i),
