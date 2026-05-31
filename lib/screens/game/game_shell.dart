@@ -1,766 +1,344 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../providers/game_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/notification_provider.dart';
-import '../../providers/tutorial_provider.dart';
+import '../../providers/game_provider.dart';
 import '../../widgets/resource_bar.dart';
 
-// ─── GameShell — PC Desktop Layout ───────────────────────────────────────────
-// Left sidebar (240px, always visible) + Top resource bar + Main content area
-// All text in Russian. Neon cyberpunk theme on Color(0xFF0a0e17).
-// Uses go_router for navigation, Provider for state.
+// ── Color Constants ──────────────────────────────────────────────────────
 
-class GameShell extends StatefulWidget {
+const _bgDark = Color(0xFF0a0e17);
+const _surface = Color(0xFF111827);
+const _surfaceVariant = Color(0xFF1a2332);
+const _greenPrimary = Color(0xFF00ff88);
+const _cyanSecondary = Color(0xFF00d4ff);
+const _dangerRed = Color(0xFFff4444);
+
+class GameShell extends ConsumerStatefulWidget {
   final Widget child;
-
   const GameShell({super.key, required this.child});
 
   @override
-  State<GameShell> createState() => _GameShellState();
+  ConsumerState<GameShell> createState() => _GameShellState();
 }
 
-class _GameShellState extends State<GameShell> {
-  int _selectedIndex = 0;
-  int _totalPlayers = 0;
-  bool _fetchedPlayers = false;
-
-  // ── Navigation definition ──────────────────────────────────────────────
-  static const List<_SidebarSection> _sections = [
-    _SidebarSection(
-      label: 'НАВИГАЦИЯ',
-      items: [
-        _NavItem(icon: Icons.home_rounded, label: 'Главная', path: '/game/home', color: Color(0xFF00FF41)),
-        _NavItem(icon: Icons.public_rounded, label: 'Карта мира', path: '/game/map', color: Color(0xFF00e5ff)),
-        _NavItem(icon: Icons.dns_rounded, label: 'Сеть', path: '/game/network', color: Color(0xFF00e5ff)),
-        _NavItem(icon: Icons.gps_fixed_rounded, label: 'Атака', path: '/game/attack', color: Color(0xFFFF0040)),
-        _NavItem(icon: Icons.storefront_rounded, label: 'Магазин', path: '/game/market', color: Color(0xFFff9800)),
-      ],
-    ),
-    _SidebarSection(
-      label: 'СОЦИАЛЬНОЕ',
-      items: [
-        _NavItem(icon: Icons.groups_rounded, label: 'Клан', path: '/game/clan', color: Color(0xFFa855f7)),
-        _NavItem(icon: Icons.chat_bubble_rounded, label: 'Чат', path: '/game/chat', color: Color(0xFF00e5ff)),
-        _NavItem(icon: Icons.leaderboard_rounded, label: 'Рейтинг', path: '/game/leaderboard', color: Color(0xFFe91e63)),
-      ],
-    ),
-    _SidebarSection(
-      label: 'ПРОГРЕСС',
-      items: [
-        _NavItem(icon: Icons.card_giftcard_rounded, label: 'Ежедневное', path: '/game/daily-reward', color: Color(0xFFFFD700)),
-        _NavItem(icon: Icons.military_tech_rounded, label: 'Кампания', path: '/game/campaign', color: Color(0xFFFFD700)),
-        _NavItem(icon: Icons.event_rounded, label: 'События', path: '/game/events', color: Color(0xFF00e5ff)),
-        _NavItem(icon: Icons.school_rounded, label: 'Обучение', path: '/game/tutorial', color: Color(0xFF00F0FF)),
-      ],
-    ),
+class _GameShellState extends ConsumerState<GameShell> {
+  // Navigation items grouped by category
+  static const _mainItems = [
+    {'icon': Icons.dashboard, 'label': 'Дашборд', 'route': '/game/dashboard'},
+    {'icon': Icons.dns_outlined, 'label': 'Серверы', 'route': '/game/servers'},
+    {'icon': Icons.explore, 'label': 'Операции', 'route': '/game/operations'},
+    {'icon': Icons.people, 'label': 'Агенты', 'route': '/game/agents'},
+    {'icon': Icons.science, 'label': 'Исследования', 'route': '/game/research'},
+    {'icon': Icons.my_location, 'label': 'Цели', 'route': '/game/targets'},
   ];
 
-  /// Flat list of all nav items for index resolution.
-  static List<_NavItem> get _allItems => _sections.expand((s) => s.items).toList();
+  static const _socialItems = [
+    {'icon': Icons.store, 'label': 'Рынок', 'route': '/game/market'},
+    {'icon': Icons.group, 'label': 'Картель', 'route': '/game/cartel'},
+    {'icon': Icons.chat, 'label': 'Чат', 'route': '/game/chat'},
+  ];
+
+  static const _otherItems = [
+    {'icon': Icons.emoji_events, 'label': 'Рейтинг', 'route': '/game/leaderboard'},
+    {'icon': Icons.person, 'label': 'Профиль', 'route': '/game/profile'},
+    {'icon': Icons.settings, 'label': 'Настройки', 'route': '/game/settings'},
+  ];
+
+  String _currentRoute = '/game/dashboard';
 
   @override
   void initState() {
     super.initState();
+    // Detect initial route after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchTotalPlayers();
-      // Авто-запуск обучения для новых игроков (после загрузки SharedPreferences)
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (mounted) {
-          final tutorial = context.read<TutorialProvider>();
-          if (!tutorial.isCompleted) {
-            context.go('/game/tutorial');
-          }
-        }
-      });
+      _detectCurrentRoute();
     });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final location = GoRouterState.of(context).matchedLocation;
-    final index = _allItems.indexWhere((t) => location.startsWith(t.path));
-    if (index != -1 && index != _selectedIndex) {
-      setState(() => _selectedIndex = index);
-    }
-  }
-
-  Future<void> _fetchTotalPlayers() async {
-    try {
-      final result = await Supabase.instance.client.from('profiles').select('id');
-      if (mounted) {
+  /// Detects the current route from GoRouter and updates the sidebar highlight.
+  void _detectCurrentRoute() {
+    final router = GoRouterState.of(context);
+    final fullMatch = router.fullPath;
+    if (fullMatch != null) {
+      setState(() {
+        _currentRoute = fullMatch;
+      });
+    } else {
+      final uri = router.uri.toString();
+      if (uri.isNotEmpty) {
         setState(() {
-          _totalPlayers = result.length;
-          _fetchedPlayers = true;
+          _currentRoute = uri;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _fetchedPlayers = true);
     }
   }
 
-  int get _incomingAttackCount {
-    try {
-      final auth = context.read<AuthProvider>();
-      final game = context.read<GameProvider>();
-      return game.attackHistory
-          .where((a) => a.defenderId == auth.userId && a.status == 'pending')
-          .length;
-    } catch (_) {
-      return 0;
-    }
+  /// Checks if a route matches the current location.
+  bool _isSelected(String route) {
+    return _currentRoute.startsWith(route);
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────
+  /// Finds the index of the currently selected item across all groups.
+  int _getSelectedIndex() {
+    final allRoutes = [
+      ..._mainItems.map((e) => e['route'] as String),
+      ..._socialItems.map((e) => e['route'] as String),
+      ..._otherItems.map((e) => e['route'] as String),
+    ];
+    for (int i = 0; i < allRoutes.length; i++) {
+      if (_isSelected(allRoutes[i])) return i;
+    }
+    return 0;
+  }
+
+  /// Navigates to the given route and refreshes game data.
+  void _onNavigate(String route) {
+    if (_currentRoute == route) return;
+    context.go(route);
+    setState(() {
+      _currentRoute = route;
+    });
+    // Refresh game data on tab switch
+    ref.read(gameProvider.notifier).loadAllData();
+  }
+
+  /// Handles logout.
+  void _onLogout() {
+    ref.read(authProvider.notifier).logout();
+    context.go('/login');
+  }
 
   @override
   Widget build(BuildContext context) {
+    final game = ref.watch(gameProvider);
+    final profile = game.profile;
+    final username = profile?['username'] as String? ?? 'Хакер';
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0a0e17),
-      body: Row(
-        children: [
-          // ── LEFT SIDEBAR (always visible, 240 px) ──
-          _buildSidebar(),
-          // ── MAIN COLUMN: top bar + content ──
-          Expanded(
-            child: Column(
-              children: [
-                _buildTopBar(),
-                // Content with max-width constraint for readability
-                Expanded(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1200),
+      body: Container(
+        color: _bgDark,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Left Sidebar ────────────────────────────────────────────
+            _buildSidebar(username),
+            // ── Right Content Area ──────────────────────────────────────
+            Expanded(
+              child: Column(
+                children: [
+                  // Top resource bar
+                  const ResourceBar(),
+                  // Main content
+                  Expanded(
+                    child: Container(
+                      color: _bgDark,
                       child: widget.child,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════════
-  // SIDEBAR
-  // ════════════════════════════════════════════════════════════════════════
+  // ── Sidebar Widget ─────────────────────────────────────────────────────
 
-  Widget _buildSidebar() {
-    final badgeCount = _incomingAttackCount;
-
+  Widget _buildSidebar(String username) {
     return Container(
       width: 240,
-      decoration: const BoxDecoration(
-        color: Color(0xFF0d1220),
-        border: Border(right: BorderSide(color: Color(0xFF1e2a3a), width: 1)),
-        boxShadow: [
-          BoxShadow(color: Color(0x20000000), blurRadius: 20, offset: Offset(4, 0)),
-        ],
-      ),
+      color: _surface,
       child: Column(
         children: [
-          // ── Logo header ──
-          _buildSidebarHeader(),
-          // ── Scrollable navigation sections ──
+          // Logo area
+          _buildLogoArea(username),
+          const SizedBox(height: 8),
+          // Scrollable navigation area
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final section in _sections) ...[
-                    _buildSectionHeader(section.label),
-                    for (int i = 0; i < section.items.length; i++) _buildNavItem(
-                          item: section.items[i],
-                          globalIndex: _allItems.indexOf(section.items[i]),
-                          isSelected: _allItems.indexOf(section.items[i]) == _selectedIndex,
-                          showBadge: section.items[i].path == '/game/attack' && badgeCount > 0,
-                          badgeCount: badgeCount,
-                        ),
-                    const SizedBox(height: 6),
-                  ],
+                  // Main navigation group
+                  _buildSectionLabel('НАВИГАЦИЯ'),
+                  ..._mainItems.map((item) => _buildNavItem(
+                        icon: item['icon'] as IconData,
+                        label: item['label'] as String,
+                        route: item['route'] as String,
+                      )),
+                  const Divider(color: _surfaceVariant, height: 24),
+                  // Social group
+                  _buildSectionLabel('СОЦИАЛЬНОЕ'),
+                  ..._socialItems.map((item) => _buildNavItem(
+                        icon: item['icon'] as IconData,
+                        label: item['label'] as String,
+                        route: item['route'] as String,
+                      )),
+                  const Divider(color: _surfaceVariant, height: 24),
+                  // Other group
+                  _buildSectionLabel('ПРОЧЕЕ'),
+                  ..._otherItems.map((item) => _buildNavItem(
+                        icon: item['icon'] as IconData,
+                        label: item['label'] as String,
+                        route: item['route'] as String,
+                      )),
                 ],
               ),
             ),
           ),
-          // ── Bottom actions ──
-          _buildSidebarFooter(),
+          // Logout button at the bottom
+          _buildLogoutButton(),
         ],
       ),
     );
   }
 
-  Widget _buildSidebarHeader() {
+  // ── Logo / Title Area ─────────────────────────────────────────────────
+
+  Widget _buildLogoArea(String username) {
     return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFF1e2a3a))),
-      ),
-      child: Row(
-        children: [
-          // Cyber icon with neon ring
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: const Color(0xFF00F0FF).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF00F0FF).withValues(alpha: 0.35)),
-              boxShadow: [
-                BoxShadow(color: const Color(0xFF00F0FF).withValues(alpha: 0.15), blurRadius: 8),
-              ],
-            ),
-            child: const Icon(Icons.bolt_rounded, color: Color(0xFF00F0FF), size: 20),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Text(
-              'CYBERHACK',
-              style: TextStyle(
-                color: Color(0xFF00F0FF),
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 3.5,
-                fontFamily: 'monospace',
-                shadows: [Shadow(color: Color(0x8000F0FF), blurRadius: 12)],
-              ),
-            ),
-          ),
-          // Online player count pill
-          if (_fetchedPlayers && _totalPlayers > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFF39FF14).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF39FF14).withValues(alpha: 0.25)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF39FF14),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: const Color(0xFF39FF14).withValues(alpha: 0.6), blurRadius: 6),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    '$_totalPlayers',
-                    style: const TextStyle(
-                      color: Color(0xFF39FF14),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 20, right: 16, top: 12, bottom: 4),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: Color(0xFF3a4555),
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 2,
-          fontFamily: 'monospace',
+        border: Border(
+          bottom: BorderSide(color: _surfaceVariant, width: 1),
         ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required _NavItem item,
-    required int globalIndex,
-    required bool isSelected,
-    bool showBadge = false,
-    int badgeCount = 0,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            // Neon glow for active item
-            color: isSelected
-                ? item.color.withValues(alpha: 0.12)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: isSelected
-                ? Border(left: BorderSide(color: item.color, width: 3))
-                : null,
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: item.color.withValues(alpha: 0.25),
-                      blurRadius: 12,
-                      spreadRadius: -2,
-                      offset: const Offset(-2, 0),
-                    ),
-                  ]
-                : [],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                setState(() => _selectedIndex = globalIndex);
-                context.go(item.path);
-              },
-              borderRadius: BorderRadius.circular(8),
-              hoverColor: isSelected
-                  ? item.color.withValues(alpha: 0.18)
-                  : const Color(0xFF1e2a3a).withValues(alpha: 0.5),
-              splashColor: item.color.withValues(alpha: 0.08),
-              child: Container(
-                height: 42,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  children: [
-                    // Icon with optional badge
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? item.color.withValues(alpha: 0.15)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Icon(
-                            item.icon,
-                            size: 18,
-                            color: isSelected ? item.color : const Color(0xFF5a6578),
-                          ),
-                        ),
-                        if (showBadge)
-                          Positioned(
-                            right: -6,
-                            top: -4,
-                            child: Container(
-                              width: 16,
-                              height: 16,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFF0040),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFFFF0040).withValues(alpha: 0.6),
-                                    blurRadius: 6,
-                                  ),
-                                ],
-                                border: Border.all(
-                                  color: const Color(0xFF0d1220),
-                                  width: 2,
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                badgeCount > 9 ? '9+' : '$badgeCount',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 7,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(width: 12),
-                    // Label
-                    Expanded(
-                      child: Text(
-                        item.label,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                          color: isSelected ? item.color : const Color(0xFF6a7080),
-                          letterSpacing: 0.3,
-                          shadows: isSelected
-                              ? [Shadow(color: item.color.withValues(alpha: 0.4), blurRadius: 8)]
-                              : [],
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    // Active indicator dot
-                    if (isSelected)
-                      Container(
-                        width: 5,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: item.color,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: item.color.withValues(alpha: 0.6),
-                              blurRadius: 6,
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSidebarFooter() {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFF1e2a3a))),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildFooterTile(
-            icon: Icons.person_rounded,
-            label: 'Профиль',
-            color: const Color(0xFF78909c),
-            path: '/profile',
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: _greenPrimary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _greenPrimary.withValues(alpha: 0.3)),
+                ),
+                child: const Icon(
+                  Icons.security,
+                  color: _greenPrimary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'CYBERHACK',
+                style: TextStyle(
+                  color: _greenPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2.0,
+                ),
+              ),
+            ],
           ),
-          _buildFooterTile(
-            icon: Icons.settings_rounded,
-            label: 'Настройки',
-            color: const Color(0xFF4a5568),
-            path: '/settings',
-          ),
-          _buildFooterTile(
-            icon: Icons.logout_rounded,
-            label: 'Выход',
-            color: const Color(0xFFFF1744),
-            path: '', // special handling
-            isLogout: true,
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                Icons.person_outline,
+                color: Colors.grey.shade500,
+                size: 14,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                username,
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 12,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFooterTile({
+  // ── Section Label ─────────────────────────────────────────────────────
+
+  Widget _buildSectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.grey,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  // ── Navigation Item ───────────────────────────────────────────────────
+
+  Widget _buildNavItem({
     required IconData icon,
     required String label,
-    required Color color,
-    required String path,
-    bool isLogout = false,
+    required String route,
   }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            if (isLogout) {
-              Supabase.instance.client.auth.signOut();
-            } else {
-              context.go(path);
-            }
-          },
-          hoverColor: const Color(0xFF1e2a3a).withValues(alpha: 0.5),
-          splashColor: color.withValues(alpha: 0.08),
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            alignment: Alignment.centerLeft,
-            child: Row(
-              children: [
-                Icon(icon, size: 18, color: color),
-                const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: color,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+    final selected = _isSelected(route);
 
-  // ════════════════════════════════════════════════════════════════════════
-  // TOP BAR
-  // ════════════════════════════════════════════════════════════════════════
-
-  Widget _buildTopBar() {
-    return Builder(builder: (context) {
-      final game = context.watch<GameProvider>();
-      final auth = context.watch<AuthProvider>();
-      final notificationProvider = context.watch<NotificationProvider>();
-
-      final playerName = auth.displayName;
-      final playerLevel = game.level;
-
-      return Container(
-        height: 56,
-        decoration: const BoxDecoration(
-          color: Color(0xFF0d1220),
-          border: Border(bottom: BorderSide(color: Color(0xFF1e2a3a))),
-          boxShadow: [
-            BoxShadow(color: Color(0x15000000), blurRadius: 8, offset: Offset(0, 2)),
-          ],
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 16),
-            // ── Player avatar + name + level ──
-            Container(
-              padding: const EdgeInsets.only(right: 16),
-              decoration: const BoxDecoration(
-                border: Border(right: BorderSide(color: Color(0xFF1e2a3a))),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Avatar circle
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF00F0FF).withValues(alpha: 0.3),
-                          const Color(0xFFa855f7).withValues(alpha: 0.3),
-                        ],
-                      ),
-                      border: Border.all(
-                        color: const Color(0xFF00F0FF).withValues(alpha: 0.4),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF00F0FF).withValues(alpha: 0.15),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      playerName.isNotEmpty ? playerName[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                        color: Color(0xFF00F0FF),
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Name & Level
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        playerName,
-                        style: const TextStyle(
-                          color: Color(0xFFe0e6ed),
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFD700).withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: const Color(0xFFFFD700).withValues(alpha: 0.25),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.star_rounded, size: 9, color: Color(0xFFFFD700)),
-                                const SizedBox(width: 2),
-                                Text(
-                                  'Ур. $playerLevel',
-                                  style: const TextStyle(
-                                    color: Color(0xFFFFD700),
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 16),
-
-            // ── Resource bar ──
-            Expanded(
-              child: ResourceBar(
-                credits: game.credits,
-                cpu: game.cpu,
-                bandwidth: game.bandwidth,
-                mode: ResourceBarMode.compact,
-                height: 44,
-              ),
-            ),
-
-            // ── Action buttons ──
-            _TopBarButton(
-              icon: Icons.notifications_outlined,
-              tooltip: 'Уведомления',
-              badgeCount: notificationProvider.hasUnread ? notificationProvider.unreadCount : 0,
-              badgeColor: const Color(0xFFFF1744),
-              onTap: () => context.go('/game/notifications'),
-            ),
-            _TopBarButton(
-              icon: Icons.settings_rounded,
-              tooltip: 'Настройки',
-              onTap: () => context.go('/settings'),
-            ),
-            _TopBarButton(
-              icon: Icons.person_rounded,
-              tooltip: 'Профиль',
-              onTap: () => context.go('/profile'),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// Helper: Top bar icon button with optional badge
-// ════════════════════════════════════════════════════════════════════════════
-
-class _TopBarButton extends StatefulWidget {
-  final IconData icon;
-  final String tooltip;
-  final int badgeCount;
-  final Color badgeColor;
-  final VoidCallback onTap;
-
-  const _TopBarButton({
-    required this.icon,
-    required this.tooltip,
-    this.badgeCount = 0,
-    this.badgeColor = const Color(0xFFFF1744),
-    required this.onTap,
-  });
-
-  @override
-  State<_TopBarButton> createState() => _TopBarButtonState();
-}
-
-class _TopBarButtonState extends State<_TopBarButton> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: Tooltip(
-        message: widget.tooltip,
-        preferBelow: true,
-        verticalOffset: 40,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
         child: GestureDetector(
-          onTap: widget.onTap,
-          behavior: HitTestBehavior.opaque,
+          onTap: () => _onNavigate(route),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            width: 44,
-            height: 44,
-            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            curve: Curves.easeOut,
             decoration: BoxDecoration(
-              color: _isHovered
-                  ? const Color(0xFF00F0FF).withValues(alpha: 0.08)
+              color: selected
+                  ? _greenPrimary.withValues(alpha: 0.1)
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              border: _isHovered
-                  ? Border.all(color: const Color(0xFF00F0FF).withValues(alpha: 0.2))
-                  : null,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: selected
+                    ? _greenPrimary.withValues(alpha: 0.3)
+                    : Colors.transparent,
+                width: 1,
+              ),
             ),
-            alignment: Alignment.center,
-            child: Stack(
-              clipBehavior: Clip.none,
+            child: Row(
               children: [
-                Icon(
-                  widget.icon,
-                  size: 20,
-                  color: _isHovered ? const Color(0xFF00F0FF) : const Color(0xFF6a7080),
-                ),
-                if (widget.badgeCount > 0)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        color: widget.badgeColor,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: widget.badgeColor.withValues(alpha: 0.5),
-                            blurRadius: 6,
-                          ),
-                        ],
-                        border: Border.all(color: const Color(0xFF0d1220), width: 2),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        widget.badgeCount > 9 ? '9+' : '${widget.badgeCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                // Green left border indicator when selected
+                Container(
+                  width: 3,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: selected ? _greenPrimary : Colors.transparent,
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(3),
                     ),
                   ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  icon,
+                  color: selected ? _greenPrimary : Colors.grey.shade500,
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: selected ? _greenPrimary : Colors.grey.shade400,
+                      fontSize: 13,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ),
@@ -768,32 +346,42 @@ class _TopBarButtonState extends State<_TopBarButton> {
       ),
     );
   }
-}
 
-// ════════════════════════════════════════════════════════════════════════════
-// Data models
-// ════════════════════════════════════════════════════════════════════════════
+  // ── Logout Button ─────────────────────────────────────────────────────
 
-class _SidebarSection {
-  final String label;
-  final List<_NavItem> items;
-
-  const _SidebarSection({
-    required this.label,
-    required this.items,
-  });
-}
-
-class _NavItem {
-  final IconData icon;
-  final String label;
-  final String path;
-  final Color color;
-
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.path,
-    required this.color,
-  });
+  Widget _buildLogoutButton() {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: _surfaceVariant, width: 1),
+        ),
+      ),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: _onLogout,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.logout, color: _dangerRed, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'ВЫХОД',
+                  style: TextStyle(
+                    color: _dangerRed,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
