@@ -199,7 +199,7 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
         'p_class': _selectedClassId,
         'p_specialty': _selectedSpecialty,
       });
-      await ref.read(gameProvider).notifier.loadAllData();
+      await ref.read(gameProvider.notifier).loadAllData();
       if (mounted) {
         _nameController.clear();
         setState(() {
@@ -210,7 +210,6 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
           SnackBar(
             content: Text('Агент "$name" нанят!'),
             backgroundColor: _greenPrimary,
-            foregroundColor: _bgDark,
           ),
         );
       }
@@ -235,7 +234,7 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
           .from('agents')
           .update({'is_active': newActive})
           .eq('id', agent['id']);
-      await ref.read(gameProvider).notifier.refreshAgents();
+      await ref.read(gameProvider.notifier).refreshAgents();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -773,7 +772,7 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
                     color: _cyanSecondary.withValues(alpha: 0.3),
                   ),
                 ),
-                focusedBorder: const OutlineInputBorder(
+                focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(
                     color: _cyanSecondary,
@@ -904,7 +903,7 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
               width: double.infinity,
               child: CyberButton(
                 text: 'НАНЯТЬ',
-                icon: Icons.person_add_alt_1,
+                icon: Icons.person_add,
                 variant: CyberButtonVariant.primary,
                 height: 48,
                 isLoading: _hiring,
