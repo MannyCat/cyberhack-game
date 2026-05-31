@@ -207,14 +207,14 @@ class _CyberHackAppState extends State<CyberHackApp> {
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1.5),
         ),
       ),
-      inputDecorationTheme: const InputDecorationTheme(
+      inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Color(0xFF111827),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF2A3050))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF00F0FF))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF00F0FF), width: 2)),
-        hintStyle: TextStyle(color: Color(0xFF3A4060), fontSize: 14),
-        labelStyle: TextStyle(color: Color(0xFF00F0FF), fontSize: 14),
+        fillColor: const Color(0xFF111827),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A3050))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF00F0FF))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF00F0FF), width: 2)),
+        hintStyle: const TextStyle(color: Color(0xFF3A4060), fontSize: 14),
+        labelStyle: const TextStyle(color: Color(0xFF00F0FF), fontSize: 14),
       ),
       textTheme: const TextTheme(
         headlineLarge: TextStyle(color: Color(0xFF00F0FF), fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 3),
