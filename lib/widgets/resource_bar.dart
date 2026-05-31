@@ -43,7 +43,7 @@ class ResourceBar extends StatefulWidget {
     this.bandwidth = 0,
     this.maxBandwidth = 1024,
     this.mode = ResourceBarMode.compact,
-    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     this.height = 56.0,
   });
 
@@ -220,19 +220,19 @@ class _ResourceBarState extends State<ResourceBar>
               children: [
                 // Icon
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 28,
+                  height: 28,
                   decoration: BoxDecoration(
                     color: r.activeColor.withValues(alpha: isHovered ? 0.15 : 0.08),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: r.activeColor.withValues(alpha: isHovered ? 0.4 : 0.2),
                       width: 1,
                     ),
                   ),
-                  child: Icon(r.icon, color: r.activeColor, size: 20),
+                  child: Icon(r.icon, color: r.activeColor, size: 16),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 // Label + Value
                 Expanded(
                   child: Column(
@@ -245,7 +245,7 @@ class _ResourceBarState extends State<ResourceBar>
                             r.label,
                             style: TextStyle(
                               color: r.activeColor.withValues(alpha: 0.5),
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.0,
                               fontFamily: 'monospace',
@@ -256,7 +256,7 @@ class _ResourceBarState extends State<ResourceBar>
                             _formatNumber(anim.value),
                             style: TextStyle(
                               color: r.activeColor,
-                              fontSize: 15,
+                              fontSize: 13,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.5,
                               fontFamily: 'monospace',
@@ -264,12 +264,12 @@ class _ResourceBarState extends State<ResourceBar>
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
+                        borderRadius: BorderRadius.circular(2),
                         child: LinearProgressIndicator(
                           value: ratio,
-                          minHeight: 4,
+                          minHeight: 3,
                           backgroundColor: r.dimColor,
                           valueColor:
                               AlwaysStoppedAnimation<Color>(r.activeColor),
