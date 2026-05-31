@@ -210,9 +210,6 @@ class _CyberHackAppState extends State<CyberHackApp> {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFF111827),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A3050))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF00F0FF))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF00F0FF), width: 2)),
         hintStyle: const TextStyle(color: Color(0xFF3A4060), fontSize: 14),
         labelStyle: const TextStyle(color: Color(0xFF00F0FF), fontSize: 14),
       ),
