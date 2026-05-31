@@ -1,243 +1,136 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'providers/auth_provider.dart';
-import 'providers/game_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/game/game_shell.dart';
-import 'screens/game/map_screen.dart';
-import 'screens/game/network_screen.dart';
-import 'screens/game/attack_screen.dart';
+import 'screens/game/dashboard_screen.dart';
+import 'screens/game/servers_screen.dart';
+import 'screens/game/operations_screen.dart';
+import 'screens/game/agents_screen.dart';
+import 'screens/game/research_screen.dart';
+import 'screens/game/targets_screen.dart';
 import 'screens/game/market_screen.dart';
+import 'screens/game/cartel_screen.dart';
 import 'screens/game/chat_screen.dart';
-import 'screens/game/clan_screen.dart';
 import 'screens/game/leaderboard_screen.dart';
-import 'screens/game/campaign_screen.dart';
-import 'screens/game/daily_reward_screen.dart';
-import 'screens/game/weekly_event_screen.dart';
-import 'screens/game/achievement_screen.dart';
-import 'screens/game/notifications_screen.dart';
-import 'providers/event_provider.dart';
-import 'providers/notification_provider.dart';
-import 'providers/tutorial_provider.dart';
-import 'screens/settings_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/main_menu_screen.dart';
-import 'screens/game/tutorial_screen.dart';
+import 'screens/game/profile_screen.dart';
+import 'screens/game/settings_screen.dart';
 
-class CyberHackApp extends StatefulWidget {
+final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
+
+  return GoRouter(
+    initialLocation: '/login',
+    redirect: (context, state) {
+      final isLoggedIn = authState.valueOrNull?.session != null;
+      final isAuthRoute = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
+
+      if (!isLoggedIn && !isAuthRoute) return '/login';
+      if (isLoggedIn && isAuthRoute) return '/game/dashboard';
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      ShellRoute(
+        builder: (context, state, child) => GameShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/game',
+            redirect: (context, state) => '/game/dashboard',
+          ),
+          GoRoute(
+            path: '/game/dashboard',
+            builder: (context, state) => const DashboardScreen(),
+          ),
+          GoRoute(
+            path: '/game/servers',
+            builder: (context, state) => const ServersScreen(),
+          ),
+          GoRoute(
+            path: '/game/operations',
+            builder: (context, state) => const OperationsScreen(),
+          ),
+          GoRoute(
+            path: '/game/agents',
+            builder: (context, state) => const AgentsScreen(),
+          ),
+          GoRoute(
+            path: '/game/research',
+            builder: (context, state) => const ResearchScreen(),
+          ),
+          GoRoute(
+            path: '/game/targets',
+            builder: (context, state) => const TargetsScreen(),
+          ),
+          GoRoute(
+            path: '/game/market',
+            builder: (context, state) => const MarketScreen(),
+          ),
+          GoRoute(
+            path: '/game/cartel',
+            builder: (context, state) => const CartelScreen(),
+          ),
+          GoRoute(
+            path: '/game/chat',
+            builder: (context, state) => const ChatScreen(),
+          ),
+          GoRoute(
+            path: '/game/leaderboard',
+            builder: (context, state) => const LeaderboardScreen(),
+          ),
+          GoRoute(
+            path: '/game/profile',
+            builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/game/settings',
+            builder: (context, state) => const SettingsScreen(),
+          ),
+        ],
+      ),
+    ],
+  );
+});
+
+class CyberHackApp extends StatelessWidget {
   const CyberHackApp({super.key});
 
   @override
-  State<CyberHackApp> createState() => _CyberHackAppState();
-}
-
-class _CyberHackAppState extends State<CyberHackApp> {
-  late final ThemeData _theme = _buildCyberpunkTheme();
-  late final GoRouter _router;
-  late final AuthProvider _authProvider;
-  late final GameProvider _gameProvider;
-  late final EventProvider _eventProvider;
-  late final NotificationProvider _notificationProvider;
-  late final TutorialProvider _tutorialProvider;
-
-  @override
-  void initState() {
-    super.initState();
-    _authProvider = AuthProvider();
-    _gameProvider = GameProvider();
-    _eventProvider = EventProvider();
-    _notificationProvider = NotificationProvider();
-    _tutorialProvider = TutorialProvider();
-    _router = GoRouter(
-      initialLocation: '/game/map',
-      refreshListenable: _authProvider,
-      redirect: (context, state) {
-        final isLoggedIn = _authProvider.isAuthenticated;
-        final isAuthRoute = state.matchedLocation == '/login' ||
-            state.matchedLocation == '/register';
-        final isLoading = _authProvider.authState == AuthState.loading;
-        if (isLoading) return null;
-        if (!isLoggedIn && !isAuthRoute) return '/login';
-        if (isLoggedIn && isAuthRoute) return '/game/map';
-        return null;
-      },
-      routes: [
-        GoRoute(path: '/login', builder: (context, state) => ChangeNotifierProvider.value(value: _authProvider, child: const LoginScreen())),
-        GoRoute(path: '/register', builder: (context, state) => ChangeNotifierProvider.value(value: _authProvider, child: const RegisterScreen())),
-        ShellRoute(builder: (context, state, child) => GameShell(child: child), routes: [
-          GoRoute(path: '/game/home', pageBuilder: (context, state) => const NoTransitionPage(child: MainMenuScreen())),
-          GoRoute(path: '/game/map', pageBuilder: (context, state) => const NoTransitionPage(child: GameMapScreen())),
-          GoRoute(path: '/game/network', pageBuilder: (context, state) => const NoTransitionPage(child: NetworkOverviewScreen())),
-          GoRoute(path: '/game/attack', pageBuilder: (context, state) => const NoTransitionPage(child: AttackScreen())),
-          GoRoute(path: '/game/market', pageBuilder: (context, state) => const NoTransitionPage(child: MarketScreen())),
-          GoRoute(path: '/game/chat', pageBuilder: (context, state) => const NoTransitionPage(child: ChatScreen())),
-          GoRoute(path: '/game/clan', pageBuilder: (context, state) => const NoTransitionPage(child: ClanScreen())),
-          GoRoute(path: '/game/leaderboard', pageBuilder: (context, state) => const NoTransitionPage(child: LeaderboardScreen())),
-          GoRoute(path: '/game/campaign', pageBuilder: (context, state) => const NoTransitionPage(child: CampaignScreen())),
-          GoRoute(path: '/game/more', redirect: (context, state) => '/game/map'),
-          GoRoute(path: '/game/events', pageBuilder: (context, state) => const NoTransitionPage(child: WeeklyEventScreen())),
-          GoRoute(path: '/game/daily-reward', pageBuilder: (context, state) => const NoTransitionPage(child: DailyRewardScreen())),
-          GoRoute(path: '/game/achievements', pageBuilder: (context, state) => const NoTransitionPage(child: AchievementScreen())),
-          GoRoute(path: '/game/notifications', pageBuilder: (context, state) => const NoTransitionPage(child: NotificationsScreen())),
-          GoRoute(path: '/game/tutorial', pageBuilder: (context, state) => const NoTransitionPage(child: TutorialScreen())),
-        ]),
-        GoRoute(path: '/settings', builder: (context, state) => ChangeNotifierProvider.value(value: _gameProvider, child: const SettingsScreen())),
-        GoRoute(path: '/profile', builder: (context, state) => ChangeNotifierProvider.value(value: _gameProvider, child: const ProfileScreen())),
-      ],
-    );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initEventProvider());
-  }
-
-  void _initEventProvider() {
-    _authProvider.addListener(() {
-      if (_authProvider.isAuthenticated) {
-        final userId = Supabase.instance.client.auth.currentUser?.id;
-        if (userId != null) _eventProvider.init(userId);
-      }
-    });
-    if (_authProvider.isAuthenticated) {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId != null) _eventProvider.init(userId);
-    }
-  }
-
-  @override
-  void dispose() {
-    _authProvider.dispose();
-    _gameProvider.dispose();
-    _eventProvider.dispose();
-    _notificationProvider.dispose();
-    _tutorialProvider.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: _authProvider),
-        ChangeNotifierProvider.value(value: _gameProvider),
-        ChangeNotifierProvider.value(value: _eventProvider),
-        ChangeNotifierProvider.value(value: _notificationProvider),
-        ChangeNotifierProvider.value(value: _tutorialProvider),
-      ],
+    return ProviderScope(
       child: MaterialApp.router(
-        title: 'CyberHack',
+        title: 'CyberHack Manager',
         debugShowCheckedModeBanner: false,
-        routerConfig: _router,
-        theme: _theme,
-        darkTheme: _theme,
-        themeMode: ThemeMode.dark,
-      ),
-    );
-  }
-
-  ThemeData _buildCyberpunkTheme() {
-    const colorScheme = ColorScheme.dark(
-      brightness: Brightness.dark,
-      primary: Color(0xFF00F0FF),
-      onPrimary: Color(0xFF001519),
-      primaryContainer: Color(0xFF003940),
-      onPrimaryContainer: Color(0xFF00F0FF),
-      secondary: Color(0xFFFF00E5),
-      onSecondary: Color(0xFF1A0014),
-      secondaryContainer: Color(0xFF5C004F),
-      onSecondaryContainer: Color(0xFFFF80F0),
-      tertiary: Color(0xFF39FF14),
-      onTertiary: Color(0xFF001A00),
-      tertiaryContainer: Color(0xFF003300),
-      onTertiaryContainer: Color(0xFF39FF14),
-      error: Color(0xFFFF1744),
-      onError: Color(0xFFFFFFFF),
-      errorContainer: Color(0xFF5C0011),
-      onErrorContainer: Color(0xFFFFB3BA),
-      surface: Color(0xFF0A0E17),
-      onSurface: Color(0xFFE0E6F0),
-      surfaceContainerHighest: Color(0xFF1A2030),
-      outline: Color(0xFF3A4060),
-      outlineVariant: Color(0xFF2A3050),
-      shadow: Color(0xFF000000),
-      inverseSurface: Color(0xFFE0E6F0),
-      inversePrimary: Color(0xFF006874),
-    );
-
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFF0A0E17),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF0D1220),
-        foregroundColor: Color(0xFF00F0FF),
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: TextStyle(color: Color(0xFF00F0FF), fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
-      ),
-      cardTheme: CardThemeData(
-        color: const Color(0xFF111827),
-        elevation: 4,
-        shadowColor: const Color(0xFF00F0FF).withValues(alpha: 0.15),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: const Color(0xFF00F0FF).withValues(alpha: 0.2), width: 1)),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF00F0FF),
-          foregroundColor: const Color(0xFF0A0E17),
-          elevation: 4,
-          shadowColor: const Color(0xFF00F0FF).withValues(alpha: 0.4),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: const Color(0xFF0a0e17),
+          colorScheme: const ColorScheme.dark(
+            primary: Color(0xFF00ff88),
+            secondary: Color(0xFF00d4ff),
+            surface: Color(0xFF111827),
+            onPrimary: Color(0xFF000000),
+            onSecondary: Color(0xFF000000),
+          ),
+          textTheme: const TextTheme(
+            bodyLarge: TextStyle(color: Color(0xFFe0e0e0)),
+            bodyMedium: TextStyle(color: Color(0xFFb0b0b0)),
+            titleLarge: TextStyle(
+              color: Color(0xFF00ff88),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: const Color(0xFF00F0FF),
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 1),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF00F0FF),
-          side: const BorderSide(color: Color(0xFF00F0FF), width: 1.5),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1.5),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: const Color(0xFF111827),
-        hintStyle: const TextStyle(color: Color(0xFF3A4060), fontSize: 14),
-        labelStyle: const TextStyle(color: Color(0xFF00F0FF), fontSize: 14),
-      ),
-      textTheme: const TextTheme(
-        headlineLarge: TextStyle(color: Color(0xFF00F0FF), fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 3),
-        headlineMedium: TextStyle(color: Color(0xFF00F0FF), fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2),
-        headlineSmall: TextStyle(color: Color(0xFFE0E6F0), fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 1.5),
-        titleLarge: TextStyle(color: Color(0xFFE0E6F0), fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: 1),
-        titleMedium: TextStyle(color: Color(0xFFE0E6F0), fontSize: 16, fontWeight: FontWeight.w500),
-        bodyLarge: TextStyle(color: Color(0xFFC0C8D8), fontSize: 16),
-        bodyMedium: TextStyle(color: Color(0xFFA0A8B8), fontSize: 14),
-        bodySmall: TextStyle(color: Color(0xFF8090A0), fontSize: 12),
-        labelLarge: TextStyle(color: Color(0xFF00F0FF), fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1),
-        labelMedium: TextStyle(color: Color(0xFF8090A0), fontSize: 12),
-      ),
-      iconTheme: const IconThemeData(color: Color(0xFF00F0FF), size: 24),
-      dividerTheme: const DividerThemeData(color: Color(0xFF1A2030), thickness: 1, space: 1),
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: const Color(0xFF111827),
-        contentTextStyle: const TextStyle(color: Color(0xFFE0E6F0)),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: const Color(0xFF00F0FF).withValues(alpha: 0.3))),
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: const Color(0xFF111827),
-        titleTextStyle: const TextStyle(color: Color(0xFF00F0FF), fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
-        contentTextStyle: const TextStyle(color: Color(0xFFC0C8D8), fontSize: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: const Color(0xFF00F0FF).withValues(alpha: 0.3))),
+        routerConfig: context.read(routerProvider),
       ),
     );
   }
