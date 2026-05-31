@@ -190,7 +190,6 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           SnackBar(
             content: Text('Куплено: ${item['name']}'),
             backgroundColor: _greenPrimary,
-            foregroundColor: _bgDark,
           ),
         );
       }
@@ -438,7 +437,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: _surfaceVariant),
         ),
-        child: const Column(
+        child: Column(
           children: [
             Icon(Icons.inventory_2_outlined, color: Colors.grey, size: 48),
             SizedBox(height: 12),
