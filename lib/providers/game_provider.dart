@@ -41,6 +41,20 @@ class GameState {
       isLoading: isLoading ?? this.isLoading,
     );
   }
+
+  // Convenience getters for profile fields
+  int? get credits => (profile?['credits'] as num?)?.toInt();
+  int? get power => (profile?['power'] as num?)?.toInt();
+  int? get maxPower => (profile?['max_power'] as num?)?.toInt();
+  int? get heat => (profile?['heat'] as num?)?.toInt();
+  int? get level => (profile?['level'] as num?)?.toInt();
+  int? get experience => (profile?['experience'] as num?)?.toInt();
+  int? get reputation => (profile?['reputation'] as num?)?.toInt();
+  int? get totalEarnings => (profile?['total_earnings'] as num?)?.toInt();
+  int? get cpu => (profile?['cpu'] as num?)?.toInt();
+  int? get bandwidth => (profile?['bandwidth'] as num?)?.toInt();
+  String? get username => profile?['username'] as String?;
+  String? get clanId => profile?['clan_id'] as String?;
 }
 
 // ── Notifier ───────────────────────────────────────────────────────────
