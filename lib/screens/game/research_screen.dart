@@ -23,7 +23,7 @@ enum ResearchCategory {
   all('Все', Icons.grid_view, Colors.grey),
   offense('Атака', Icons.gavel, _dangerRed),
   defense('Защита', Icons.shield, _cyanSecondary),
-  economy('Экономика', Icons.coins, _goldAccent),
+  economy('Экономика', Icons.paid, _goldAccent),
   infrastructure('Инфраструктура', Icons.dns_outlined, _cyanSecondary),
   stealth('Стелс', Icons.visibility_off_outlined, _purpleAccent);
 
@@ -139,7 +139,7 @@ class _ResearchScreenState extends ConsumerState<ResearchScreen> {
       case 'defense':
         return Icons.shield;
       case 'economy':
-        return Icons.coins;
+        return Icons.paid;
       case 'infrastructure':
         return Icons.dns_outlined;
       case 'stealth':
@@ -286,7 +286,6 @@ class _ResearchScreenState extends ConsumerState<ResearchScreen> {
           const SnackBar(
             content: Text('Исследование начато!'),
             backgroundColor: _greenPrimary,
-            foregroundColor: _bgDark,
           ),
         );
       }
@@ -791,7 +790,7 @@ class _ResearchCardWidgetState extends State<_ResearchCardWidget> {
       children: [
         Row(
           children: [
-            Icon(Icons.hourglass_top, color: _cyanSecondary, size: 14),
+            Icon(Icons.hourglass_bottom, color: _cyanSecondary, size: 14),
             const SizedBox(width: 4),
             Text(
               'Исследуется — $remaining',
