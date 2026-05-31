@@ -523,7 +523,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   content:
                                       Text('Имя изменено на «$newName»'),
                                   backgroundColor: _greenPrimary,
-                                  foregroundColor: _bgDark,
                                 ),
                               );
                             }
@@ -654,7 +653,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   content: Text(
                                       'Ссылка для сброса отправлена на $resetEmail'),
                                   backgroundColor: _cyanSecondary,
-                                  foregroundColor: _bgDark,
                                 ),
                               );
                             }
