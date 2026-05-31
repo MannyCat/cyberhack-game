@@ -327,7 +327,6 @@ class _CartelScreenState extends ConsumerState<CartelScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: _greenPrimary,
-        foregroundColor: _bgDark,
       ),
     );
   }
