@@ -18,13 +18,13 @@ import 'screens/game/leaderboard_screen.dart';
 import 'screens/game/profile_screen.dart';
 import 'screens/game/settings_screen.dart';
 
-final routerProvider = Provider<GoRouter>((ref) {
+final _routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
+  final isLoggedIn = authState.valueOrNull != null;
 
   return GoRouter(
     initialLocation: '/login',
     redirect: (context, state) {
-      final isLoggedIn = authState.valueOrNull?.session != null;
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
 
@@ -102,36 +102,34 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class CyberHackApp extends StatelessWidget {
+class CyberHackApp extends ConsumerWidget {
   const CyberHackApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ProviderScope(
-      child: MaterialApp.router(
-        title: 'CyberHack Manager',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          brightness: Brightness.dark,
-          scaffoldBackgroundColor: const Color(0xFF0a0e17),
-          colorScheme: const ColorScheme.dark(
-            primary: Color(0xFF00ff88),
-            secondary: Color(0xFF00d4ff),
-            surface: Color(0xFF111827),
-            onPrimary: Color(0xFF000000),
-            onSecondary: Color(0xFF000000),
-          ),
-          textTheme: const TextTheme(
-            bodyLarge: TextStyle(color: Color(0xFFe0e0e0)),
-            bodyMedium: TextStyle(color: Color(0xFFb0b0b0)),
-            titleLarge: TextStyle(
-              color: Color(0xFF00ff88),
-              fontWeight: FontWeight.bold,
-            ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp.router(
+      title: 'CyberHack Manager',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF0a0e17),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF00ff88),
+          secondary: Color(0xFF00d4ff),
+          surface: Color(0xFF111827),
+          onPrimary: Color(0xFF000000),
+          onSecondary: Color(0xFF000000),
+        ),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Color(0xFFe0e0e0)),
+          bodyMedium: TextStyle(color: Color(0xFFb0b0b0)),
+          titleLarge: TextStyle(
+            color: Color(0xFF00ff88),
+            fontWeight: FontWeight.bold,
           ),
         ),
-        routerConfig: context.read(routerProvider),
       ),
+      routerConfig: ref.read(_routerProvider),
     );
   }
 }
