@@ -1,203 +1,237 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 
-/// Cyberpunk-styled button for PC desktop — glowing border, pulse animation,
-/// multiple variants, loading state, optional icon.
-/// Wider defaults, hover glow, pointer cursor.
-enum CyberButtonVariant { primary, danger, secondary }
+// ── Color Constants ──────────────────────────────────────────────────────
 
+const _greenPrimary = Color(0xFF00ff88);
+const _greenDark = Color(0xFF00cc6a);
+const _cyanSecondary = Color(0xFF00d4ff);
+const _dangerRed = Color(0xFFff4444);
+const _dangerDark = Color(0xFFcc2222);
+const _bgDark = Color(0xFF0a0e17);
+const _surface = Color(0xFF111827);
+const _surfaceVariant = Color(0xFF1a2332);
+
+/// Defines the visual style variants for CyberButton.
+enum CyberButtonVariant {
+  /// Green gradient — primary action.
+  primary,
+
+  /// Dark background with cyan border — secondary action.
+  secondary,
+
+  /// Red gradient — destructive action.
+  danger,
+
+  /// Green gradient — identical to primary, used for semantic clarity.
+  success,
+}
+
+/// A reusable styled button widget with cyberpunk aesthetics.
+///
+/// Supports four variants, hover effects, loading states, optional leading
+/// icon, and automatic disabled styling when [onPressed] is null.
 class CyberButton extends StatefulWidget {
-  final String label;
-  final CyberButtonVariant variant;
+  final String text;
   final VoidCallback? onPressed;
-  final bool isLoading;
-  final IconData? icon;
+  final CyberButtonVariant variant;
   final double? width;
   final double height;
-  final double borderRadius;
-  final EdgeInsetsGeometry padding;
-  final double fontSize;
-  final bool enabled;
+  final bool isLoading;
+  final IconData? icon;
+  final EdgeInsets padding;
 
   const CyberButton({
     super.key,
-    required this.label,
-    this.variant = CyberButtonVariant.primary,
+    required this.text,
     this.onPressed,
+    this.variant = CyberButtonVariant.primary,
+    this.width,
+    this.height = 44,
     this.isLoading = false,
     this.icon,
-    this.width,
-    this.height = 52.0,
-    this.borderRadius = 8.0,
-    this.padding = const EdgeInsets.symmetric(horizontal: 32, vertical: 0),
-    this.fontSize = 15.0,
-    this.enabled = true,
+    this.padding = const EdgeInsets.symmetric(horizontal: 24),
   });
 
   @override
   State<CyberButton> createState() => _CyberButtonState();
 }
 
-class _CyberButtonState extends State<CyberButton>
-    with TickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
+class _CyberButtonState extends State<CyberButton> {
   bool _isHovered = false;
 
-  // ── Colour maps ──────────────────────────────────────────────
-  static const Map<CyberButtonVariant, Color> _glowColors = {
-    CyberButtonVariant.primary: Color(0xFF00FF41),
-    CyberButtonVariant.danger: Color(0xFFFF0040),
-    CyberButtonVariant.secondary: Color(0xFF00E5FF),
-  };
+  bool get _isDisabled => widget.onPressed == null || widget.isLoading;
 
-  static const Map<CyberButtonVariant, Color> _borderColors = {
-    CyberButtonVariant.primary: Color(0xFF00CC33),
-    CyberButtonVariant.danger: Color(0xFFCC0033),
-    CyberButtonVariant.secondary: Color(0xFF00B8CC),
-  };
+  // ── Variant Colors ─────────────────────────────────────────────────────
 
-  static const Map<CyberButtonVariant, Color> _bgColors = {
-    CyberButtonVariant.primary: Color(0xFF0D2818),
-    CyberButtonVariant.danger: Color(0xFF2A0A10),
-    CyberButtonVariant.secondary: Color(0xFF0A1E26),
-  };
+  BoxDecoration _buildDecoration() {
+    final disabled = _isDisabled;
+    final hovered = _isHovered && !disabled;
 
-  Color get _glow => _glowColors[widget.variant]!;
-  Color get _border => _borderColors[widget.variant]!;
-  Color get _bg => _bgColors[widget.variant]!;
+    switch (widget.variant) {
+      case CyberButtonVariant.primary:
+      case CyberButtonVariant.success:
+        return BoxDecoration(
+          gradient: disabled
+              ? const LinearGradient(colors: [Colors.grey, Colors.grey])
+              : LinearGradient(
+                  colors: hovered
+                      ? [_greenPrimary, _greenPrimary]
+                      : [_greenPrimary, _greenDark],
+                ),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: !disabled
+              ? [
+                  BoxShadow(
+                    color: _greenPrimary.withValues(alpha: hovered ? 0.4 : 0.2),
+                    blurRadius: hovered ? 16 : 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        );
 
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-  }
+      case CyberButtonVariant.secondary:
+        return BoxDecoration(
+          color: hovered && !disabled ? _surfaceVariant : _surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: disabled
+                ? Colors.grey.shade700
+                : hovered
+                    ? _cyanSecondary
+                    : _cyanSecondary.withValues(alpha: 0.5),
+            width: 1.5,
+          ),
+          boxShadow: !disabled
+              ? [
+                  BoxShadow(
+                    color: _cyanSecondary.withValues(alpha: hovered ? 0.15 : 0.05),
+                    blurRadius: hovered ? 12 : 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        );
 
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleTap() async {
-    if (widget.isLoading || !widget.enabled || widget.onPressed == null) {
-      return;
+      case CyberButtonVariant.danger:
+        return BoxDecoration(
+          gradient: disabled
+              ? const LinearGradient(colors: [Colors.grey, Colors.grey])
+              : LinearGradient(
+                  colors: hovered
+                      ? [_dangerRed, _dangerRed]
+                      : [_dangerRed, _dangerDark],
+                ),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: !disabled
+              ? [
+                  BoxShadow(
+                    color: _dangerRed.withValues(alpha: hovered ? 0.4 : 0.2),
+                    blurRadius: hovered ? 16 : 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        );
     }
-    await _pulseController.forward();
-    await _pulseController.reverse();
-    widget.onPressed!();
   }
+
+  Color _getTextColor() {
+    if (_isDisabled) return Colors.grey.shade500;
+    switch (widget.variant) {
+      case CyberButtonVariant.primary:
+      case CyberButtonVariant.success:
+        return _bgDark;
+      case CyberButtonVariant.secondary:
+        return _cyanSecondary;
+      case CyberButtonVariant.danger:
+        return Colors.white;
+    }
+  }
+
+  Color _getIconColor() {
+    return _getTextColor();
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final isDisabled = widget.isLoading || !widget.enabled;
-
-    return ListenableBuilder(
-      listenable: _pulseAnimation,
-      builder: (context, _) {
-        return MouseRegion(
-          cursor: isDisabled
-              ? SystemMouseCursors.basic
-              : SystemMouseCursors.click,
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
-          child: AnimatedScale(
-            scale: _pulseAnimation.value,
-            duration: const Duration(milliseconds: 100),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: widget.width,
-              height: widget.height,
-              decoration: BoxDecoration(
-                color: isDisabled
-                    ? const Color(0xFF12162A)
-                    : _isHovered
-                        ? _bg.withValues(alpha: 1.0)
-                        : _bg,
-                borderRadius: BorderRadius.circular(widget.borderRadius),
-                border: Border.all(
-                  color: isDisabled
-                      ? const Color(0xFF2A2F45)
-                      : _border.withValues(
-                          alpha: _isHovered ? 1.0 : 0.6),
-                  width: _isHovered ? 2.0 : 1.5,
-                ),
-                boxShadow: [
-                  if (_isHovered && !isDisabled)
-                    BoxShadow(
-                      color: _glow.withValues(alpha: 0.45),
-                      blurRadius: 24,
-                      spreadRadius: 2,
-                    ),
-                  if (_isHovered && !isDisabled)
-                    BoxShadow(
-                      color: _glow.withValues(alpha: 0.15),
-                      blurRadius: 8,
-                      spreadRadius: 0,
-                    ),
-                  if (!isDisabled && !_isHovered)
-                    BoxShadow(
-                      color: _glow.withValues(alpha: 0.08),
-                      blurRadius: 8,
-                    ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _handleTap,
-                  borderRadius:
-                      BorderRadius.circular(widget.borderRadius),
-                  child: Center(
-                    child: widget.isLoading
-                        ? SizedBox(
-                            height: widget.fontSize + 6,
-                            width: widget.fontSize + 6,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(_glow),
-                            ),
-                          )
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (widget.icon != null) ...[
-                                Icon(
-                                  widget.icon,
-                                  color: isDisabled
-                                      ? Colors.white24
-                                      : _glow,
-                                  size: widget.fontSize + 6,
-                                ),
-                                const SizedBox(width: 10),
-                              ],
-                              Text(
-                                widget.label,
-                                style: TextStyle(
-                                  color: isDisabled
-                                      ? Colors.white24
-                                      : _glow,
-                                  fontSize: widget.fontSize,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: _isDisabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      child: AnimatedScale(
+        scale: _isHovered && !_isDisabled ? 1.02 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          width: widget.width,
+          height: widget.height,
+          decoration: _buildDecoration(),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _isDisabled ? null : widget.onPressed,
+              borderRadius: BorderRadius.circular(8),
+              splashColor: Colors.white.withValues(alpha: 0.1),
+              highlightColor: Colors.white.withValues(alpha: 0.05),
+              child: Center(
+                child: _buildContent(),
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (widget.isLoading) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(_getTextColor()),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Загрузка...',
+            style: TextStyle(
+              color: _getTextColor(),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (widget.icon != null) ...[
+          Icon(widget.icon, color: _getIconColor(), size: 18),
+          const SizedBox(width: 8),
+        ],
+        Text(
+          widget.text,
+          style: TextStyle(
+            color: _getTextColor(),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
     );
   }
 }
