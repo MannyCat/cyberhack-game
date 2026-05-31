@@ -207,23 +207,14 @@ class _CyberHackAppState extends State<CyberHackApp> {
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1.5),
         ),
       ),
-      inputDecorationTheme: InputDecorationTheme(
+      inputDecorationTheme: const InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF111827),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A3050))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: const Color(0xFF00F0FF).withValues(alpha: 0.3))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF00F0FF), width: 2)),
-        hintStyle: const TextStyle(color: Color(0xFF3A4060), fontSize: 14),
-        labelStyle: const TextStyle(color: Color(0xFF00F0FF), fontSize: 14),
-      ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: Color(0xFF0D1220),
-        selectedItemColor: Color(0xFF00F0FF),
-        unselectedItemColor: Color(0xFF3A4060),
-        type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-        unselectedLabelStyle: TextStyle(fontSize: 11),
-        elevation: 8,
+        fillColor: Color(0xFF111827),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF2A3050))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF00F0FF))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Color(0xFF00F0FF), width: 2)),
+        hintStyle: TextStyle(color: Color(0xFF3A4060), fontSize: 14),
+        labelStyle: TextStyle(color: Color(0xFF00F0FF), fontSize: 14),
       ),
       textTheme: const TextTheme(
         headlineLarge: TextStyle(color: Color(0xFF00F0FF), fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 3),
@@ -254,4 +245,3 @@ class _CyberHackAppState extends State<CyberHackApp> {
     );
   }
 }
-
