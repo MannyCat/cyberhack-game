@@ -179,13 +179,12 @@ class _ServersScreenState extends ConsumerState<ServersScreen> {
       await _supabase.rpc('buy_server', params: {
         'p_type_id': type['id'],
       });
-      await ref.read(gameProvider).notifier.loadAllData();
+      await ref.read(gameProvider.notifier).loadAllData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Сервер "${type['name']}" приобретён!'),
             backgroundColor: _greenPrimary,
-            foregroundColor: _bgDark,
           ),
         );
       }
@@ -210,7 +209,7 @@ class _ServersScreenState extends ConsumerState<ServersScreen> {
       await _supabase.rpc('repair_server', params: {
         'p_server_id': _selectedServer!['id'],
       });
-      await ref.read(gameProvider).notifier.loadAllData();
+      await ref.read(gameProvider.notifier).loadAllData();
       // Update local selected server with fresh data
       final fresh = ref.read(gameProvider).servers;
       final updated = fresh.where((s) => s['id'] == _selectedServer!['id']).toList();
@@ -222,7 +221,6 @@ class _ServersScreenState extends ConsumerState<ServersScreen> {
           SnackBar(
             content: const Text('Сервер отремонтирован!'),
             backgroundColor: _greenPrimary,
-            foregroundColor: _bgDark,
           ),
         );
       }
@@ -287,13 +285,12 @@ class _ServersScreenState extends ConsumerState<ServersScreen> {
         _selectedServer = null;
         _shopMode = true;
       });
-      await ref.read(gameProvider).notifier.loadAllData();
+      await ref.read(gameProvider.notifier).loadAllData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Сервер утилизирован.'),
             backgroundColor: _cyanSecondary,
-            foregroundColor: _bgDark,
           ),
         );
       }
@@ -318,7 +315,7 @@ class _ServersScreenState extends ConsumerState<ServersScreen> {
           .from('player_servers')
           .update({'is_active': newActive})
           .eq('id', server['id']);
-      await ref.read(gameProvider).notifier.refreshServers();
+      await ref.read(gameProvider.notifier).refreshServers();
     } catch (_) {}
   }
 
@@ -329,14 +326,13 @@ class _ServersScreenState extends ConsumerState<ServersScreen> {
           .from('player_servers')
           .update({'name': _nameController.text.trim()})
           .eq('id', _selectedServer!['id']);
-      await ref.read(gameProvider).notifier.refreshServers();
+      await ref.read(gameProvider.notifier).refreshServers();
       setState(() => _nameChanged = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Имя сервера обновлено.'),
             backgroundColor: _greenPrimary,
-            foregroundColor: _bgDark,
           ),
         );
       }
