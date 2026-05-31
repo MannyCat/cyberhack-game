@@ -52,6 +52,7 @@ class _GameShellState extends State<GameShell> {
         _NavItem(icon: Icons.card_giftcard_rounded, label: 'Ежедневное', path: '/game/daily-reward', color: Color(0xFFFFD700)),
         _NavItem(icon: Icons.military_tech_rounded, label: 'Кампания', path: '/game/campaign', color: Color(0xFFFFD700)),
         _NavItem(icon: Icons.event_rounded, label: 'События', path: '/game/events', color: Color(0xFF00e5ff)),
+        _NavItem(icon: Icons.school_rounded, label: 'Обучение', path: '/game/tutorial', color: Color(0xFF00F0FF)),
       ],
     ),
   ];
