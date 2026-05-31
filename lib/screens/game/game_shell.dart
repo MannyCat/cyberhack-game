@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/tutorial_provider.dart';
 import '../../widgets/resource_bar.dart';
 
 // ─── GameShell — PC Desktop Layout ───────────────────────────────────────────
@@ -65,6 +66,15 @@ class _GameShellState extends State<GameShell> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchTotalPlayers();
+      // Авто-запуск обучения для новых игроков (после загрузки SharedPreferences)
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          final tutorial = context.read<TutorialProvider>();
+          if (!tutorial.isCompleted) {
+            context.go('/game/tutorial');
+          }
+        }
+      });
     });
   }
 
