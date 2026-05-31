@@ -173,7 +173,6 @@ class _TargetsScreenState extends ConsumerState<TargetsScreen> {
           'Цель "${target['name']}" выбрана. Перейдите на вкладку Операции для начала.',
         ),
         backgroundColor: _cyanSecondary,
-        foregroundColor: _bgDark,
         duration: const Duration(seconds: 3),
         action: SnackBarAction(
           label: 'ПЕРЕЙТИ',
@@ -351,7 +350,7 @@ class _TargetsScreenState extends ConsumerState<TargetsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.public_off_outlined, color: Colors.grey.shade600, size: 56),
+            Icon(Icons.public_off, color: Colors.grey.shade600, size: 56),
             const SizedBox(height: 16),
             const Text(
               'Нет целей в этой категории.',
