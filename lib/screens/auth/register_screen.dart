@@ -1,1024 +1,424 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
+
 import '../../providers/auth_provider.dart';
 
-// ─── Scanline Background Painter ──────────────────────────────────────────
+// ── Theme constants ─────────────────────────────────────────────────────
 
-class _ScanlinePainter extends CustomPainter {
-  final double offset;
+const _bgColor = Color(0xFF0a0e17);
+const _cardBg = Color(0xFF111827);
+const _green = Color(0xFF00ff88);
+const _cyan = Color(0xFF00d4ff);
+const _borderColor = Color(0xFF1e293b);
+const _textPrimary = Color(0xFFe0e0e0);
+const _textMuted = Color(0xFF6b7280);
+const _errorRed = Color(0xFFff4444);
 
-  _ScanlinePainter({required this.offset});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bgPaint = Paint()..color = const Color(0xFF0a0e17);
-    canvas.drawRect(Offset.zero & size, bgPaint);
-
-    final linePaint = Paint()
-      ..color = const Color(0xFF00ff41).withValues(alpha: 0.03)
-      ..strokeWidth = 1;
-
-    for (double y = (offset % 4) - 4; y < size.height; y += 4) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), linePaint);
-    }
-
-    final scanY = offset % size.height;
-    final scanPaint = Paint()
-      ..color = const Color(0xFF00ff41).withValues(alpha: 0.06)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawRect(
-      Rect.fromLTWH(0, scanY, size.width, 40),
-      scanPaint,
-    );
-
-    const cornerColor = Color(0xFF00e5ff);
-    final cornerPaint = Paint()
-      ..color = cornerColor.withValues(alpha: 0.15)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    const cornerSize = 30.0;
-    canvas.drawLine(const Offset(10, 10), const Offset(10 + cornerSize, 10), cornerPaint);
-    canvas.drawLine(const Offset(10, 10), const Offset(10, 10 + cornerSize), cornerPaint);
-    canvas.drawLine(
-        Offset(size.width - 10, 10), Offset(size.width - 10 - cornerSize, 10), cornerPaint);
-    canvas.drawLine(
-        Offset(size.width - 10, 10), Offset(size.width - 10, 10 + cornerSize), cornerPaint);
-    canvas.drawLine(Offset(10, size.height - 10),
-        Offset(10 + cornerSize, size.height - 10), cornerPaint);
-    canvas.drawLine(Offset(10, size.height - 10),
-        Offset(10, size.height - 10 - cornerSize), cornerPaint);
-    canvas.drawLine(Offset(size.width - 10, size.height - 10),
-        Offset(size.width - 10 - cornerSize, size.height - 10), cornerPaint);
-    canvas.drawLine(Offset(size.width - 10, size.height - 10),
-        Offset(size.width - 10, size.height - 10 - cornerSize), cornerPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ScanlinePainter oldDelegate) => true;
-}
-
-// ─── Glitch Text (shared visual identity) ─────────────────────────────────
-
-class _GlitchTitle extends StatefulWidget {
-  const _GlitchTitle();
-
-  @override
-  State<_GlitchTitle> createState() => _GlitchTitleState();
-}
-
-class _GlitchTitleState extends State<_GlitchTitle>
-    with TickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3000),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value;
-        final glitchOffset = (t * 2 * 3.14159 * 5).abs() * 2;
-        final showGlitch = (t * 30).toInt() % 7 == 0;
-
-        return Stack(
-          children: [
-            if (showGlitch)
-              Text(
-                'CYBERHACK',
-                style: TextStyle(
-                  fontSize: 42,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.red.withValues(alpha: 0.7),
-                  letterSpacing: 8,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            if (showGlitch)
-              Text(
-                'CYBERHACK',
-                style: TextStyle(
-                  fontSize: 42,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF00e5ff).withValues(alpha: 0.7),
-                  letterSpacing: 8,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            Transform.translate(
-              offset: Offset(showGlitch ? glitchOffset : 0, 0),
-              child: ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
-                  colors: [Color(0xFF00e5ff), Color(0xFF00ff41)],
-                ).createShader(bounds),
-                child: const Text(
-                  'CYBERHACK',
-                  style: TextStyle(
-                    fontSize: 42,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 8,
-                    fontFamily: 'monospace',
-                    shadows: [
-                      Shadow(color: Color(0xFF00e5ff), blurRadius: 20),
-                      Shadow(color: Color(0xFF00ff41), blurRadius: 10),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-// ─── Neon Title ──────────────────────────────────────────────────────────
-
-class _NeonTitle extends StatelessWidget {
-  const _NeonTitle();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const _GlitchTitle(),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: const Color(0xFF00e5ff).withValues(alpha: 0.25),
-              width: 1,
-            ),
-            borderRadius: BorderRadius.circular(4),
-            color: const Color(0xFF00e5ff).withValues(alpha: 0.04),
-          ),
-          child: const Text(
-            '// СОЗДАТЬ ОПЕРАТОРА',
-            style: TextStyle(
-              color: Color(0xFF00e5ff),
-              fontSize: 12,
-              letterSpacing: 3,
-              fontFamily: 'monospace',
-            ),
-          ),
-        ),
-        const SizedBox(height: 2),
-        const Text(
-          '// ИНИЦИАЛИЗАЦИЯ НОВОЙ ЛИЧНОСТИ',
-          style: TextStyle(
-            color: Color(0xFF4a5568),
-            fontSize: 11,
-            letterSpacing: 2,
-            fontFamily: 'monospace',
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─── Cyberpunk Desktop Text Field ────────────────────────────────────────
-
-class _CyberTextField extends StatefulWidget {
-  final String label;
-  final String hintText;
-  final bool obscureText;
-  final TextEditingController controller;
-  final IconData icon;
-  final String? errorText;
-  final Widget? suffixIcon;
-
-  const _CyberTextField({
-    required this.label,
-    required this.hintText,
-    required this.controller,
-    this.obscureText = false,
-    required this.icon,
-    this.errorText,
-    this.suffixIcon,
-  });
-
-  @override
-  State<_CyberTextField> createState() => _CyberTextFieldState();
-}
-
-class _CyberTextFieldState extends State<_CyberTextField> {
-  bool _isHovered = false;
-  bool _isFocused = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasError = widget.errorText != null;
-    final borderColor = hasError
-        ? const Color(0xFFFF4444)
-        : _isFocused
-            ? const Color(0xFF00e5ff)
-            : _isHovered
-                ? const Color(0xFF00e5ff).withValues(alpha: 0.6)
-                : const Color(0xFF1a3a2a);
-
-    final glowColor = _isFocused
-        ? const Color(0xFF00e5ff).withValues(alpha: 0.2)
-        : const Color(0xFF00e5ff).withValues(alpha: 0.08);
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(widget.icon, color: const Color(0xFF00e5ff), size: 14),
-              const SizedBox(width: 6),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: hasError
-                      ? const Color(0xFFFF4444)
-                      : const Color(0xFF00ff41),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0d1117),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: borderColor, width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: hasError
-                      ? const Color(0xFFFF4444).withValues(alpha: 0.15)
-                      : glowColor,
-                  blurRadius: _isFocused ? 12 : 6,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-            child: Focus(
-              onFocusChange: (v) => setState(() => _isFocused = v),
-              child: TextField(
-                controller: widget.controller,
-                obscureText: widget.obscureText,
-                style: const TextStyle(
-                  color: Color(0xFF00ff41),
-                  fontFamily: 'monospace',
-                  fontSize: 15,
-                ),
-                decoration: InputDecoration(
-                  hintText: widget.hintText,
-                  hintStyle: TextStyle(
-                    color: const Color(0xFF00ff41).withValues(alpha: 0.25),
-                    fontFamily: 'monospace',
-                    fontSize: 15,
-                  ),
-                  prefixIcon: Padding(
-                    padding: const EdgeInsets.only(left: 16, right: 8),
-                    child: Icon(
-                      widget.icon,
-                      color: const Color(0xFF00e5ff).withValues(alpha: 0.6),
-                      size: 20,
-                    ),
-                  ),
-                  prefixIconConstraints:
-                      const BoxConstraints(minWidth: 44, minHeight: 24),
-                  suffixIcon: widget.suffixIcon,
-                  border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                ),
-              ),
-            ),
-          ),
-          if (hasError)
-            Padding(
-              padding: const EdgeInsets.only(top: 6, left: 4),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline,
-                      color: Color(0xFFFF4444), size: 12),
-                  const SizedBox(width: 4),
-                  Text(
-                    widget.errorText!,
-                    style: const TextStyle(
-                      color: Color(0xFFFF4444),
-                      fontSize: 11,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Hover Button ─────────────────────────────────────────────────────────
-
-class _CyberHoverButton extends StatefulWidget {
-  final VoidCallback? onPressed;
-  final String text;
-  final Color baseColor;
-  final Color glowColor;
-  final bool isLoading;
-
-  const _CyberHoverButton({
-    required this.onPressed,
-    required this.text,
-    this.baseColor = const Color(0xFF00e5ff),
-    this.glowColor = const Color(0xFF00e5ff),
-    this.isLoading = false,
-  });
-
-  @override
-  State<_CyberHoverButton> createState() => _CyberHoverButtonState();
-}
-
-class _CyberHoverButtonState extends State<_CyberHoverButton> {
-  bool _isHovered = false;
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) {
-        setState(() {
-          _isHovered = false;
-          _isPressed = false;
-        });
-      },
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
-        onTapUp: (_) => setState(() => _isPressed = false),
-        onTapCancel: () => setState(() => _isPressed = false),
-        onTap: widget.isLoading ? null : widget.onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                _isPressed
-                    ? widget.baseColor.withValues(alpha: 0.6)
-                    : widget.baseColor.withValues(alpha: _isHovered ? 1.0 : 0.85),
-                widget.baseColor.withValues(alpha: _isPressed ? 0.4 : 0.7),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(6),
-            boxShadow: [
-              BoxShadow(
-                color: widget.glowColor
-                    .withValues(alpha: _isHovered ? 0.5 : 0.25),
-                blurRadius: _isHovered ? 24 : 12,
-                spreadRadius: _isHovered ? 3 : 1,
-              ),
-            ],
-          ),
-          child: Center(
-            child: widget.isLoading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Color(0xFF0a0e17),
-                    ),
-                  )
-                : Text(
-                    widget.text,
-                    style: TextStyle(
-                      color: const Color(0xFF0a0e17),
-                      fontSize: _isHovered ? 15 : 14,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 4,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Hoverable Link ──────────────────────────────────────────────────────
-
-class _CyberLink extends StatefulWidget {
-  final String text;
-  final String? label;
-  final VoidCallback onTap;
-
-  const _CyberLink({
-    required this.text,
-    this.label,
-    required this.onTap,
-  });
-
-  @override
-  State<_CyberLink> createState() => _CyberLinkState();
-}
-
-class _CyberLinkState extends State<_CyberLink> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: RichText(
-          text: TextSpan(
-            style: const TextStyle(
-              color: Color(0xFF4a5568),
-              fontSize: 13,
-              letterSpacing: 1,
-              fontFamily: 'monospace',
-            ),
-            children: [
-              if (widget.label != null) TextSpan(text: widget.label),
-              TextSpan(
-                text: widget.text,
-                style: TextStyle(
-                  color: _isHovered
-                      ? const Color(0xFF00ff41)
-                      : const Color(0xFF00ff41).withValues(alpha: 0.8),
-                  fontWeight: FontWeight.bold,
-                  decoration:
-                      _isHovered ? TextDecoration.underline : TextDecoration.none,
-                  decorationColor: const Color(0xFF00ff41),
-                  shadows: _isHovered
-                      ? const [
-                          Shadow(
-                              color: Color(0xFF00ff41),
-                              blurRadius: 8,
-                              offset: Offset(0, 0))
-                        ]
-                      : null,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Cyberpunk Checkbox ───────────────────────────────────────────────────
-
-class _CyberCheckbox extends StatefulWidget {
-  final String label;
-  final ValueChanged<bool> onChanged;
-
-  const _CyberCheckbox({required this.label, required this.onChanged});
-
-  @override
-  State<_CyberCheckbox> createState() => _CyberCheckboxState();
-}
-
-class _CyberCheckboxState extends State<_CyberCheckbox> {
-  bool _checked = false;
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: () {
-          setState(() => _checked = !_checked);
-          widget.onChanged(_checked);
-        },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 22,
-              height: 22,
-              margin: const EdgeInsets.only(top: 1),
-              decoration: BoxDecoration(
-                color: _checked
-                    ? const Color(0xFF00e5ff).withValues(alpha: 0.2)
-                    : const Color(0xFF0d1117),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: _checked
-                      ? const Color(0xFF00e5ff)
-                      : _isHovered
-                          ? const Color(0xFF00e5ff).withValues(alpha: 0.5)
-                          : const Color(0xFF1a3a2a),
-                  width: 1.5,
-                ),
-                boxShadow: _checked
-                    ? [
-                        BoxShadow(
-                          color: const Color(0xFF00e5ff)
-                              .withValues(alpha: 0.15),
-                          blurRadius: 8,
-                        ),
-                      ]
-                    : [],
-              ),
-              child: _checked
-                  ? const Icon(Icons.check, size: 14, color: Color(0xFF00e5ff))
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text.rich(
-                TextSpan(
-                  text: widget.label,
-                  style: TextStyle(
-                    color: const Color(0xFF4a5568).withValues(
-                        alpha: _isHovered ? 1.0 : 0.8),
-                    fontSize: 12,
-                    letterSpacing: 0.5,
-                    fontFamily: 'monospace',
-                  ),
-                  children: [
-                    TextSpan(
-                      text: ' УСЛОВИЯ ИСПОЛЬЗОВАНИЯ',
-                      style: TextStyle(
-                        color: const Color(0xFF00e5ff).withValues(alpha: 0.7),
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Password Strength Indicator ─────────────────────────────────────────
-
-class _PasswordStrengthIndicator extends StatelessWidget {
-  final String password;
-
-  const _PasswordStrengthIndicator({required this.password});
-
-  @override
-  Widget build(BuildContext context) {
-    if (password.isEmpty) return const SizedBox.shrink();
-
-    int strength = 0;
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
-    if (RegExp(r'[0-9]').hasMatch(password)) strength++;
-    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
-
-    final String strengthLevel;
-    if (strength == 0) {
-      strengthLevel = 'НЕТ';
-    } else if (strength <= 1) {
-      strengthLevel = 'СЛАБЫЙ';
-    } else if (strength <= 3) {
-      strengthLevel = 'СРЕДНИЙ';
-    } else {
-      strengthLevel = 'СИЛЬНЫЙ';
-    }
-
-    final color = strength == 0
-        ? const Color(0xFF4a5568)
-        : strength <= 1
-            ? const Color(0xFFff4444)
-            : strength <= 3
-                ? const Color(0xFFffaa00)
-                : const Color(0xFF00ff41);
-
-    return Row(
-      children: [
-        const Text(
-          'НАДЁЖНОСТЬ КЛЮЧА: ',
-          style: TextStyle(
-            color: Color(0xFF4a5568),
-            fontSize: 11,
-            letterSpacing: 1,
-            fontFamily: 'monospace',
-          ),
-        ),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: strength / 5,
-              backgroundColor: const Color(0xFF0d1117),
-              color: color,
-              minHeight: 4,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          strengthLevel,
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
-            fontFamily: 'monospace',
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─── Register Screen ──────────────────────────────────────────────────────
-
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _scanController;
-  final _aliasController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  bool _termsAccepted = false;
-  bool _isSubmitting = false;
-  String? _fieldError;
-  bool _obscurePassword = true;
-  bool _obscureConfirm = true;
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+  final _usernameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  bool _obscurePass = true;
+  bool _isHoveringButton = false;
+  String? _localError;
+
+  // ── Helpers ─────────────────────────────────────────────────────────
+
+  InputDecoration _inputDecoration(String label, {String? hint, String? helper}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      helperText: helper,
+      helperStyle: const TextStyle(color: _textMuted, fontSize: 11),
+      labelStyle: const TextStyle(color: _textMuted, fontSize: 13),
+      hintStyle: const TextStyle(color: _textMuted, fontSize: 12),
+      filled: true,
+      fillColor: const Color(0xFF0d1117),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: _borderColor, width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: _borderColor, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: _cyan, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: _errorRed, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: _errorRed, width: 1.5),
+      ),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+
+  String? _validateUsername(String value) {
+    if (value.trim().isEmpty) return 'Введите никнейм';
+    if (value.trim().length < 3) return 'Минимум 3 символа';
+    if (value.trim().length > 20) return 'Максимум 20 символов';
+    if (RegExp(r'[^\w\-]').hasMatch(value.trim())) {
+      return 'Только буквы, цифры, _ и -';
+    }
+    return null;
+  }
+
+  String? _validateEmail(String value) {
+    if (value.trim().isEmpty) return 'Введите email';
+    if (!RegExp(r'^[\w\.\-]+@[\w\.\-]+\.\w+$').hasMatch(value.trim())) {
+      return 'Некорректный email';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String value) {
+    if (value.isEmpty) return 'Введите пароль';
+    if (value.length < 6) return 'Минимум 6 символов';
+    return null;
+  }
+
+  void _clearErrors() {
+    if (_localError != null) setState(() => _localError = null);
+  }
+
+  // ── Build ───────────────────────────────────────────────────────────
 
   @override
-  void initState() {
-    super.initState();
-    _scanController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat();
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final isLoading = authState is AsyncLoading;
+    final errorMessage = ref.read(authProvider.notifier).errorMessage;
+
+    // Combine provider error with local validation error
+    final displayError = authState.hasError ? errorMessage : _localError;
+
+    return Scaffold(
+      backgroundColor: _bgColor,
+      body: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: 480,
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(
+              color: _cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _borderColor, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: _green.withOpacity(0.05),
+                  blurRadius: 60,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Title ────────────────────────────────────────────
+                ShaderMask(
+                  shaderCallback: (bounds) {
+                    return const LinearGradient(
+                      colors: [_green, _cyan],
+                    ).createShader(bounds);
+                  },
+                  child: const Text(
+                    'РЕГИСТРАЦИЯ',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 6,
+                      color: _green,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Создайте нового оператора',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _textMuted,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // ── Error message ─────────────────────────────────────
+                if (displayError != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _errorRed.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: _errorRed.withOpacity(0.3), width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
+                            color: _errorRed, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            displayError,
+                            style: const TextStyle(
+                              color: _errorRed,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // ── Username field ───────────────────────────────────
+                TextField(
+                  controller: _usernameCtrl,
+                  enabled: !isLoading,
+                  style:
+                      const TextStyle(color: _textPrimary, fontSize: 14),
+                  cursorColor: _cyan,
+                  textCapitalization: TextCapitalization.none,
+                  decoration: _inputDecoration(
+                    'Никнейм',
+                    hint: 'hacker_01',
+                  ),
+                  onChanged: (_) => _clearErrors(),
+                  onSubmitted: (_) => _submitRegister(),
+                ),
+                const SizedBox(height: 16),
+
+                // ── Email field ───────────────────────────────────────
+                TextField(
+                  controller: _emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  enabled: !isLoading,
+                  style:
+                      const TextStyle(color: _textPrimary, fontSize: 14),
+                  cursorColor: _cyan,
+                  decoration: _inputDecoration(
+                    'Email',
+                    hint: 'operator@darknet.onion',
+                  ),
+                  onChanged: (_) => _clearErrors(),
+                  onSubmitted: (_) => _submitRegister(),
+                ),
+                const SizedBox(height: 16),
+
+                // ── Password field ───────────────────────────────────
+                TextField(
+                  controller: _passCtrl,
+                  obscureText: _obscurePass,
+                  enabled: !isLoading,
+                  style:
+                      const TextStyle(color: _textPrimary, fontSize: 14),
+                  cursorColor: _cyan,
+                  decoration: _inputDecoration(
+                    'Пароль',
+                    helper: 'Минимум 6 символов',
+                  ).copyWith(
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePass
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: _textMuted,
+                        size: 20,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePass = !_obscurePass),
+                    ),
+                  ),
+                  onChanged: (_) => _clearErrors(),
+                  onSubmitted: (_) => _submitRegister(),
+                ),
+                const SizedBox(height: 28),
+
+                // ── Register button ──────────────────────────────────
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  onEnter: (_) =>
+                      setState(() => _isHoveringButton = true),
+                  onExit: (_) =>
+                      setState(() => _isHoveringButton = false),
+                  child: GestureDetector(
+                    onTap: isLoading ? null : _submitRegister,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: double.infinity,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: _isHoveringButton
+                              ? [_green, Color(0xFF00cc6a)]
+                              : [
+                                  _green.withOpacity(0.8),
+                                  Color(0xFF00cc6a).withOpacity(0.8)
+                                ],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _green.withOpacity(
+                                _isHoveringButton ? 0.4 : 0.2),
+                            blurRadius: 20,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: _bgColor,
+                              ),
+                            )
+                          : const Text(
+                              'СОЗДАТЬ АККАУНТ',
+                              style: TextStyle(
+                                color: _bgColor,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 3,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ── Login link ───────────────────────────────────────
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () => context.go('/login'),
+                    child: RichText(
+                      textAlign: TextAlign.center,
+                      text: const TextSpan(
+                        style: TextStyle(color: _textMuted, fontSize: 13),
+                        children: [
+                          TextSpan(text: 'Уже есть аккаунт? '),
+                          TextSpan(
+                            text: 'Войдите',
+                            style: TextStyle(
+                              color: _cyan,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ── Bottom accent line ───────────────────────────────
+                const SizedBox(height: 32),
+                Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        _green.withOpacity(0.3),
+                        _cyan.withOpacity(0.3),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'v1.0.0  ·  Защищённое соединение',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _textMuted,
+                    fontSize: 11,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Submit ───────────────────────────────────────────────────────────
+
+  Future<void> _submitRegister() async {
+    final username = _usernameCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final password = _passCtrl.text;
+
+    // Client-side validation
+    final usernameErr = _validateUsername(username);
+    if (usernameErr != null) {
+      setState(() => _localError = usernameErr);
+      return;
+    }
+    final emailErr = _validateEmail(email);
+    if (emailErr != null) {
+      setState(() => _localError = emailErr);
+      return;
+    }
+    final passErr = _validatePassword(password);
+    if (passErr != null) {
+      setState(() => _localError = passErr);
+      return;
+    }
+
+    await ref.read(authProvider.notifier).register(email, password, username);
+
+    if (!mounted) return;
+    final auth = ref.read(authProvider);
+
+    if (auth.hasError) {
+      // Provider error is displayed via errorMessage getter
+      setState(() => _localError = null);
+    } else {
+      // Registration succeeded – navigate to login with confirmation hint
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Аккаунт создан! Проверьте email для подтверждения.',
+          ),
+          backgroundColor: _green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      context.go('/login');
+    }
   }
 
   @override
   void dispose() {
-    _scanController.dispose();
-    _aliasController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _usernameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _handleRegister() async {
-    final alias = _aliasController.text.trim();
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    final confirmPassword = _confirmPasswordController.text.trim();
-
-    setState(() => _fieldError = null);
-
-    // Валидация
-    if (alias.isEmpty || alias.length < 3) {
-      setState(() => _fieldError = 'Псевдоним должен быть не менее 3 символов');
-      return;
-    }
-    if (alias.length > 20) {
-      setState(() => _fieldError = 'Псевдоним не более 20 символов');
-      return;
-    }
-    if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
-      setState(() => _fieldError = 'Введите корректный email');
-      return;
-    }
-    if (password.length < 8) {
-      setState(() => _fieldError = 'Пароль должен быть не менее 8 символов');
-      return;
-    }
-    if (password != confirmPassword) {
-      setState(() => _fieldError = 'Пароли не совпадают');
-      return;
-    }
-    if (!_termsAccepted) {
-      setState(() => _fieldError = 'Примите условия использования');
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      final authProvider = context.read<AuthProvider>();
-      final success = await authProvider.register(
-        email: email,
-        password: password,
-        username: alias,
-      );
-
-      if (!success && mounted) {
-        setState(
-            () => _fieldError = authProvider.errorMessage ?? 'Ошибка регистрации');
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _fieldError = 'Ошибка подключения: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFF0a0e17),
-      body: Stack(
-        children: [
-          // Scanline background
-          AnimatedBuilder(
-            animation: _scanController,
-            builder: (context, _) {
-              return CustomPaint(
-                painter: _ScanlinePainter(
-                    offset: _scanController.value * 400),
-                size: size,
-              );
-            },
-          ),
-
-          // ─── Centered Card ───────────────────────────────────────────────
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 500),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 32, vertical: 40),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(40, 40, 40, 32),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1a1f2e).withValues(alpha: 0.94),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0xFF00e5ff).withValues(alpha: 0.25),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color:
-                            const Color(0xFF00e5ff).withValues(alpha: 0.12),
-                        blurRadius: 40,
-                        spreadRadius: 2,
-                      ),
-                      BoxShadow(
-                        color:
-                            const Color(0xFF00ff41).withValues(alpha: 0.08),
-                        blurRadius: 50,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Header icon
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFF00e5ff),
-                            width: 2,
-                          ),
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFF00e5ff),
-                              Color(0xFF00ff41),
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF00e5ff)
-                                  .withValues(alpha: 0.4),
-                              blurRadius: 24,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.person_add_alt_1,
-                          color: Color(0xFF0a0e17),
-                          size: 34,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Title with neon glow
-                      const _NeonTitle(),
-                      const SizedBox(height: 32),
-
-                      // Error banner
-                      if (_fieldError != null)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 12),
-                          margin: const EdgeInsets.only(bottom: 20),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFF4444).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: const Color(0xFFFF4444).withValues(alpha: 0.4),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.error_outline,
-                                  color: Color(0xFFFF4444), size: 18),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  _fieldError!,
-                                  style: const TextStyle(
-                                    color: Color(0xFFFF4444),
-                                    fontSize: 13,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      // Hacker alias
-                      _CyberTextField(
-                        label: '[ ПСЕВДОНИМ ХАКЕРА ]',
-                        hintText: 'shadow_byte',
-                        controller: _aliasController,
-                        icon: Icons.hub_outlined,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Email
-                      _CyberTextField(
-                        label: '[ ЭЛ. ПОЧТА ]',
-                        hintText: 'operator@darknet.io',
-                        controller: _emailController,
-                        icon: Icons.alternate_email,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Password
-                      _CyberTextField(
-                        label: '[ ПАРОЛЬ ]',
-                        hintText: '••••••••••••',
-                        controller: _passwordController,
-                        icon: Icons.lock_outline,
-                        obscureText: _obscurePassword,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: const Color(0xFF00e5ff),
-                            size: 20,
-                          ),
-                          onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Confirm password
-                      _CyberTextField(
-                        label: '[ ПОДТВЕРДИТЕ ПАРОЛЬ ]',
-                        hintText: '••••••••••••',
-                        controller: _confirmPasswordController,
-                        icon: Icons.lock_reset,
-                        obscureText: _obscureConfirm,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureConfirm
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: const Color(0xFF00e5ff),
-                            size: 20,
-                          ),
-                          onPressed: () => setState(
-                              () => _obscureConfirm = !_obscureConfirm),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Password strength
-                      _PasswordStrengthIndicator(
-                        password: _passwordController.text,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Terms
-                      _CyberCheckbox(
-                        label: 'Я ПРИНИМАЮ',
-                        onChanged: (v) => setState(() => _termsAccepted = v),
-                      ),
-                      const SizedBox(height: 28),
-
-                      // Register button
-                      AnimatedOpacity(
-                        duration: const Duration(milliseconds: 200),
-                        opacity:
-                            (_termsAccepted && !_isSubmitting) ? 1.0 : 0.35,
-                        child: _CyberHoverButton(
-                          onPressed: (_termsAccepted && !_isSubmitting)
-                              ? _handleRegister
-                              : null,
-                          text: '⚡  ПОДКЛЮЧИТЬСЯ',
-                          isLoading: _isSubmitting,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Back to login
-                      _CyberLink(
-                        label: 'УЖЕ ПОДКЛЮЧЕНЫ?  ',
-                        text: 'ВОЙТИ',
-                        onTap: () => context.go('/login'),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // System info
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0a0e17),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: const Color(0xFF00ff41)
-                                .withValues(alpha: 0.1),
-                          ),
-                        ),
-                        child: const Text(
-                          '> ЗАШИФРОВАННОЕ СОЕДИНЕНИЕ УСТАНОВЛЕНО\n'
-                          '> ПРОТОКОЛ: TLS 1.3 | ШИФР: AES-256-GCM\n'
-                          '> АНОНИМИЗАЦИЯ ЛИЧНОСТИ: АКТИВНА',
-                          style: TextStyle(
-                            color: Color(0xFF00ff41),
-                            fontSize: 10,
-                            letterSpacing: 0.5,
-                            fontFamily: 'monospace',
-                            height: 1.6,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
