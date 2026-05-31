@@ -115,7 +115,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           SnackBar(
             content: Text('Операция завершена: ${_opTypeRu(op['op_type'] ?? '')}'),
             backgroundColor: _greenPrimary,
-            foregroundColor: _bgDark,
           ),
         );
       }
