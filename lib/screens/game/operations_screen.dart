@@ -358,7 +358,7 @@ class _OperationsScreenState extends ConsumerState<OperationsScreen> {
         'p_server_id': _selectedServerId,
         'p_op_type': _selectedOpType,
       });
-      await ref.read(gameProvider).notifier.loadAllData();
+      await ref.read(gameProvider.notifier).loadAllData();
       if (mounted) {
         setState(() {
           _selectedTarget = null;
@@ -369,7 +369,6 @@ class _OperationsScreenState extends ConsumerState<OperationsScreen> {
           const SnackBar(
             content: Text('Операция начата!'),
             backgroundColor: _greenPrimary,
-            foregroundColor: _bgDark,
           ),
         );
       }
@@ -392,13 +391,12 @@ class _OperationsScreenState extends ConsumerState<OperationsScreen> {
     setState(() => _completingOps.add(op['id']));
     try {
       await _supabase.rpc('complete_operation', params: {'p_op_id': op['id']});
-      await ref.read(gameProvider).notifier.loadAllData();
+      await ref.read(gameProvider.notifier).loadAllData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Операция завершена: ${_opTypeRu(op['op_type'] ?? '')}'),
             backgroundColor: _greenPrimary,
-            foregroundColor: _bgDark,
           ),
         );
       }
@@ -1073,7 +1071,7 @@ class _OperationsScreenState extends ConsumerState<OperationsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.public_off_outlined,
+                    Icon(Icons.public_off,
                         color: Colors.grey.shade600, size: 48),
                     const SizedBox(height: 12),
                     const Text(
